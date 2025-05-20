@@ -1,0 +1,206 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+.bg-navy-blue {
+  background-color: #051838;
+}
+
+.text-navy-blue {
+  color: #051838;
+}
+
+@layer utilities {
+  .animate-marquee {
+    display: inline-block;
+    white-space: nowrap;
+    animation: marquee 20s linear infinite;
+  }
+
+  @keyframes marquee {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+}
+
+/* Add card hover animations */
+.stock-card {
+  transition: all 0.3s ease;
+}
+
+.stock-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Fix tab styling */
+.tabs-list {
+  background-color: #f1f5f9;
+  border-radius: 9999px;
+  padding: 0.25rem;
+  display: inline-flex;
+  position: relative;
+}
+
+.tab-trigger {
+  position: relative;
+  z-index: 10;
+  border-radius: 9999px;
+  padding: 0.5rem 1.5rem;
+  transition: color 0.2s ease;
+}
+
+.tab-trigger[data-state="active"] {
+  color: white;
+}
+
+.tab-trigger-bg {
+  position: absolute;
+  top: 0.25rem;
+  bottom: 0.25rem;
+  left: 0.25rem;
+  width: calc(50% - 0.5rem);
+  border-radius: 9999px;
+  background-color: #2563eb;
+  transition: transform 0.2s ease;
+}
+
+.tab-trigger-bg[data-state="closed"] {
+  transform: translateX(100%);
+}
+
+/* Sidebar styles */
+@media (max-width: 1023px) {
+  body.sidebar-open {
+    overflow: hidden;
+  }
+
+  [data-sidebar="true"] {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    width: 80%; /* Make sidebar wider on mobile for better touch targets */
+    max-width: 300px;
+  }
+}
+
+/* Desktop sidebar styles */
+@media (min-width: 1024px) {
+  [data-sidebar="true"] {
+    height: auto;
+    min-height: 0;
+    background-color: #f9fafb;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Ensure the premium features section is always visible */
+  [data-sidebar="true"] > div {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  [data-sidebar="true"] nav {
+    flex: 1;
+    overflow-y: auto;
+  }
+}
+
+/* Hero section styles */
+.hero-section {
+  position: relative;
+  background-color: #051838;
+  overflow: hidden;
+}
+
+.hero-section::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(5, 24, 56, 0.9) 0%, rgba(5, 24, 56, 0.7) 100%);
+  z-index: 1;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+}
