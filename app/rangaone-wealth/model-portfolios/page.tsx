@@ -122,7 +122,7 @@ export default function ModelPortfoliosPage() {
                         </span>
                       </div>
                       <div>
-                        {portfolio?.isPurchased ? (
+                        {portfolio?.PortfolioCategory === "Basic" ? (
                           <div className="flex items-center text-green-600">
                             <Unlock className="h-4 w-4 mr-1" />
                             <span className="text-sm font-medium">
@@ -149,17 +149,17 @@ export default function ModelPortfoliosPage() {
                         </div>
                         <div
                           className={`text-lg font-semibold flex items-center ${
-                            portfolio?.monthlyYield >= 0
+                            Number(portfolio?.monthlyGains) >= 0
                               ? "text-green-600"
                               : "text-red-600"
                           }`}
                         >
-                          {portfolio?.monthlyYield >= 0 ? (
+                          {Number(portfolio?.monthlyGains) >= 0 ? (
                             <TrendingUp className="h-4 w-4 mr-1" />
                           ) : (
                             <TrendingDown className="h-4 w-4 mr-1" />
                           )}
-                          {portfolio?.monthlyYield?.toFixed(2)}%
+                          {Number(portfolio?.monthlyGains)?.toFixed(2)}%
                         </div>
                       </div>
 
@@ -169,17 +169,17 @@ export default function ModelPortfoliosPage() {
                         </div>
                         <div
                           className={`text-lg font-semibold flex items-center ${
-                            portfolio?.ytdYield >= 0
+                            Number(portfolio?.oneYearGains) >= 0
                               ? "text-green-600"
                               : "text-red-600"
                           }`}
                         >
-                          {portfolio?.ytdYield >= 0 ? (
+                          {Number(portfolio?.oneYearGains) >= 0 ? (
                             <TrendingUp className="h-4 w-4 mr-1" />
                           ) : (
                             <TrendingDown className="h-4 w-4 mr-1" />
                           )}
-                          {portfolio?.ytdYield?.toFixed(2)}%
+                          {Number(portfolio?.oneYearGains)?.toFixed(2)}%
                         </div>
                       </div>
 
@@ -207,14 +207,14 @@ export default function ModelPortfoliosPage() {
                         variant="outline"
                         size="sm"
                         className="flex items-center text-gray-600"
-                        // disabled={!portfolio?.isPurchased}
+                        disabled={portfolio?.PortfolioCategory !== "Basic"}
                         onClick={() => handleViewDetails(portfolio?._id)}
                       >
                         <Eye className="h-4 w-4 mr-1" />
                         View Details
                       </Button>
 
-                      {!portfolio?.isPurchased && (
+                      {portfolio?.PortfolioCategory !== "Basic" && (
                         <Button
                           className="bg-blue-600 hover:bg-blue-700 text-white"
                           onClick={() => handleSubscribe(portfolio?._id)}
@@ -223,7 +223,7 @@ export default function ModelPortfoliosPage() {
                         </Button>
                       )}
 
-                      {portfolio?.isPurchased && (
+                      {portfolio?.PortfolioCategory !== "Basic" && (
                         <div className="flex space-x-2">
                           <Button
                             variant="outline"
@@ -240,7 +240,7 @@ export default function ModelPortfoliosPage() {
                     </div>
                   </div>
 
-                  {portfolio?.isPurchased && (
+                  {portfolio?.PortfolioCategory === "Basic" && (
                     <div className="bg-gray-50 p-4 border-t border-gray-200">
                       <div className="flex items-center">
                         <span className="text-sm text-gray-600 mr-2">

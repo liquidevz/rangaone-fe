@@ -2,9 +2,12 @@
 
 import DashboardLayout from "@/components/dashboard-layout";
 import { PageHeader } from "@/components/page-header";
+import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
+import { Tip, tipsService } from "@/services/tip.service";
 import useEmblaCarousel from "embla-carousel-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 // Types
@@ -19,6 +22,31 @@ interface Recommendation {
 }
 
 export default function RangaoneWealth() {
+  const [allTips, setAllTips] = useState<Tip[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  const router = useRouter();
+
+  useEffect(() => {
+    async function loadPortfolios() {
+      try {
+        const data = await tipsService.getAll();
+        setAllTips(data);
+      } catch (error) {
+        console.error("Failed to load portfolios:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load portfolios. Please try again later.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadPortfolios();
+  }, [toast]);
+
   return (
     <DashboardLayout userId="1">
       <div className="flex flex-col w-full">
@@ -33,35 +61,7 @@ export default function RangaoneWealth() {
             title="EXPERT RECOMMENDATIONS"
             buttonText="View All Recommendations"
             buttonLink="/rangaone-wealth/all-recommendations"
-            recommendations={[
-              {
-                id: 1,
-                name: "RELIANCE IND",
-                exchange: "BSE",
-                entryPrice: "2500 - 2550",
-                targetPrice: "2700 - 2800",
-                result: 9.8,
-                type: "Premium",
-              },
-              {
-                id: 2,
-                name: "AXIS BANK",
-                exchange: "NSE",
-                entryPrice: "2234 - 2278",
-                targetPrice: "2437 - 2617",
-                result: 17.35,
-                type: "Basic",
-              },
-              {
-                id: 3,
-                name: "HDFC BANK",
-                exchange: "NSE",
-                entryPrice: "1634 - 1678",
-                targetPrice: "1837 - 1917",
-                result: 15.35,
-                type: "Premium",
-              },
-            ]}
+            recommendations={allTips.filter((tip) => tip.status === "Active")}
           />
 
           <div className="h-px bg-gray-200 my-8"></div>
@@ -71,35 +71,7 @@ export default function RangaoneWealth() {
             title="CLOSED RECOMMENDATIONS"
             buttonText="View All Closed Recommendations"
             buttonLink="/rangaone-wealth/closed-recommendations"
-            recommendations={[
-              {
-                id: 1,
-                name: "RELIANCE IND",
-                exchange: "BSE",
-                entryPrice: "2500 - 2550",
-                targetPrice: "2700 - 2800",
-                result: 9.8,
-                type: "Premium",
-              },
-              {
-                id: 2,
-                name: "AXIS BANK",
-                exchange: "NSE",
-                entryPrice: "2234 - 2278",
-                targetPrice: "2437 - 2617",
-                result: 17.35,
-                type: "Basic",
-              },
-              {
-                id: 3,
-                name: "ICICI BANK",
-                exchange: "NSE",
-                entryPrice: "934 - 978",
-                targetPrice: "1037 - 1117",
-                result: 14.35,
-                type: "Premium",
-              },
-            ]}
+            recommendations={allTips.filter((tip) => tip.status !== "Active")}
           />
         </div>
       </div>
@@ -116,7 +88,7 @@ function RecommendationsSection({
   title: string;
   buttonText: string;
   buttonLink: string;
-  recommendations: Recommendation[];
+  recommendations: Tip[];
 }) {
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [emblaRef, emblaApi] = useEmblaCarousel({
@@ -134,7 +106,7 @@ function RecommendationsSection({
     activeFilter === "all"
       ? recommendations
       : recommendations.filter(
-          (rec) => rec.type.toLowerCase() === activeFilter.toLowerCase()
+          (rec) => rec.type?.toLowerCase() === activeFilter.toLowerCase()
         );
 
   const scrollPrev = useCallback(
@@ -218,7 +190,7 @@ function RecommendationsSection({
             {filteredRecommendations.length > 0 ? (
               filteredRecommendations.map((recommendation, index) => (
                 <div
-                  key={recommendation.id}
+                  key={recommendation?.id}
                   className={cn(
                     "flex-[0_0_100%] min-w-0 sm:flex-[0_0_80%] md:flex-[0_0_50%] lg:flex-[0_0_33.333%] relative px-2 md:px-3 transition-all duration-300",
                     {
@@ -228,41 +200,38 @@ function RecommendationsSection({
                   )}
                 >
                   <Link
-                    href={`/rangaone-wealth/recommendation/${recommendation.name.replace(
-                      /\s+/g,
-                      ""
-                    )}`}
+                    href={`/rangaone-wealth/recommendation/${recommendation?.id}`}
                     className="block h-full"
                   >
                     <div className="rounded-lg border-2 border-gray-200 overflow-hidden bg-white shadow-sm h-full cursor-pointer hover:border-primary">
                       <div className="flex justify-between">
                         <span
                           className={`${
-                            recommendation.type.toLowerCase() === "premium"
+                            recommendation?.type?.toLowerCase() === "premium"
                               ? "bg-yellow-500"
                               : "bg-blue-600"
                           } text-white px-3 py-1 text-xs font-medium`}
                         >
-                          {recommendation.type}
+                          {recommendation?.type}
                         </span>
                         <span
                           className={`${
-                            recommendation.result > 0
+                            recommendation?.result > 0
                               ? "bg-green-500"
                               : "bg-gray-500"
                           } text-white px-3 py-1 text-xs font-medium`}
                         >
-                          {recommendation.result.toFixed(2)} %
+                          {recommendation?.result?.toFixed(2)} %
                         </span>
                       </div>
 
                       <div className="p-4">
                         <div className="mb-4">
                           <h3 className="text-lg font-bold">
-                            {recommendation.name}
+                            {recommendation?.title}
                           </h3>
                           <p className="text-gray-500 text-sm">
-                            {recommendation.exchange}
+                            {recommendation?.exchange}
                           </p>
                         </div>
 
@@ -270,7 +239,7 @@ function RecommendationsSection({
                           <div>
                             <p className="text-xs text-gray-500">Entry Price</p>
                             <p className="font-medium text-sm">
-                              ₹ {recommendation.entryPrice}
+                              ₹ {recommendation?.buyRange}
                             </p>
                           </div>
                           <div>
@@ -278,7 +247,7 @@ function RecommendationsSection({
                               Target Price
                             </p>
                             <p className="font-medium text-sm">
-                              ₹ {recommendation.targetPrice}
+                              ₹ {recommendation?.targetPrice}
                             </p>
                           </div>
                         </div>

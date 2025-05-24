@@ -1,21 +1,29 @@
-"use client"
+"use client";
 
-import { ArrowUpRight, Info, TrendingUp, BarChart4, Target } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Progress } from "@/components/ui/progress"
-import { motion } from "framer-motion"
-import Link from "next/link"
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Tip } from "@/lib/types";
+import { motion } from "framer-motion";
+import { ArrowUpRight, Info, TrendingUp } from "lucide-react";
+import Link from "next/link";
 
 interface WealthRecommendationPageProps {
-  stockName?: string
+  stockData?: Tip;
 }
 
-export default function WealthRecommendationPage({ stockName = "AXIS BANK" }: WealthRecommendationPageProps) {
+export default function WealthRecommendationPage({
+  stockData,
+}: WealthRecommendationPageProps) {
   // Capitalize the stock name for display
-  const displayName = stockName.replace(/-/g, " ").toUpperCase()
+  const displayName = stockData?.title?.replace(/-/g, " ").toUpperCase();
 
   return (
     <div className="bg-gradient-to-b from-slate-50 to-white">
@@ -28,11 +36,15 @@ export default function WealthRecommendationPage({ stockName = "AXIS BANK" }: We
           className="mb-8 text-center"
         >
           <div className="inline-block bg-indigo-950 text-white px-8 py-4 rounded-lg shadow-lg mb-2">
-            <h1 className="text-2xl md:text-4xl font-bold tracking-tight">RANGAONE WEALTH</h1>
+            <h1 className="text-2xl md:text-4xl font-bold tracking-tight">
+              RANGAONE WEALTH
+            </h1>
           </div>
           <div className="flex justify-center">
             <div className="bg-white px-6 py-1.5 rounded-full shadow-sm -mt-2 border border-gray-100">
-              <h2 className="text-sm md:text-base font-medium text-gray-700 tracking-wider">EXPERT RECOMMENDATIONS</h2>
+              <h2 className="text-sm md:text-base font-medium text-gray-700 tracking-wider">
+                EXPERT RECOMMENDATIONS
+              </h2>
             </div>
           </div>
         </motion.div>
@@ -47,11 +59,17 @@ export default function WealthRecommendationPage({ stockName = "AXIS BANK" }: We
             <CardHeader className="bg-gradient-to-r from-amber-50 to-amber-100 pb-2 pt-3 px-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <Badge className="bg-amber-500 text-white hover:bg-amber-600">Premium</Badge>
+                  <Badge className="bg-amber-500 text-white hover:bg-amber-600">
+                    Premium
+                  </Badge>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 ml-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 ml-1"
+                        >
                           <Info className="h-3 w-3" />
                         </Button>
                       </TooltipTrigger>
@@ -62,7 +80,10 @@ export default function WealthRecommendationPage({ stockName = "AXIS BANK" }: We
                   </TooltipProvider>
                 </div>
                 <div className="flex items-center">
-                  <Badge variant="outline" className="bg-white text-gray-600 mr-2">
+                  <Badge
+                    variant="outline"
+                    className="bg-white text-gray-600 mr-2"
+                  >
                     <span className="mr-1">Updated 2 hours ago</span>
                   </Badge>
                 </div>
@@ -71,10 +92,14 @@ export default function WealthRecommendationPage({ stockName = "AXIS BANK" }: We
             <CardContent className="p-4">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">{displayName}</h3>
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {displayName}
+                  </h3>
                   <div className="flex items-center mt-1">
                     <span className="text-sm text-gray-500 mr-2">Horizon:</span>
-                    <span className="text-sm font-medium">Long Term</span>
+                    <span className="text-sm font-medium">
+                      {stockData?.horizon}
+                    </span>
                   </div>
                   <div className="mt-2 flex items-center">
                     <Badge variant="outline" className="mr-2 bg-gray-50">
@@ -102,7 +127,9 @@ export default function WealthRecommendationPage({ stockName = "AXIS BANK" }: We
               {/* Confidence Meter */}
               <div className="mt-4 pt-4 border-t border-gray-100">
                 <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm font-medium">Analyst Confidence</span>
+                  <span className="text-sm font-medium">
+                    Analyst Confidence
+                  </span>
                   <span className="text-sm font-medium">High</span>
                 </div>
                 <Progress value={85} className="h-2" />
@@ -119,7 +146,9 @@ export default function WealthRecommendationPage({ stockName = "AXIS BANK" }: We
         >
           <Card className="mb-8 border border-gray-200 shadow-sm">
             <CardHeader className="bg-indigo-950 py-2 px-4">
-              <h3 className="text-white text-center font-medium">Recommendation Details</h3>
+              <h3 className="text-white text-center font-medium">
+                Recommendation Details
+              </h3>
             </CardHeader>
             <CardContent className="p-6">
               <div className="grid grid-cols-2 gap-6">
@@ -129,7 +158,11 @@ export default function WealthRecommendationPage({ stockName = "AXIS BANK" }: We
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-5 w-5 ml-1 p-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 ml-1 p-0"
+                          >
                             <Info className="h-3 w-3" />
                           </Button>
                         </TooltipTrigger>
@@ -139,7 +172,9 @@ export default function WealthRecommendationPage({ stockName = "AXIS BANK" }: We
                       </Tooltip>
                     </TooltipProvider>
                   </div>
-                  <div className="font-semibold text-green-600">101 - 103</div>
+                  <div className="font-semibold text-green-600">
+                    {stockData?.buyRange}
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <div className="text-gray-500 text-sm flex items-center">
@@ -147,7 +182,11 @@ export default function WealthRecommendationPage({ stockName = "AXIS BANK" }: We
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-5 w-5 ml-1 p-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 ml-1 p-0"
+                          >
                             <Info className="h-3 w-3" />
                           </Button>
                         </TooltipTrigger>
@@ -157,7 +196,10 @@ export default function WealthRecommendationPage({ stockName = "AXIS BANK" }: We
                       </Tooltip>
                     </TooltipProvider>
                   </div>
-                  <div className="font-semibold text-green-600">113 - 126</div>
+                  <div className="font-semibold text-green-600">
+                    {" "}
+                    {stockData?.targetPrice}
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <div className="text-gray-500 text-sm flex items-center">
@@ -165,7 +207,11 @@ export default function WealthRecommendationPage({ stockName = "AXIS BANK" }: We
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-5 w-5 ml-1 p-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 ml-1 p-0"
+                          >
                             <Info className="h-3 w-3" />
                           </Button>
                         </TooltipTrigger>
@@ -175,15 +221,23 @@ export default function WealthRecommendationPage({ stockName = "AXIS BANK" }: We
                       </Tooltip>
                     </TooltipProvider>
                   </div>
-                  <div className="font-semibold text-green-600">90 - 92</div>
+                  <div className="font-semibold text-green-600">
+                    {" "}
+                    {stockData?.addMoreAt}
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <div className="text-gray-500 text-sm">Recommended Date</div>
-                  <div className="font-semibold text-green-600">19 March 2025</div>
+                  <div className="font-semibold text-green-600">
+                    19 March 2025
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <div className="text-gray-500 text-sm">Horizon</div>
-                  <div className="font-semibold text-green-600">Long Term</div>
+                  <div className="font-semibold text-green-600">
+                    {" "}
+                    {stockData?.horizon}
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <div className="text-gray-500 text-sm">LTP</div>
@@ -204,10 +258,12 @@ export default function WealthRecommendationPage({ stockName = "AXIS BANK" }: We
         >
           <Card className="mb-8 border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
             <CardHeader className="bg-indigo-950 py-2 px-4">
-              <h3 className="text-white text-center font-medium">Why Buy This?</h3>
+              <h3 className="text-white text-center font-medium">
+                Why Buy This?
+              </h3>
             </CardHeader>
             <CardContent className="p-6">
-              <ul className="space-y-4">
+              {/* <ul className="space-y-4">
                 <motion.li
                   className="flex items-start"
                   initial={{ opacity: 0, x: -10 }}
@@ -219,7 +275,9 @@ export default function WealthRecommendationPage({ stockName = "AXIS BANK" }: We
                   </div>
                   <div>
                     <span className="font-medium">Discounted Valuation</span>
-                    <p className="text-gray-600 mt-0.5">Technically trading at a Discounted price (39%).</p>
+                    <p className="text-gray-600 mt-0.5">
+                      Technically trading at a Discounted price (39%).
+                    </p>
                   </div>
                 </motion.li>
                 <motion.li
@@ -233,7 +291,9 @@ export default function WealthRecommendationPage({ stockName = "AXIS BANK" }: We
                   </div>
                   <div>
                     <span className="font-medium">Attractive P/E Ratio</span>
-                    <p className="text-gray-600 mt-0.5">Low Price to Equity ratio of 15.9 (Very Attractive).</p>
+                    <p className="text-gray-600 mt-0.5">
+                      Low Price to Equity ratio of 15.9 (Very Attractive).
+                    </p>
                   </div>
                 </motion.li>
                 <motion.li
@@ -248,7 +308,8 @@ export default function WealthRecommendationPage({ stockName = "AXIS BANK" }: We
                   <div>
                     <span className="font-medium">Strong Growth</span>
                     <p className="text-gray-600 mt-0.5">
-                      Showing Good Sales & Profit growth of 48% & 27% respectively.
+                      Showing Good Sales & Profit growth of 48% & 27%
+                      respectively.
                     </p>
                   </div>
                 </motion.li>
@@ -263,7 +324,9 @@ export default function WealthRecommendationPage({ stockName = "AXIS BANK" }: We
                   </div>
                   <div>
                     <span className="font-medium">Institutional Interest</span>
-                    <p className="text-gray-600 mt-0.5">DIIs have increased their stake from 9% to 14%.</p>
+                    <p className="text-gray-600 mt-0.5">
+                      DIIs have increased their stake from 9% to 14%.
+                    </p>
                   </div>
                 </motion.li>
                 <motion.li
@@ -278,14 +341,20 @@ export default function WealthRecommendationPage({ stockName = "AXIS BANK" }: We
                   <div>
                     <span className="font-medium">Business Expansion</span>
                     <p className="text-gray-600 mt-0.5">
-                      The company is expanding their assisted business through different channels and products and
-                      entering into wealth management.
+                      The company is expanding their assisted business through
+                      different channels and products and entering into wealth
+                      management.
                     </p>
                   </div>
                 </motion.li>
-              </ul>
+              </ul> */}
+
+              {stockData?.content || ""}
               <div className="mt-6 border-t pt-6 flex justify-center">
-                <Button className="bg-green-600 hover:bg-green-700 text-white">
+                <Button
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  onClick={() => window.open(stockData?.tipUrl, "_blank")}
+                >
                   View Detailed Report
                   <ArrowUpRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -301,26 +370,57 @@ export default function WealthRecommendationPage({ stockName = "AXIS BANK" }: We
           transition={{ duration: 0.5, delay: 0.6 }}
           className="mb-10"
         >
-          <h3 className="text-lg font-medium mb-4 text-center">Similar Recommendations</h3>
+          <h3 className="text-lg font-medium mb-4 text-center">
+            Similar Recommendations
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
-              { name: "HDFC Bank", price: "1642.30", change: "+0.8%", target: "28%" },
-              { name: "ICICI Bank", price: "1024.15", change: "+1.2%", target: "32%" },
-              { name: "Kotak Bank", price: "1752.60", change: "-0.3%", target: "24%" },
+              {
+                name: "HDFC Bank",
+                price: "1642.30",
+                change: "+0.8%",
+                target: "28%",
+              },
+              {
+                name: "ICICI Bank",
+                price: "1024.15",
+                change: "+1.2%",
+                target: "32%",
+              },
+              {
+                name: "Kotak Bank",
+                price: "1752.60",
+                change: "-0.3%",
+                target: "24%",
+              },
             ].map((stock, index) => (
-              <Link href={`/rangaone-wealth/recommendation/${stock.name.replace(/\s+/g, "")}`} key={index}>
+              <Link
+                href={`/rangaone-wealth/recommendation/${stock.name.replace(
+                  /\s+/g,
+                  ""
+                )}`}
+                key={index}
+              >
                 <Card className="hover:shadow-md transition-shadow duration-300 cursor-pointer">
                   <CardContent className="p-4">
                     <div className="flex justify-between items-center">
                       <div>
                         <h4 className="font-medium">{stock.name}</h4>
-                        <div className={`text-sm ${stock.change.startsWith("+") ? "text-green-600" : "text-red-500"}`}>
+                        <div
+                          className={`text-sm ${
+                            stock.change.startsWith("+")
+                              ? "text-green-600"
+                              : "text-red-500"
+                          }`}
+                        >
                           {stock.change}
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="font-bold">₹{stock.price}</div>
-                        <div className="text-xs text-green-600">Target: {stock.target}</div>
+                        <div className="text-xs text-green-600">
+                          Target: {stock.target}
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -332,10 +432,12 @@ export default function WealthRecommendationPage({ stockName = "AXIS BANK" }: We
 
         {/* Disclaimer */}
         <div className="text-xs text-gray-500 text-center mb-8">
-          Disclaimer: All recommendations are based on technical and fundamental analysis. Investments in the securities
-          market are subject to market risks. Please read all the related documents carefully before investing.
+          Disclaimer: All recommendations are based on technical and fundamental
+          analysis. Investments in the securities market are subject to market
+          risks. Please read all the related documents carefully before
+          investing.
         </div>
       </div>
     </div>
-  )
+  );
 }

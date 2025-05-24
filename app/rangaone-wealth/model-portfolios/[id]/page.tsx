@@ -269,7 +269,7 @@ export default function PortfolioDetailsPage() {
               <div className="flex items-center mb-2 md:mb-0">
                 <h2 className="text-xl font-semibold">{portfolio?.name}</h2>
                 <span className="ml-2 px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
-                  {portfolio?.type}
+                  {portfolio?.PortfolioCategory}
                 </span>
               </div>
               <div className="flex space-x-2">
@@ -298,17 +298,17 @@ export default function PortfolioDetailsPage() {
               <div className="text-sm text-gray-500 mb-1">Monthly Yield</div>
               <div
                 className={`text-lg font-semibold flex items-center ${
-                  portfolio?.monthlyYield >= 0
+                  Number(portfolio?.monthlyGains) >= 0
                     ? "text-green-600"
                     : "text-red-600"
                 }`}
               >
-                {portfolio?.monthlyYield >= 0 ? (
+                {Number(portfolio?.monthlyGains) >= 0 ? (
                   <TrendingUp className="h-4 w-4 mr-1" />
                 ) : (
                   <TrendingDown className="h-4 w-4 mr-1" />
                 )}
-                {portfolio?.monthlyYield?.toFixed(2)}%
+                {Number(portfolio?.monthlyGains)?.toFixed(2)}%
               </div>
             </div>
 
@@ -316,15 +316,17 @@ export default function PortfolioDetailsPage() {
               <div className="text-sm text-gray-500 mb-1">Year-to-Date</div>
               <div
                 className={`text-lg font-semibold flex items-center ${
-                  portfolio?.ytdYield >= 0 ? "text-green-600" : "text-red-600"
+                  Number(portfolio?.oneYearGains) >= 0
+                    ? "text-green-600"
+                    : "text-red-600"
                 }`}
               >
-                {portfolio?.ytdYield >= 0 ? (
+                {Number(portfolio?.oneYearGains) >= 0 ? (
                   <TrendingUp className="h-4 w-4 mr-1" />
                 ) : (
                   <TrendingDown className="h-4 w-4 mr-1" />
                 )}
-                {portfolio?.ytdYield?.toFixed(2)}%
+                {Number(portfolio?.oneYearGains)?.toFixed(2)}%
               </div>
             </div>
 
@@ -350,72 +352,8 @@ export default function PortfolioDetailsPage() {
         {/* Portfolio Description */}
         <div className="bg-white rounded-lg shadow-sm border border-blue-500 mb-8 p-6">
           <h3 className="text-lg font-semibold mb-4">About this portfolio</h3>
-          <p className="text-gray-700 mb-4">
-            This Growth and Early Stage Model portfolio is a pure recommendation
-            model portfolio, using which our investors can start building their
-            portfolios on their own. This investment strategy is designed for
-            investors who are looking for high growth potential with a moderate
-            level of risk.
-          </p>
-          <p className="text-gray-700 mb-4">
-            Based on our careful research for the last 10 years, we have built
-            this model portfolio which has consistently outperformed the market
-            indices. We have designed these model portfolios for investors who
-            want to invest in the stock market but don't have the time or
-            expertise to research individual stocks. Our team of experts
-            continuously monitors these portfolios and makes necessary
-            adjustments to ensure optimal performance.
-          </p>
-          <p className="text-gray-700 mb-4">
-            The expected average return from this portfolio is 15-18% per year.
-            In the last year, it helped gain 20.25% and in the past 3 years, it
-            has delivered an average of 18.75% per annum.
-          </p>
-          <p className="text-gray-700 mb-4">
-            There are 4 typical market phases we look at, and they are:
-          </p>
-          <ul className="list-disc pl-8 mb-4 text-gray-700">
-            <li>
-              A bull market rally (uptrend, typically 1-3 years with strong
-              bullish sentiment)
-            </li>
-            <li>
-              A bear market (downtrend, typically 6-18 months with strong
-              bearish sentiment)
-            </li>
-            <li>
-              A sideways market (range-bound, typically 3-9 months with no clear
-              direction)
-            </li>
-            <li>
-              A volatile market (high volatility, typically 1-6 months with
-              rapid price swings)
-            </li>
-          </ul>
-          <p className="text-gray-700">
-            <span className="font-semibold">Risk Profile:</span> Moderate to
-            High
-          </p>
-          <p className="text-gray-700">
-            <span className="font-semibold">
-              Recommended Investment Horizon:
-            </span>{" "}
-            3-5 years
-          </p>
-          <p className="text-gray-700">
-            <span className="font-semibold">Last Updated:</span> April 17, 2023
-          </p>
-          <p className="text-gray-700">
-            <span className="font-semibold">Benchmark:</span> Nifty 50
-          </p>
-          <div className="mt-4 text-xs text-gray-500">
-            <p>
-              * Past performance is not indicative of future results. The
-              information contained herein has been prepared solely for
-              informational purposes and is not an offer to buy or sell or a
-              solicitation of an offer to buy or sell any securities.
-            </p>
-          </div>
+
+          {portfolio?.details || "No Details Available"}
         </div>
 
         {/* Portfolio Returns */}
@@ -601,7 +539,8 @@ export default function PortfolioDetailsPage() {
                     colSpan={7}
                     className="px-4 py-3 text-sm font-medium text-green-600"
                   >
-                    +{portfolio?.ytdYield?.toFixed(2)}% Since Inception
+                    +{Number(portfolio?.oneYearGains)?.toFixed(2)}% Since
+                    Inception
                   </td>
                 </tr>
               </tfoot>
