@@ -22,9 +22,10 @@ export default function CartPage() {
   const [appliedCoupon, setAppliedCoupon] = useState("")
   const [discount, setDiscount] = useState(0)
   const [checkoutModal, setCheckoutModal] = useState(false)
+  const [updatingQuantity, setUpdatingQuantity] = useState<string | null>(null)
 
   const { isAuthenticated } = useAuth()
-  const { cart, cartItemCount, removeFromCart, refreshCart } = useCart()
+  const { cart, cartItemCount, addToCart, removeFromCart, refreshCart } = useCart()
   const { toast } = useToast()
 
   useEffect(() => {
@@ -36,24 +37,48 @@ export default function CartPage() {
   }, [isAuthenticated, refreshCart])
 
   const updateQuantity = async (portfolioId: string, newQuantity: number) => {
+    if (updatingQuantity) return; // Prevent multiple simultaneous updates
+    
     try {
+      setUpdatingQuantity(portfolioId);
+      
       if (newQuantity <= 0) {
-        await removeFromCart(portfolioId)
-      } else {
-        // For now, we'll remove and re-add since the API doesn't support direct quantity updates
-        await removeFromCart(portfolioId)
-        // Note: need to implement addToCart with quantity when individual portfolios are added
+        await removeFromCart(portfolioId);
         toast({
-          title: "Update Quantity",
-          description: "Quantity update functionality will be enhanced with individual portfolio support.",
-        })
+          title: "Item Removed",
+          description: "Item has been removed from your cart",
+        });
+      } else {
+        // Get current quantity to calculate the difference
+        const currentItem = cart?.items.find(item => item.portfolio._id === portfolioId);
+        const currentQuantity = currentItem?.quantity || 0;
+        
+        if (newQuantity > currentQuantity) {
+          // Increase quantity: add the difference
+          const quantityToAdd = newQuantity - currentQuantity;
+          await addToCart(portfolioId, quantityToAdd);
+        } else if (newQuantity < currentQuantity) {
+          // Decrease quantity: need to implement a different approach, For now, we'll remove and re-add with the correct quantity
+          await removeFromCart(portfolioId);
+          if (newQuantity > 0) {
+            await addToCart(portfolioId, newQuantity);
+          }
+        }
+        // If newQuantity === currentQuantity, no action needed
+        
+        toast({
+          title: "Quantity Updated",
+          description: `Updated quantity to ${newQuantity}`,
+        });
       }
     } catch (error: any) {
       toast({
         title: "Error",
         description: error.message || "Failed to update cart",
         variant: "destructive",
-      })
+      });
+    } finally {
+      setUpdatingQuantity(null);
     }
   }
 
@@ -255,6 +280,8 @@ export default function CartPage() {
                         break
                     }
 
+                    const isUpdating = updatingQuantity === item.portfolio._id;
+
                     return (
                       <Card key={item._id} className="overflow-hidden">
                         <CardContent className="p-6">
@@ -292,14 +319,22 @@ export default function CartPage() {
                                       variant="ghost"
                                       size="sm"
                                       onClick={() => updateQuantity(item.portfolio._id, item.quantity - 1)}
+                                      disabled={isUpdating}
                                     >
                                       <Minus className="w-4 h-4" />
                                     </Button>
-                                    <span className="px-3 py-1 min-w-[40px] text-center">{item.quantity}</span>
+                                    <span className="px-3 py-1 min-w-[40px] text-center">
+                                      {isUpdating ? (
+                                        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                                      ) : (
+                                        item.quantity
+                                      )}
+                                    </span>
                                     <Button
                                       variant="ghost"
                                       size="sm"
                                       onClick={() => updateQuantity(item.portfolio._id, item.quantity + 1)}
+                                      disabled={isUpdating}
                                     >
                                       <Plus className="w-4 h-4" />
                                     </Button>
@@ -309,6 +344,7 @@ export default function CartPage() {
                                     size="sm"
                                     onClick={() => removeItem(item.portfolio._id)}
                                     className="text-red-500 hover:text-red-700"
+                                    disabled={isUpdating}
                                   >
                                     <X className="w-4 h-4" />
                                   </Button>
@@ -437,9 +473,10 @@ export default function CartPage() {
                     <Button
                       className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3"
                       onClick={() => setCheckoutModal(true)}
+                      disabled={updatingQuantity !== null}
                     >
                       <CreditCard className="w-4 h-4 mr-2" />
-                      Checkout
+                      {updatingQuantity ? "Updating..." : "Checkout"}
                     </Button>
                   </CardContent>
                 </Card>

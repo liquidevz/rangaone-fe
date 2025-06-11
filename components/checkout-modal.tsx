@@ -3,12 +3,12 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ShoppingCart, CreditCard, Check, AlertCircle, TrendingUp, DollarSign } from "lucide-react";
+import { X, ShoppingCart, CreditCard, Check, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "./auth/auth-context";
+import { useCart } from "./cart/cart-context";
 import { paymentService, CreateOrderResponse } from "@/services/payment.service";
-import { cartService, Cart } from "@/services/cart.service";
 import { Bundle } from "@/services/bundle.service";
 import { UserPortfolio, userPortfolioService } from "@/services/user-portfolio.service";
 
@@ -30,35 +30,21 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   subscriptionType = "monthly",
 }) => {
   const [loading, setLoading] = useState(false);
-  const [cart, setCart] = useState<Cart | null>(null);
   const [orderData, setOrderData] = useState<CreateOrderResponse | null>(null);
   const [paymentStep, setPaymentStep] = useState<"review" | "processing" | "success" | "error">("review");
   const { user } = useAuth();
+  const { cart, refreshCart } = useCart();
   const { toast } = useToast();
 
   // Check if this is the basic plan (will be handled differently)
   const isBasicPlan = bundle && bundle._id === "basic-plan-id";
 
-  // Load cart data for cart checkout
+  // Refresh cart data when modal opens for cart checkout
   useEffect(() => {
     if (isOpen && type === "cart") {
-      loadCartData();
+      refreshCart(); // Use cart context refresh instead of local loading
     }
-  }, [isOpen, type]);
-
-  const loadCartData = async () => {
-    try {
-      const cartData = await cartService.getCart();
-      setCart(cartData);
-    } catch (error) {
-      console.error("Failed to load cart:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load cart data",
-        variant: "destructive",
-      });
-    }
-  };
+  }, [isOpen, type, refreshCart]);
 
   const calculateTotal = () => {
     if (type === "single") {
@@ -227,9 +213,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         description: successMessage,
       });
 
-      // Reload cart if it was a cart checkout
+      // Refresh cart if it was a cart checkout
       if (type === "cart") {
-        await loadCartData();
+        await refreshCart(); // Use cart context refresh
       }
     } catch (error: any) {
       setPaymentStep("error");
@@ -295,39 +281,53 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 
                 {/* Single Portfolio */}
                 {type === "single" && portfolio && (
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h4 className="font-medium">{portfolio.name}</h4>
+                  <div className="bg-gray-50 rounded-lg p-4 border">
+                    <h4 className="font-semibold text-gray-900 mb-2">{portfolio.name}</h4>
                     
                     {/* Checkout Description */}
                     {getCheckoutDescription(portfolio) && (
-                      <p className="text-sm text-gray-600 mt-1 mb-3">
+                      <p className="text-sm text-gray-600 mb-4">
                         {getCheckoutDescription(portfolio)}
                       </p>
                     )}
 
-                    {/* Key Details */}
-                    <div className="space-y-2 mb-3 p-3 bg-white rounded border">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="flex items-center text-gray-600">
-                          <TrendingUp className="w-3 h-3 mr-1" />
-                          Min Investment:
-                        </span>
+                    {/* Key Metrics */}
+                    <div className="grid grid-cols-3 gap-3 mb-4 p-3 bg-white rounded border">
+                      <div className="text-center">
+                        <div className="text-sm font-bold text-green-600">{portfolio.CAGRSinceInception || "N/A"}%</div>
+                        <div className="text-xs text-gray-500">CAGR</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-sm font-bold text-blue-600">{portfolio.oneYearGains || "N/A"}%</div>
+                        <div className="text-xs text-gray-500">1Y Returns</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-sm font-bold text-purple-600">{portfolio.monthlyGains || "N/A"}%</div>
+                        <div className="text-xs text-gray-500">Monthly</div>
+                      </div>
+                    </div>
+
+                    {/* Portfolio Details */}
+                    <div className="space-y-2 mb-4 p-3 bg-white rounded border">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600">Min Investment:</span>
                         <span className="font-medium">₹{portfolio.minInvestment.toLocaleString()}</span>
                       </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="flex items-center text-gray-600">
-                          <DollarSign className="w-3 h-3 mr-1" />
-                          Duration:
-                        </span>
-                        <span className="font-medium">{portfolio.durationMonths} months</span>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600">Time Horizon:</span>
+                        <span className="font-medium">{portfolio.timeHorizon || `${portfolio.durationMonths} months`}</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600">Rebalancing:</span>
+                        <span className="font-medium">{portfolio.rebalancing || "Quarterly"}</span>
                       </div>
                     </div>
                     
-                    <div className="flex justify-between items-center mt-3">
+                    <div className="flex justify-between items-center mt-3 pt-3 border-t">
                       <span className="text-sm text-gray-500">
                         {subscriptionType === "yearly" ? "Yearly" : subscriptionType === "quarterly" ? "Quarterly" : "Monthly"} Subscription
                       </span>
-                      <span className="font-bold text-lg">
+                      <span className="font-bold text-lg text-blue-600">
                         ₹{calculateTotal()}
                       </span>
                     </div>
@@ -377,7 +377,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 )}
 
                 {/* Cart Items */}
-                {type === "cart" && cart && (
+                {type === "cart" && cart && cart.items.length > 0 && (
                   <div className="space-y-3">
                     {cart.items.map((item) => {
                       let price = 0;
@@ -418,25 +418,37 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   </div>
                 )}
 
-                {/* Total */}
-                <div className="border-t pt-4">
-                  <div className="flex justify-between items-center text-lg font-bold">
-                    <span>Total Amount</span>
-                    <span className="text-blue-600">₹{calculateTotal()}</span>
+                {/* Show message if cart is empty */}
+                {type === "cart" && (!cart || cart.items.length === 0) && (
+                  <div className="text-center py-8">
+                    <ShoppingCart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-600">Your cart is empty</p>
                   </div>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Billed {subscriptionType === "yearly" ? "annually" : subscriptionType === "quarterly" ? "per quarter" : "monthly"}
-                  </p>
-                </div>
+                )}
+
+                {/* Total */}
+                {((type === "cart" && cart && cart.items.length > 0) || type === "single") && (
+                  <div className="border-t pt-4">
+                    <div className="flex justify-between items-center text-lg font-bold">
+                      <span>Total Amount</span>
+                      <span className="text-blue-600">₹{calculateTotal()}</span>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Billed {subscriptionType === "yearly" ? "annually" : subscriptionType === "quarterly" ? "per quarter" : "monthly"}
+                    </p>
+                  </div>
+                )}
 
                 {/* Payment Button */}
-                <Button
-                  onClick={handleCreateOrder}
-                  disabled={loading || isBasicPlan}
-                  className="w-full bg-[#001633] hover:bg-[#002244] text-white py-3"
-                >
-                  {loading ? "Processing..." : isBasicPlan ? "Coming Soon" : `Pay ₹${calculateTotal()}`}
-                </Button>
+                {((type === "cart" && cart && cart.items.length > 0) || type === "single") && (
+                  <Button
+                    onClick={handleCreateOrder}
+                    disabled={loading || isBasicPlan}
+                    className="w-full bg-[#001633] hover:bg-[#002244] text-white py-3"
+                  >
+                    {loading ? "Processing..." : isBasicPlan ? "Coming Soon" : `Pay ₹${calculateTotal()}`}
+                  </Button>
+                )}
                 
                 {isBasicPlan && (
                   <p className="text-xs text-gray-500 text-center mt-2">
