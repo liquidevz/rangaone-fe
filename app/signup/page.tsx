@@ -1,3 +1,4 @@
+// app/signup/page.tsx
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -5,24 +6,32 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { authService } from "@/services/auth.service";
+import { useAuth } from "@/components/auth/auth-context";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+  const { isAuthenticated, isLoading } = useAuth();
+  const [formLoading, setFormLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    phone: "",
     password: "",
     confirmPassword: "",
     agreeTerms: false,
   });
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      router.replace("/dashboard");
+    }
+  }, [isAuthenticated, isLoading, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -37,6 +46,33 @@ export default function SignupPage() {
     e.preventDefault();
 
     // Client-side validation
+    if (!formData.name.trim()) {
+      toast({
+        title: "Name required",
+        description: "Please enter your name.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.email.trim()) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       toast({
         title: "Passwords don't match",
@@ -55,228 +91,239 @@ export default function SignupPage() {
       return;
     }
 
-    setIsLoading(true);
+    setFormLoading(true);
 
     try {
       // Call the signup API
       const response = await authService.signup({
-        username: formData.name,
-        email: formData.email,
+        username: formData.name.trim(),
+        email: formData.email.trim(),
         password: formData.password,
       });
 
       toast({
-        title: "Account created!",
-        description:
-          response.message || "Your account has been created successfully.",
+        title: "Account created successfully!",
+        description: response.message || "Please check your email to verify your account, then login.",
       });
+
+      // Store email for auto-filling login form
+      sessionStorage.setItem("signupEmail", formData.email.trim());
 
       // Redirect to login page after successful signup
       router.push("/login");
     } catch (error: any) {
       console.error("Signup error:", error);
 
-      let errorMessage =
-        "There was an error creating your account. Please try again.";
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
+      let errorMessage = "There was an error creating your account. Please try again.";
+      
+      if (error?.response?.data?.error) {
+        const apiError = error.response.data.error;
+        if (apiError.includes("User already exists")) {
+          errorMessage = "An account with this email or username already exists. Please try logging in instead.";
+        } else if (apiError.includes("Missing required fields")) {
+          errorMessage = "Please fill in all required fields.";
+        } else {
+          errorMessage = apiError;
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
       }
 
       toast({
-        title: "Error",
+        title: "Signup failed",
         description: errorMessage,
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setFormLoading(false);
     }
   };
+
+  const handleGoogleSignup = () => {
+    // Redirect to backend Google OAuth endpoint
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
+  };
+
+  // Show loading if authentication is being checked
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-20 h-20 border-8 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  // Don't render signup form if already authenticated
+  if (isAuthenticated) {
+    return null;
+  }
+
   return (
-    <div className="min-h-screen bg-white">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <Link href="/">
-            <div className="flex items-center">
-              <Image
-                src="/logo.png"
-                alt="RANGAONE FINANCE"
-                width={50}
-                height={50}
-                className="mr-2"
-              />
-              <div className="font-bold text-navy-blue">
-                <div>RANGAONE</div>
-                <div>FINANCE</div>
-              </div>
-            </div>
-          </Link>
+    <div className="min-h-screen flex">
+      {/* Left Panel - Image/Branding */}
+      <div className="hidden lg:flex flex-1 bg-[#001633] items-center justify-center p-8">
+        <div className="text-center text-white">
+          <h1 className="text-4xl font-bold mb-4">
+            Join Rangaone Finwala
+          </h1>
+          <p className="text-xl opacity-90 mb-8">
+            Start your journey to financial success with expert portfolio management
+          </p>
+          <div className="w-64 h-64 bg-white/10 rounded-full mx-auto flex items-center justify-center">
+            <span className="text-6xl font-bold">R</span>
+          </div>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-          <div>
-            <h1 className="text-3xl font-bold mb-8 text-gray-900">
-              Create your account
-            </h1>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label
-                  htmlFor="name"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Name<span className="text-red-500">*</span>
-                </label>
-                <Input
-                  id="name"
-                  name="name"
-                  type="text"
-                  placeholder="Enter your name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  className="w-full"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Email<span className="text-red-500">*</span>
-                </label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  className="w-full"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="phone"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Phone number<span className="text-red-500">*</span>
-                </label>
-                <Input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  placeholder="Enter your phone number"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  required
-                  className="w-full"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Password<span className="text-red-500">*</span>
-                </label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="Enter your password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  className="w-full"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="confirmPassword"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Re-type Password<span className="text-red-500">*</span>
-                </label>
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  placeholder="Re-type your password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                  className="w-full"
-                />
-              </div>
-
-              <div className="flex items-start space-x-2">
-                <Checkbox
-                  id="terms"
-                  checked={formData.agreeTerms}
-                  onCheckedChange={handleCheckboxChange}
-                />
-                <label htmlFor="terms" className="text-sm text-gray-600">
-                  By signing up, I agree to the{" "}
-                  <Link href="/terms" className="text-blue-600 hover:underline">
-                    terms and conditions
-                  </Link>
-                  ,{" "}
-                  <Link
-                    href="/privacy"
-                    className="text-blue-600 hover:underline"
-                  >
-                    privacy policy
-                  </Link>
-                  , and{" "}
-                  <Link
-                    href="/cookies"
-                    className="text-blue-600 hover:underline"
-                  >
-                    cookie policy
-                  </Link>
-                </label>
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full bg-navy-blue hover:bg-blue-800 text-white"
-                disabled={isLoading}
-              >
-                {isLoading ? "Creating account..." : "Sign up"}
-              </Button>
-
-              <div className="text-center mt-4">
-                Already have an account?{" "}
-                <Link href="/login" className="text-blue-600 hover:underline">
-                  Sign in
-                </Link>
-              </div>
-            </form>
-          </div>
-
-          <div className="hidden md:block relative h-[500px] rounded-lg overflow-hidden">
-            <Image
-              src="/stock-trading-floor.jpg"
-              alt="Trading Floor"
-              fill
-              className="object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-8">
-              <h2 className="text-3xl font-bold text-white mb-2">
-                "Grow your portfolio, <br />
-                not your worries."
-              </h2>
-              <p className="text-white/90 text-sm">
-                Build wealth with confidence. Spot opportunities, make strategic
-                moves, and watch your portfolio grow.
-              </p>
+      {/* Right Panel - Signup Form */}
+      <div className="flex-1 flex items-center justify-center p-8 bg-white">
+        <div className="w-full max-w-md space-y-8">
+          {/* Header */}
+          <div className="text-center">
+            <div className="w-16 h-16 bg-[#001633] rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-white font-bold text-xl">R</span>
             </div>
+            <h2 className="text-3xl font-bold text-gray-900">Create your account</h2>
+            <p className="mt-2 text-gray-600">
+              Join thousands of investors who trust us
+            </p>
           </div>
+
+          {/* Signup Form */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                Full Name
+              </label>
+              <Input
+                id="name"
+                name="name"
+                type="text"
+                required
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="Enter your full name"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001633] focus:border-transparent"
+                disabled={formLoading}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address
+              </label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                required
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="Enter your email address"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001633] focus:border-transparent"
+                disabled={formLoading}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                Password
+              </label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                required
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Create a password (min. 6 characters)"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001633] focus:border-transparent"
+                disabled={formLoading}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                Confirm Password
+              </label>
+              <Input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                required
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                placeholder="Confirm your password"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001633] focus:border-transparent"
+                disabled={formLoading}
+              />
+            </div>
+
+            <div className="flex items-start space-x-2">
+              <Checkbox
+                id="agreeTerms"
+                checked={formData.agreeTerms}
+                onCheckedChange={handleCheckboxChange}
+                disabled={formLoading}
+                className="mt-0.5"
+              />
+              <label htmlFor="agreeTerms" className="text-sm text-gray-600">
+                I agree to the{" "}
+                <Link href="/terms" className="text-[#001633] hover:underline">
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link href="/privacy" className="text-[#001633] hover:underline">
+                  Privacy Policy
+                </Link>
+              </label>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={formLoading}
+              className="w-full bg-[#001633] hover:bg-[#002244] text-white py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {formLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Creating account...
+                </div>
+              ) : (
+                "Create account"
+              )}
+            </Button>
+
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Or continue with</span>
+              </div>
+            </div>
+
+            {/* Google Signup */}
+            <Button
+              type="button"
+              onClick={handleGoogleSignup}
+              disabled={formLoading}
+              className="w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Image src="../../google.svg" alt="Google" width={20} height={20} className="mr-2" /> Sign up with Google
+            </Button>
+            {/* Login link */}
+            <div className="text-center">
+              <span className="text-gray-600">Already have an account? </span>
+              <Link
+                href="/login"
+                className="text-[#001633] hover:underline font-medium"
+              >
+                Sign in
+              </Link>
+            </div>
+          </form>
         </div>
       </div>
     </div>

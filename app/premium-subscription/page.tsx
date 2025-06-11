@@ -1,9 +1,9 @@
+// app\premium-subscription\page.tsx
 "use client"
 
 import Image from "next/image"
 import Link from "next/link"
 import { Check, ChevronRight, Star } from "lucide-react"
-import { Navbar } from "@/components/navbar"
 import { motion } from "framer-motion"
 import { useEffect } from "react"
 
@@ -44,9 +44,6 @@ export default function PremiumSubscriptionPage() {
   return (
     <main className="min-h-screen bg-[#1a1a1a] overflow-x-hidden">
       <ScrollToTop />
-
-      {/* Navbar */}
-      <Navbar variant="premium" />
 
       {/* Hero Section */}
       <section className="relative pt-24 pb-16 overflow-hidden">

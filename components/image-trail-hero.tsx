@@ -1,12 +1,12 @@
+// components\image-trail-hero.tsx
 "use client"
 import { motion, useAnimate } from "framer-motion"
 import { useRef } from "react"
-import { Navbar } from "./navbar"
 
 export const ImageTrailHero = () => {
   return (
     <>
-      <Navbar />
+
       <MouseImageTrail
         renderImageBuffer={50}
         rotationRange={25}

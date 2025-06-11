@@ -1,212 +1,380 @@
-"use client"
+// components/modal-portfolio-list.tsx
+"use client";
 
-import { MotionConfig, motion } from "framer-motion"
-import { useState } from "react"
-import { FaYoutube } from "react-icons/fa"
-import { FiBookOpen } from "react-icons/fi"
-import { twMerge } from "tailwind-merge"
-import { SectionHeading } from "@/components/ui/section-heading"
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, ShoppingCart, CreditCard, TrendingUp, Calendar, DollarSign, Target, Play } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/components/auth/auth-context";
+import { useCart } from "@/components/cart/cart-context";
+import { userPortfolioService, UserPortfolio } from "@/services/user-portfolio.service";
+import { CheckoutModal } from "@/components/checkout-modal";
+
+type SubscriptionType = "monthly" | "quarterly" | "yearly";
 
 export const ModalPortfolioList = () => {
-  const features = [
-    {
-      icon: "/simplicity-icon.png",
-      title: "Simplicity",
-      description:
-        "Designed for busy professionals (salaried person, businessmen) our portfolios remove the hassle of stock analysis and simplify the investment process that fits your lifestyle.",
-    },
-    {
-      icon: "/rebalancing-icon.png",
-      title: "Rebalancing",
-      description:
-        "We don't just give stock names and leave. Every quarter, we adjust based on market conditions—guiding you on exits, profit booking, upward averaging, and downward averaging.",
-    },
-    {
-      icon: "/diversification-icon.png",
-      title: "Diversification",
-      description:
-        "Your money won't sit in one basket. We spread it smartly—across large, mid and small cap stocks, multiple sectors, and even assets like ETFs and gold—balancing risk and maximizing opportunity.",
-    },
-    {
-      icon: "/goal-based-investing-icon.png",
-      title: "Goal-Based Investing",
-      description: "You choose the Goal, and the model portfolio provides an investment path that you can follow.",
-    },
-  ]
-  const portfolioData = [
-    {
-      id: 1,
-      name: "",
-      description: "",
-      reportLink: "",
-      cagr: "",
-      returns: "",
-      minInvestment: "",
-    },
-  ]
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedPortfolio, setSelectedPortfolio] = useState<UserPortfolio | null>(null);
+  const [portfolios, setPortfolios] = useState<UserPortfolio[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [subscriptionType, setSubscriptionType] = useState<SubscriptionType>("monthly");
+  const [checkoutModal, setCheckoutModal] = useState<{
+    isOpen: boolean;
+    portfolio?: UserPortfolio;
+  }>({
+    isOpen: false,
+  });
+
+  const { isAuthenticated } = useAuth();
+  const { addToCart } = useCart();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (isOpen && portfolios.length === 0) {
+      loadPortfolios();
+    }
+  }, [isOpen]);
+
+  const loadPortfolios = async () => {
+    try {
+      setLoading(true);
+      const portfoliosData = await userPortfolioService.getAll();
+      setPortfolios(portfoliosData);
+    } catch (error) {
+      console.error("Failed to load portfolios:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load portfolios. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddToCart = async (portfolio: UserPortfolio) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to add items to your cart.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await addToCart(portfolio._id);
+      toast({
+        title: "Added to Cart",
+        description: `${portfolio.name} has been added to your cart.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add portfolio to cart.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBuyNow = (portfolio: UserPortfolio) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to purchase a portfolio.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCheckoutModal({
+      isOpen: true,
+      portfolio,
+    });
+  };
+
+  const getPrice = (portfolio: UserPortfolio) => {
+    return userPortfolioService.getPriceByType(portfolio.subscriptionFee, subscriptionType);
+  };
+
+  const getHomeDescription = (portfolio: UserPortfolio) => {
+    return userPortfolioService.getDescriptionByKey(portfolio.description, "home card");
+  };
+
+  const getMethodologyLink = (portfolio: UserPortfolio) => {
+    return userPortfolioService.getDescriptionByKey(portfolio.description, "methodology PDF link");
+  };
+
+  const getCAGR = (portfolio: UserPortfolio) => {
+    // Look for CAGR in description
+    const cagr = portfolio.description.find(d => 
+      d.key.toLowerCase().includes("cagr") || d.key.toLowerCase().includes("return")
+    );
+    return cagr?.value || "N/A";
+  };
+
+  const get2YReturns = (portfolio: UserPortfolio) => {
+    // Look for 2Y returns in description
+    const returns = portfolio.description.find(d => 
+      d.key.toLowerCase().includes("2y") || d.key.toLowerCase().includes("2 year")
+    );
+    return returns?.value || "N/A";
+  };
+
+  const getPeriodLabel = () => {
+    switch (subscriptionType) {
+      case "yearly": return "per year";
+      case "quarterly": return "per quarter";
+      default: return "per month";
+    }
+  };
+
+  const getSavingsFromMonthly = (portfolio: UserPortfolio) => {
+    const monthlyPrice = userPortfolioService.getPriceByType(portfolio.subscriptionFee, "monthly");
+    const currentPrice = getPrice(portfolio);
+
+    switch (subscriptionType) {
+      case "quarterly":
+        const quarterlySavings = (monthlyPrice * 3) - currentPrice;
+        return quarterlySavings > 0 ? { amount: quarterlySavings, percentage: Math.round((quarterlySavings / (monthlyPrice * 3)) * 100) } : null;
+      case "yearly":
+        const yearlySavings = (monthlyPrice * 12) - currentPrice;
+        return yearlySavings > 0 ? { amount: yearlySavings, percentage: Math.round((yearlySavings / (monthlyPrice * 12)) * 100) } : null;
+      default:
+        return null;
+    }
+  };
 
   return (
     <>
-      <div className="py-8 bg-[#fffff]">
-        <div className="mb-12 lg:mb-24 relative z-10 container mx-auto">
-          <SectionHeading
-            title="Model Portfolios"
-            subtitle="Smart investment strategies for every investor"
-            className="mb-6"
-          />
-          <p className="text-center mx-auto text-lg mb-8">
-            Model portfolios offer a simpler way to invest in a market that's filled with options and increasingly
-            complex. You can consider a model portfolio as cost-efficient, diversified investment framework and a
-            roadmap, where you choose the destination, and the model portfolio provides an investment path that you can
-            follow.
-          </p>
+      <section className="py-24 bg-gradient-to-b from-gray-50 to-white" id="portfolios">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Expert-Curated Model Portfolios
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
+              Discover professionally managed investment strategies designed to maximize your returns while managing risk.
+            </p>
+            <Button
+              onClick={() => setIsOpen(true)}
+              size="lg"
+              className="bg-[#001633] hover:bg-[#002244] text-white px-8 py-4 text-lg"
+            >
+              Explore All Portfolios
+            </Button>
+          </div>
         </div>
-        <section className="py-12 px-4">
-          <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-md shadow-md pt-10 pb-6 px-4 relative border-t-4 border-[#2a2e86]"
-              >
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-white p-2 rounded-full border shadow-md">
-                  <img
-                    src={feature.icon || "/placeholder.svg"}
-                    alt={feature.title}
-                    className="h-10 w-10 object-contain"
-                  />
+      </section>
+
+      {/* Modal */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+            onClick={(e) => e.target === e.currentTarget && setIsOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-7xl max-h-[90vh] overflow-hidden"
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-[#001633] to-[#002244] text-white p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-3xl font-bold">Model Portfolios</h2>
+                  <button
+                    onClick={() => setIsOpen(false)}
+                    className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
                 </div>
-                <div className="flex flex-col justify-between h-full">
-                  <div>
-                    <h3 className="text-[#2a2e86] font-bold text-lg text-center mt-4">{feature.title}</h3>
-                    <p className="text-sm text-gray-700 text-center mt-2">{feature.description}</p>
-                  </div>
-                  <div className="flex justify-center mt-6">
-                    <button className="bg-[#2a2e86] text-white font-semibold text-sm px-6 py-2 rounded-full hover:bg-[#1f236b] transition">
-                      Know More
+
+                {/* Subscription Type Toggle */}
+                <div className="flex justify-center">
+                  <div className="flex items-center bg-white/10 rounded-full p-1">
+                    <button
+                      onClick={() => setSubscriptionType("monthly")}
+                      className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                        subscriptionType === "monthly"
+                          ? "bg-white text-[#001633] shadow-sm"
+                          : "text-white/80 hover:text-white"
+                      }`}
+                    >
+                      Monthly
+                    </button>
+                    <button
+                      onClick={() => setSubscriptionType("quarterly")}
+                      className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                        subscriptionType === "quarterly"
+                          ? "bg-white text-[#001633] shadow-sm"
+                          : "text-white/80 hover:text-white"
+                      }`}
+                    >
+                      Quarterly
+                      <Badge variant="secondary" className="ml-2 bg-green-500 text-white text-xs">
+                        Save 11%
+                      </Badge>
+                    </button>
+                    <button
+                      onClick={() => setSubscriptionType("yearly")}
+                      className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                        subscriptionType === "yearly"
+                          ? "bg-white text-[#001633] shadow-sm"
+                          : "text-white/80 hover:text-white"
+                      }`}
+                    >
+                      Yearly
+                      <Badge variant="secondary" className="ml-2 bg-green-500 text-white text-xs">
+                        Save 17%
+                      </Badge>
                     </button>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </section>
-      </div>
 
-      <section className="bg-[#fffff] px-8 py-24">
-        <div className="mx-auto grid container grid-cols-1 gap-6 sm:grid-cols-2">
-          <Card
-            title="SIP Portfolio"
-            subtitle="Designed for busy professionals, our SIP portfolio offers a systematic approach to wealth building with carefully selected stocks for consistent growth."
-          />
-          <Card
-            title="Growth Portfolio"
-            subtitle="Focused on high-growth opportunities across emerging sectors, this portfolio aims to deliver above-market returns with calculated risk exposure."
-            className="bg-indigo-300"
-          />
-          <Card
-            title="Dividend Portfolio"
-            subtitle="Built for income-focused investors, this portfolio includes stable companies with strong dividend histories and sustainable payout ratios."
-            className="bg-red-300"
-          />
-          <Card
-            title="Value Portfolio"
-            subtitle="Targeting undervalued companies with strong fundamentals, this portfolio seeks long-term appreciation through disciplined value investing principles."
-            className="bg-yellow-300"
-          />
-        </div>
-      </section>
-    </>
-  )
-}
+              {/* Content */}
+              <div className="p-6 overflow-y-auto max-h-[70vh]">
+                {loading ? (
+                  <div className="text-center py-12">
+                    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading portfolios...</p>
+                  </div>
+                ) : (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {portfolios.map((portfolio, index) => {
+                      const price = getPrice(portfolio);
+                      const homeDescription = getHomeDescription(portfolio);
+                      const methodologyLink = getMethodologyLink(portfolio);
+                      const cagr = getCAGR(portfolio);
+                      const returns2Y = get2YReturns(portfolio);
+                      const savings = getSavingsFromMonthly(portfolio);
 
-const Card = ({ title, subtitle, className }) => {
-  const [isHovered, setIsHovered] = useState(false)
+                      return (
+                        <motion.div
+                          key={portfolio._id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.1 }}
+                          className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 group"
+                        >
+                          {/* Portfolio Header */}
+                          <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4 text-white">
+                            <h3 className="text-lg font-bold mb-2">{portfolio.name}</h3>
+                            <div className="flex items-center justify-between">
+                              <div className="text-2xl font-bold">₹{price}</div>
+                              <div className="text-sm opacity-90">{getPeriodLabel()}</div>
+                            </div>
+                            {savings && (
+                              <div className="mt-2">
+                                <Badge className="bg-green-500 text-white text-xs">
+                                  Save ₹{savings.amount} ({savings.percentage}% off)
+                                </Badge>
+                              </div>
+                            )}
+                          </div>
 
-  const handleHoverStart = () => setIsHovered(true)
-  const handleHoverEnd = () => setIsHovered(false)
-  const handleHover = () => setIsHovered(!isHovered)
+                          {/* Portfolio Content */}
+                          <div className="p-4">
+                            {/* Description */}
+                            {homeDescription && (
+                              <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                                {homeDescription}
+                              </p>
+                            )}
 
-  return (
-    <MotionConfig
-      transition={{
-        type: "spring",
-        bounce: 0.5,
-      }}
-    >
-      <motion.div
-        onMouseEnter={handleHoverStart}
-        onMouseLeave={handleHoverEnd}
-        onTouchStart={handleHover}
-        // onTouchEnd={handleHoverEnd}
-        animate={isHovered ? "hovered" : ""}
-        className={twMerge("group w-full border-2 border-black bg-emerald-300", className)}
-      >
-        <motion.div
-          initial={{ x: 0, y: 0 }}
-          variants={{
-            hovered: { x: -8, y: -8 },
-          }}
-          className={twMerge("-m-0.5 border-2 border-black bg-emerald-300", className)}
-        >
-          <motion.div
-            initial={{ x: 0, y: 0 }}
-            variants={{
-              hovered: { x: -8, y: -8 },
-            }}
-            className={twMerge(
-              "relative -m-0.5 flex flex-col justify-between overflow-hidden border-2 border-black bg-emerald-300 p-8",
-              className,
-            )}
-          >
-            <div className="flex justify-between items-start">
-              <div>
-                <h2 className="text-2xl font-semibold">{title}</h2>
-              </div>
-              <div className="text-right">
-                <p className="text-xl font-bold">
-                  ₹333 <span className="text-base font-normal">/ mo</span>
-                </p>
-                <p className="text-xs text-gray-600">Annual, Billed Quarterly</p>
-              </div>
-            </div>
-            {/* Description */}
-            <p className="mt-4 text-sm text-gray-700">{subtitle}</p>
+                            {/* Key Metrics */}
+                            <div className="space-y-3 mb-4">
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="flex items-center text-gray-600">
+                                  <TrendingUp className="w-4 h-4 mr-2" />
+                                  CAGR:
+                                </span>
+                                <span className="font-semibold text-green-600">{cagr}</span>
+                              </div>
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="flex items-center text-gray-600">
+                                  <Calendar className="w-4 h-4 mr-2" />
+                                  2Y Returns:
+                                </span>
+                                <span className="font-semibold text-blue-600">{returns2Y}</span>
+                              </div>
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="flex items-center text-gray-600">
+                                  <DollarSign className="w-4 h-4 mr-2" />
+                                  Min Investment:
+                                </span>
+                                <span className="font-semibold">₹{portfolio.minInvestment.toLocaleString()}</span>
+                              </div>
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="flex items-center text-gray-600">
+                                  <Target className="w-4 h-4 mr-2" />
+                                  Duration:
+                                </span>
+                                <span className="font-semibold">{portfolio.durationMonths} months</span>
+                              </div>
+                            </div>
 
-            {/* Stats Section */}
-            <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2 text-center text-sm">
-              <div className="mt-4 flex flex-col items-center gap-2">
-                <span className="text-blue-700 font-semibold text-sm">Methodology</span>
-                <div className="flex gap-4">
-                  <FiBookOpen className="text-black" size={25} />
-                  <FaYoutube className="text-black" size={25} />
-                </div>
-              </div>
-              <div className="rounded bg-white px-2 py-1">
-                <p className="text-gray-500">CAGR</p>
-                <p className="font-semibold text-green-600">20.48%</p>
-              </div>
-              <div className="rounded bg-white px-2 py-1">
-                <p className="text-gray-500">2Y Returns</p>
-                <p className="font-semibold text-green-600">18.20%</p>
-              </div>
-              <div className="rounded bg-white px-2 py-1">
-                <p className="text-gray-500">Min. Investment</p>
-                <p className="font-semibold">25000/-</p>
-              </div>
-            </div>
+                            {/* Methodology Link */}
+                            {methodologyLink && (
+                              <div className="mb-4">
+                                <a
+                                  href={methodologyLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center"
+                                >
+                                  <Play className="w-4 h-4 mr-1" />
+                                  View Methodology
+                                </a>
+                              </div>
+                            )}
 
-            {/* Buy Button */}
-            <div className="group relative mt-6">
-              <button className="w-full border-2 border-black bg-white px-4 py-2 text-center font-medium text-black transition-all duration-300 ease-in-out">
-                <span className={`mr-1 transition-opacity duration-300 ease-in-out ${isHovered ? "inline" : "hidden"}`}>
-                  Let&apos;s Go
-                </span>{" "}
-                Buy Now
-              </button>
-            </div>
+                            {/* Action Buttons */}
+                            <div className="space-y-2">
+                              <Button
+                                onClick={() => handleBuyNow(portfolio)}
+                                className="w-full bg-[#001633] hover:bg-[#002244] text-white"
+                              >
+                                <CreditCard className="w-4 h-4 mr-2" />
+                                Buy Now - ₹{price}
+                              </Button>
+                              <Button
+                                onClick={() => handleAddToCart(portfolio)}
+                                variant="outline"
+                                className="w-full border-[#001633] text-[#001633] hover:bg-[#001633] hover:text-white"
+                              >
+                                <ShoppingCart className="w-4 h-4 mr-2" />
+                                Add to Cart
+                              </Button>
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </motion.div>
           </motion.div>
-        </motion.div>
-      </motion.div>
-    </MotionConfig>
-  )
-}
+        )}
+      </AnimatePresence>
+
+      {/* Checkout Modal */}
+      <CheckoutModal
+        isOpen={checkoutModal.isOpen}
+        onClose={() => setCheckoutModal({ isOpen: false })}
+        type="single"
+        portfolio={checkoutModal.portfolio}
+        subscriptionType={subscriptionType}
+      />
+    </>
+  );
+};

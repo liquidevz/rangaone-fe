@@ -1,23 +1,239 @@
-import { get } from "@/lib/axios";
+// services\user.service.ts
+import axiosApi from '@/lib/axios';
 
 export interface UserProfile {
   _id: string;
   username: string;
   email: string;
-  phone?: string;
+  provider: 'local' | 'google';
+  providerId?: string;
+  mainUserId?: string;
+  changedPasswordAt: string;
+  emailVerified: boolean;
   createdAt: string;
   updatedAt: string;
-  emailVerified: boolean;
-  provider: string;
-  changedPasswordAt?: string;
 }
 
-export const userService = {
-  getProfile: async (): Promise<UserProfile> => {
-    return await get<UserProfile>("/api/user/profile", {
-      headers: {
-        accept: "*/*",
-      },
-    });
-  },
-};
+export interface UserSubscription {
+  _id: string;
+  user: string;
+  productType: 'Portfolio' | 'Bundle';
+  productId: string;
+  portfolio: {
+    _id: string;
+    name: string;
+  };
+  lastPaidAt: string | null;
+  missedCycles: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaymentHistory {
+  _id: string;
+  user: string;
+  orderId: string;
+  paymentId: string;
+  amount: number;
+  currency: string;
+  status: 'created' | 'paid' | 'failed' | 'captured';
+  createdAt: string;
+  updatedAt: string;
+}
+
+class UserService {
+  private readonly baseUrl = '/api/user';
+
+  /**
+   * Get current user profile
+   */
+  async getProfile(): Promise<UserProfile> {
+    try {
+      const response = await axiosApi.get<UserProfile>(`${this.baseUrl}/profile`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch user profile:', error);
+      throw new Error('Unable to load profile. Please try again later.');
+    }
+  }
+
+  /**
+   * Get user's active subscriptions
+   */
+  async getSubscriptions(): Promise<UserSubscription[]> {
+    try {
+      const response = await axiosApi.get<UserSubscription[]>(`${this.baseUrl}/subscriptions`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch user subscriptions:', error);
+      throw new Error('Unable to load subscriptions. Please try again later.');
+    }
+  }
+
+  /**
+   * Get user's payment history
+   */
+  async getPaymentHistory(): Promise<PaymentHistory[]> {
+    try {
+      const response = await axiosApi.get<PaymentHistory[]>(`${this.baseUrl}/payments`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch payment history:', error);
+      throw new Error('Unable to load payment history. Please try again later.');
+    }
+  }
+
+  /**
+   * Check if user has active subscription for a product
+   */
+  async hasActiveSubscription(productId: string, productType: 'Portfolio' | 'Bundle'): Promise<boolean> {
+    try {
+      const subscriptions = await this.getSubscriptions();
+      return subscriptions.some(
+        sub => sub.productId === productId && 
+               sub.productType === productType && 
+               sub.isActive
+      );
+    } catch (error) {
+      console.error('Failed to check subscription status:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get subscription summary
+   */
+  async getSubscriptionSummary(): Promise<{
+    totalSubscriptions: number;
+    activeSubscriptions: number;
+    expiredSubscriptions: number;
+    totalSpent: number;
+  }> {
+    try {
+      const [subscriptions, payments] = await Promise.all([
+        this.getSubscriptions(),
+        this.getPaymentHistory()
+      ]);
+
+      const activeSubscriptions = subscriptions.filter(sub => sub.isActive).length;
+      const expiredSubscriptions = subscriptions.filter(sub => !sub.isActive).length;
+      
+      const totalSpent = payments
+        .filter(payment => payment.status === 'captured')
+        .reduce((total, payment) => total + payment.amount, 0) / 100; // Convert from paise to rupees
+
+      return {
+        totalSubscriptions: subscriptions.length,
+        activeSubscriptions,
+        expiredSubscriptions,
+        totalSpent
+      };
+    } catch (error) {
+      console.error('Failed to get subscription summary:', error);
+      return {
+        totalSubscriptions: 0,
+        activeSubscriptions: 0,
+        expiredSubscriptions: 0,
+        totalSpent: 0
+      };
+    }
+  }
+
+  /**
+   * Format amount for display
+   */
+  formatAmount(amountInPaise: number): string {
+    const amountInRupees = amountInPaise / 100;
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amountInRupees);
+  }
+
+  /**
+   * Get subscription status text
+   */
+  getSubscriptionStatusText(subscription: UserSubscription): string {
+    if (subscription.isActive) {
+      return 'Active';
+    } else if (subscription.missedCycles >= 3) {
+      return 'Expired';
+    } else if (subscription.missedCycles > 0) {
+      return 'Grace Period';
+    } else {
+      return 'Inactive';
+    }
+  }
+
+  /**
+   * Get subscription status color
+   */
+  getSubscriptionStatusColor(subscription: UserSubscription): string {
+    if (subscription.isActive) {
+      return 'text-green-600 bg-green-100';
+    } else if (subscription.missedCycles >= 3) {
+      return 'text-red-600 bg-red-100';
+    } else if (subscription.missedCycles > 0) {
+      return 'text-yellow-600 bg-yellow-100';
+    } else {
+      return 'text-gray-600 bg-gray-100';
+    }
+  }
+
+  /**
+   * Calculate days until next payment (for active subscriptions)
+   */
+  getDaysUntilNextPayment(subscription: UserSubscription): number | null {
+    if (!subscription.isActive || !subscription.lastPaidAt) return null;
+
+    const lastPaid = new Date(subscription.lastPaidAt);
+    const nextPayment = new Date(lastPaid);
+    nextPayment.setMonth(nextPayment.getMonth() + 1); // Assuming monthly billing
+
+    const now = new Date();
+    const diffTime = nextPayment.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    return Math.max(0, diffDays);
+  }
+
+  /**
+   * Get user's portfolio access list
+   */
+  async getPortfolioAccess(): Promise<string[]> {
+    try {
+      const subscriptions = await this.getSubscriptions();
+      return subscriptions
+        .filter(sub => sub.isActive)
+        .map(sub => sub.portfolio._id);
+    } catch (error) {
+      console.error('Failed to get portfolio access:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Format subscription duration
+   */
+  formatSubscriptionDuration(createdAt: string): string {
+    const created = new Date(createdAt);
+    const now = new Date();
+    const diffTime = now.getTime() - created.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 30) {
+      return `${diffDays} days`;
+    } else if (diffDays < 365) {
+      const months = Math.floor(diffDays / 30);
+      return `${months} month${months !== 1 ? 's' : ''}`;
+    } else {
+      const years = Math.floor(diffDays / 365);
+      return `${years} year${years !== 1 ? 's' : ''}`;
+    }
+  }
+}
+
+export const userService = new UserService();

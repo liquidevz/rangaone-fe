@@ -1,25 +1,37 @@
+// app/login/page.tsx
 "use client";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { authService } from "@/services/auth.service";
+import { useAuth } from "@/components/auth/auth-context";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+  const { login, isAuthenticated, isLoading } = useAuth();
+  const [formLoading, setFormLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     rememberMe: false,
   });
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      const redirectPath = sessionStorage.getItem("redirectPath") || "/";
+      sessionStorage.removeItem("redirectPath");
+      router.replace(redirectPath);
+    }
+  }, [isAuthenticated, isLoading, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -32,163 +44,213 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    
+    if (!formData.email || !formData.password) {
+      toast({
+        title: "Missing fields",
+        description: "Please enter both email and password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setFormLoading(true);
 
     try {
-      // Call the login API
-      const response = await authService.login({
-        username: formData.email, // Assuming your API expects username as email
-        password: formData.password,
-      });
-
-      // Store tokens if rememberMe is checked
-      if (formData.rememberMe) {
-        localStorage.setItem("accessToken", response.accessToken);
-        localStorage.setItem("refreshToken", response.refreshToken);
-      } else {
-        // Use sessionStorage for temporary session
-        sessionStorage.setItem("accessToken", response.accessToken);
-        sessionStorage.setItem("refreshToken", response.refreshToken);
-      }
+      await login(formData.email, formData.password, formData.rememberMe);
 
       toast({
         title: "Welcome back!",
         description: "You have successfully logged in.",
       });
 
-      router.push("/dashboard");
-    } catch (error) {
+      // Get redirect path from session storage or URL params
+      const redirectPath = 
+        sessionStorage.getItem("redirectPath") || 
+        searchParams.get("redirect") || 
+        "/";
+      
+      sessionStorage.removeItem("redirectPath");
+      router.replace(redirectPath);
+    } catch (error: any) {
       console.error("Login error:", error);
+      
+      let errorMessage = "Invalid email or password. Please try again.";
+      
+      if (error?.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
       toast({
         title: "Login failed",
-        description: "Invalid email or password. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setFormLoading(false);
     }
   };
 
+  const handleGoogleLogin = () => {
+    // Redirect to backend Google OAuth endpoint
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
+  };
+
+  // Show loading if authentication is being checked
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-20 h-20 border-8 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  // Don't render login form if already authenticated
+  if (isAuthenticated) {
+    return null;
+  }
+
   return (
-    <div className="min-h-screen bg-white">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <Link href="/">
-            <div className="flex items-center">
-              <Image
-                src="/logo.png"
-                alt="RANGAONE FINANCE"
-                width={50}
-                height={50}
-                className="mr-2"
-              />
-              <div className="font-bold text-navy-blue">
-                <div>RANGAONE</div>
-                <div>FINANCE</div>
-              </div>
+    <div className="min-h-screen flex">
+      {/* Left Panel - Login Form */}
+      <div className="flex-1 flex items-center justify-center p-8 bg-white">
+        <div className="w-full max-w-md space-y-8">
+          {/* Header */}
+          <div className="text-center">
+            <div className="w-16 h-16 bg-[#001633] rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-white font-bold text-xl">R</span>
             </div>
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-          <div>
-            <h1 className="text-3xl font-bold mb-8 text-gray-900">
-              Welcome back
-            </h1>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Email<span className="text-red-500">*</span>
-                </label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  className="w-full"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Password<span className="text-red-500">*</span>
-                </label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="Enter your password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  className="w-full"
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="rememberMe"
-                    checked={formData.rememberMe}
-                    onCheckedChange={handleCheckboxChange}
-                  />
-                  <label htmlFor="rememberMe" className="text-sm text-gray-600">
-                    Remember me
-                  </label>
-                </div>
-
-                <Link
-                  href="/forgot-password"
-                  className="text-sm text-blue-600 hover:underline"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full bg-navy-blue hover:bg-blue-800 text-white"
-                disabled={isLoading}
-              >
-                {isLoading ? "Signing in..." : "Sign in"}
-              </Button>
-
-              <div className="text-center mt-4">
-                Don't have an account?{" "}
-                <Link href="/signup" className="text-blue-600 hover:underline">
-                  Sign up
-                </Link>
-              </div>
-            </form>
+            <h2 className="text-3xl font-bold text-gray-900">Welcome back</h2>
+            <p className="mt-2 text-gray-600">
+              Sign in to your account to continue
+            </p>
           </div>
 
-          <div className="hidden md:block relative h-[500px] rounded-lg overflow-hidden">
-            <Image
-              src="/market-analysis.jpg"
-              alt="Market Analysis"
-              fill
-              className="object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-8">
-              <h2 className="text-3xl font-bold text-white mb-2">
-                "Welcome back to <br />
-                smarter investing."
-              </h2>
-              <p className="text-white/90 text-sm">
-                Access your personalized dashboard, track your investments, and
-                get real-time market insights.
-              </p>
+          {/* Login Form */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                Email or Username
+              </label>
+              <Input
+                id="email"
+                name="email"
+                type="text"
+                required
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="Enter your email or username"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001633] focus:border-transparent"
+                disabled={formLoading}
+              />
             </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                Password
+              </label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                required
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Enter your password"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001633] focus:border-transparent"
+                disabled={formLoading}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="rememberMe"
+                  checked={formData.rememberMe}
+                  onCheckedChange={handleCheckboxChange}
+                  disabled={formLoading}
+                />
+                <label htmlFor="rememberMe" className="text-sm text-gray-600">
+                  Remember me
+                </label>
+              </div>
+              <Link
+                href="/auth/forgot-password"
+                className="text-sm text-[#001633] hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={formLoading}
+              className="w-full bg-[#001633] hover:bg-[#002244] text-white py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {formLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Signing in...
+                </div>
+              ) : (
+                "Sign in"
+              )}
+            </Button>
+
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Or continue with</span>
+              </div>
+            </div>
+
+            {/* Google Login */}
+            <Button
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={formLoading}
+              className="w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Image
+                src="../../google.svg"
+                alt="Google"
+                width={20}
+                height={20}
+                className="mr-2"
+              />
+              Sign in with Google
+            </Button>
+
+            {/* Sign up link */}
+            <div className="text-center">
+              <span className="text-gray-600">Don't have an account? </span>
+              <Link
+                href="/signup"
+                className="text-[#001633] hover:underline font-medium"
+              >
+                Sign up
+              </Link>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {/* Right Panel - Image/Branding */}
+      <div className="hidden lg:flex flex-1 bg-[#001633] items-center justify-center p-8">
+        <div className="text-center text-white">
+          <h1 className="text-4xl font-bold mb-4">
+            Welcome to Rangaone Finwala
+          </h1>
+          <p className="text-xl opacity-90 mb-8">
+            Your trusted partner in financial growth and portfolio management
+          </p>
+          <div className="w-64 h-64 bg-white/10 rounded-full mx-auto flex items-center justify-center">
+            <span className="text-6xl font-bold">R</span>
           </div>
         </div>
       </div>

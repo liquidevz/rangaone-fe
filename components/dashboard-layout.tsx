@@ -1,3 +1,4 @@
+// components/dashboard-layout.tsx
 "use client";
 
 import type React from "react";
@@ -6,7 +7,8 @@ import Sidebar from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UserProfile, userService } from "@/services/user.service";
-import { Menu, PhoneCall, Search, X } from "lucide-react";
+import { useAuth } from "@/components/auth/auth-context";
+import { Menu, PhoneCall, Search, X, LogOut, ChevronDown } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -22,6 +24,10 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  
+  // Get logout function from auth context
+  const { logout } = useAuth();
 
   // Set isMounted to true after component mounts
   useEffect(() => {
@@ -82,8 +88,34 @@ export default function DashboardLayout({
     };
   }, [sidebarOpen, isMounted]);
 
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (showUserMenu && !target.closest('.user-menu-container')) {
+        setShowUserMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showUserMenu]);
+
   const toggleSidebar = () => {
     setSidebarOpen((prev) => !prev);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setShowUserMenu(false);
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
+
+  const toggleUserMenu = () => {
+    setShowUserMenu((prev) => !prev);
   };
 
   return (
@@ -128,51 +160,75 @@ export default function DashboardLayout({
           </div>
 
           <div className="flex items-center">
-            {/* <Button variant="ghost" className="font-semibold text-navy-blue hidden sm:flex">
-              Contact Us
-            </Button>
-            <div className="h-10 w-10 rounded-full bg-yellow-400 flex items-center justify-center ml-2">
-              <User className="h-6 w-6 text-gray-700" />
-            </div> */}
-
-            {/* User profile at the top of the sidebar */}
-            <div className="p-2">
-              <div className="flex items-center">
-                <div className="h-12 w-12 rounded-full bg-gray-200 mr-3 overflow-hidden relative">
+            {/* User profile dropdown */}
+            <div className="relative user-menu-container">
+              <div 
+                className="flex items-center cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors" 
+                onClick={toggleUserMenu}
+              >
+                <div className="h-10 w-10 rounded-full bg-gray-200 mr-3 overflow-hidden relative">
                   {!currentUser ? (
                     <div className="animate-pulse bg-gray-300 h-full w-full" />
                   ) : currentUser?.avatar ? (
                     <Image
                       src={currentUser.avatar || "/placeholder.svg"}
                       alt={currentUser?.username || "User"}
-                      width={48}
-                      height={48}
+                      width={40}
+                      height={40}
                       className="object-cover"
                     />
                   ) : (
-                    <div className="flex items-center justify-center h-full w-full bg-navy-blue text-white font-bold text-xl">
+                    <div className="flex items-center justify-center h-full w-full bg-navy-blue text-white font-bold text-sm">
                       {currentUser?.username?.charAt(0)?.toUpperCase() || "U"}
                     </div>
                   )}
                 </div>
-                <div>
+                <div className="hidden sm:block">
                   {!currentUser ? (
                     <>
-                      <div className="h-4 bg-gray-300 rounded w-24 mb-2 animate-pulse"></div>
+                      <div className="h-4 bg-gray-300 rounded w-24 mb-1 animate-pulse"></div>
                       <div className="h-3 bg-gray-200 rounded w-20 animate-pulse"></div>
                     </>
                   ) : (
                     <>
-                      <div className="font-semibold">
+                      <div className="font-semibold text-gray-900 text-sm">
                         {currentUser?.username || "User"}
                       </div>
                       <div className="text-xs text-gray-500">
-                        {currentUser?.company || "No Company"}
+                        {currentUser?.email || "No Email"}
                       </div>
                     </>
                   )}
                 </div>
+                <ChevronDown 
+                  className={`h-4 w-4 text-gray-400 ml-2 transition-transform ${
+                    showUserMenu ? 'rotate-180' : ''
+                  }`} 
+                />
               </div>
+
+              {/* Dropdown Menu */}
+              {showUserMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-1">
+                  <div className="px-4 py-2 border-b border-gray-100">
+                    <div className="font-medium text-gray-900 text-sm">
+                      {currentUser?.username || "User"}
+                    </div>
+                    <div className="text-xs text-gray-500 truncate">
+                      {currentUser?.email || "No Email"}
+                    </div>
+                  </div>                                    
+                  <div className="border-t border-gray-100 mt-1 pt-1">
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <LogOut className="h-4 w-4 mr-3" />
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

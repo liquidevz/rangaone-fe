@@ -1,9 +1,12 @@
+// components/navbar.tsx
 "use client";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { FiMenu } from "react-icons/fi";
+import { FiMenu, FiUser, FiLogOut, FiSettings, FiShoppingCart } from "react-icons/fi";
+import { useAuth } from "./auth/auth-context";
+import { useCart } from "./cart/cart-context";
 
 const NavLinks = [
   {
@@ -54,7 +57,11 @@ export const RoundedDrawerNav = ({
 }) => {
   const [hovered, setHovered] = useState(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const router = useRouter();
+  const { user, isAuthenticated, logout, isLoading } = useAuth();
+  const { cartItemCount } = useCart();
+  
   const textColor = variant === "premium" ? "text-[#333333]" : "text-white";
   const buttonBg = variant === "premium" ? "bg-[#333333]" : "bg-white";
   const buttonText = variant === "premium" ? "text-white" : "text-[#001633]";
@@ -67,6 +74,29 @@ export const RoundedDrawerNav = ({
 
   const handleLogin = () => {
     router.push("/login");
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setUserMenuOpen(false);
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
+
+  const handleDashboard = () => {
+    router.push("/dashboard");
+    setUserMenuOpen(false);
+  };
+
+  const handleSettings = () => {
+    router.push("/settings");
+    setUserMenuOpen(false);
+  };
+
+  const handleCartClick = () => {
+    router.push("/cart");
   };
 
   return (
@@ -87,63 +117,156 @@ export const RoundedDrawerNav = ({
                 R
               </span>
             </div>
-            <div
-              className={`${textColor} font-serif text-xl font-bold tracking-wide`}
-            >
-              RANGAONE
-              <br />
-              FINWALA
-            </div>
+            <Link href="/" className={`${textColor} font-serif text-xl font-bold tracking-wide`}>
+              RANGAONE <br /> FINWALA
+            </Link>
           </div>
 
-          <div className="hidden lg:flex items-center gap-8">
-            {links.map((l) => (
-              <TopLink
-                key={l.title}
-                setHovered={setHovered}
-                title={l.title}
-                sublinks={l.sublinks}
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-8">
+            {links.map((link, index) => (
+              <Link
+                key={index}
+                href={link.href}
+                onMouseEnter={() => setHovered(link.title)}
+                className={`${textColor} hover:opacity-75 transition-opacity cursor-pointer`}
               >
-                <Link
-                  href={l.href || "#"}
-                  className={`${textColor} text-lg font-medium hover:opacity-80 transition-colors`}
-                >
-                  {l.title}
-                </Link>
-              </TopLink>
+                {link.title}
+              </Link>
             ))}
+          </div>
+
+          {/* Authentication & Cart Section */}
+          <div className="flex items-center gap-4">
+            {/* Cart Icon */}
+            {isAuthenticated && (
+              <button
+                onClick={handleCartClick}
+                className={`relative ${buttonBg} ${buttonText} p-2 rounded-full transition-all hover:scale-105`}
+              >
+                <FiShoppingCart className="w-5 h-5" />
+                {cartItemCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-medium">
+                    {cartItemCount}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {!isLoading && (
+              <>
+                {isAuthenticated && user ? (
+                  /* Authenticated User Menu */
+                  <div className="relative">
+                    <button
+                      onClick={() => setUserMenuOpen(!userMenuOpen)}
+                      className={`${buttonBg} ${buttonText} px-4 py-2 rounded-full font-medium transition-all flex items-center gap-2 hover:scale-105`}
+                    >
+                      <FiUser className="w-4 h-4" />
+                      <span className="hidden sm:inline">
+                        Hi, {user.username}
+                      </span>
+                      <span className="sm:hidden">Menu</span>
+                    </button>
+
+                    {/* User Dropdown Menu */}
+                    <AnimatePresence>
+                      {userMenuOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                          transition={{ duration: 0.2 }}
+                          className={`absolute right-0 mt-2 w-48 ${
+                            variant === "premium" ? "bg-white" : "bg-[#001633]"
+                          } rounded-lg shadow-lg border ${
+                            variant === "premium" 
+                              ? "border-gray-200 text-gray-800" 
+                              : "border-gray-700 text-white"
+                          } overflow-hidden`}
+                        >
+                          <div className="py-2">
+                            <div className={`px-4 py-2 text-sm border-b ${
+                              variant === "premium" 
+                                ? "border-gray-200 text-gray-600" 
+                                : "border-gray-700 text-gray-300"
+                            }`}>
+                              {user.email}
+                            </div>
+                            
+                            <button
+                              onClick={handleDashboard}
+                              className={`w-full px-4 py-2 text-left text-sm hover:${
+                                variant === "premium" ? "bg-gray-100" : "bg-gray-700"
+                              } transition-colors flex items-center gap-2`}
+                            >
+                              <FiUser className="w-4 h-4" />
+                              View Dashboard
+                            </button>
+                            
+                            <button
+                              onClick={handleSettings}
+                              className={`w-full px-4 py-2 text-left text-sm hover:${
+                                variant === "premium" ? "bg-gray-100" : "bg-gray-700"
+                              } transition-colors flex items-center gap-2`}
+                            >
+                              <FiSettings className="w-4 h-4" />
+                              Settings
+                            </button>
+                            
+                            <button
+                              onClick={handleLogout}
+                              className={`w-full px-4 py-2 text-left text-sm hover:${
+                                variant === "premium" ? "bg-red-50 text-red-600" : "bg-red-900 text-red-400"
+                              } transition-colors flex items-center gap-2`}
+                            >
+                              <FiLogOut className="w-4 h-4" />
+                              Logout
+                            </button>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                ) : (
+                  /* Login Button for Non-authenticated Users */
+                  <button
+                    onClick={handleLogin}
+                    className={`${buttonBg} ${buttonText} px-6 py-2 rounded-full font-medium transition-all hover:scale-105`}
+                  >
+                    Login
+                  </button>
+                )}
+              </>
+            )}
+
+            {/* Mobile Menu Toggle */}
             <button
-              onClick={handleLogin}
-              className={`${buttonBg} ${buttonText} text-lg font-semibold px-8 py-2 rounded-full hover:opacity-90 transition-all`}
+              onClick={() => setMobileNavOpen(!mobileNavOpen)}
+              className={`md:hidden ${textColor} hover:opacity-75 transition-opacity`}
             >
-              LOGIN
+              <FiMenu size={24} />
             </button>
           </div>
-
-          <button
-            onClick={() => setMobileNavOpen(!mobileNavOpen)}
-            className={`block text-2xl ${textColor} lg:hidden`}
-          >
-            <FiMenu />
-          </button>
         </div>
 
-        <AnimatePresence mode="popLayout">
-          {hovered && (
+        {/* Sublinks */}
+        <AnimatePresence>
+          {activeSublinks.length > 0 && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="absolute left-0 right-0 px-6 py-4"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-4 pt-4 border-t border-white/20"
             >
-              <div className="space-y-4">
-                {activeSublinks?.map((l) => (
+              <div className="flex flex-wrap gap-4">
+                {activeSublinks.map((sublink, index) => (
                   <Link
-                    className={`block text-lg font-medium ${textColor} opacity-80 hover:opacity-100 transition-colors`}
-                    href={l.href}
-                    key={l.title}
+                    key={index}
+                    href={sublink.href}
+                    className={`${textColor} text-sm hover:opacity-75 transition-opacity`}
                   >
-                    {l.title}
+                    {sublink.title}
                   </Link>
                 ))}
               </div>
@@ -152,53 +275,86 @@ export const RoundedDrawerNav = ({
         </AnimatePresence>
       </nav>
 
-      {mobileNavOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className={`px-6 py-4 border-t ${
-            variant === "premium" ? "border-[#333333]/10" : "border-white/10"
-          } lg:hidden`}
-        >
-          {links.map((l) => (
-            <div key={l.title} className="py-3">
-              <Link
-                href={l.href || "#"}
-                className={`text-lg block font-medium ${textColor} hover:opacity-80`}
-              >
-                {l.title}
-              </Link>
-              {l.sublinks.map((sl) => (
+      {/* Mobile Navigation */}
+      <AnimatePresence>
+        {mobileNavOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className={`md:hidden ${bodyBackground} border-t`}
+          >
+            <div className="px-6 py-4 space-y-4">
+              {links.map((link, index) => (
                 <Link
-                  className={`text-md block py-2 ${textColor} opacity-70 hover:opacity-100`}
-                  href={sl.href}
-                  key={sl.title}
+                  key={index}
+                  href={link.href}
+                  onClick={() => setMobileNavOpen(false)}
+                  className="block text-gray-800 hover:text-blue-600 transition-colors"
                 >
-                  {sl.title}
+                  {link.title}
                 </Link>
               ))}
+              
+              {/* Mobile Cart Link */}
+              {isAuthenticated && (
+                <Link
+                  href="/cart"
+                  onClick={() => setMobileNavOpen(false)}
+                  className="block text-gray-800 hover:text-blue-600 transition-colors flex items-center gap-2"
+                >
+                  <FiShoppingCart className="w-4 h-4" />
+                  Cart ({cartItemCount})
+                </Link>
+              )}
+              
+              {/* Mobile Auth Section */}
+              <div className="pt-4 border-t border-gray-200">
+                {isAuthenticated && user ? (
+                  <div className="space-y-2">
+                    <div className="text-sm text-gray-600">
+                      Hi, {user.username}
+                    </div>
+                    <button
+                      onClick={handleDashboard}
+                      className="block w-full text-left py-2 text-gray-800 hover:text-blue-600 transition-colors"
+                    >
+                      View Dashboard
+                    </button>
+                    <button
+                      onClick={handleSettings}
+                      className="block w-full text-left py-2 text-gray-800 hover:text-blue-600 transition-colors"
+                    >
+                      Settings
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="block w-full text-left py-2 text-red-600 hover:text-red-700 transition-colors"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleLogin}
+                    className="block w-full text-left py-2 text-blue-600 hover:text-blue-700 transition-colors font-medium"
+                  >
+                    Login
+                  </button>
+                )}
+              </div>
             </div>
-          ))}
-          <button
-            onClick={handleLogin}
-            className={`w-full ${buttonBg} ${buttonText} text-lg font-semibold px-8 py-2 rounded-full hover:opacity-90 transition-all mt-4`}
-          >
-            LOGIN
-          </button>
-        </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Click outside to close user menu */}
+      {userMenuOpen && (
+        <div
+          className="fixed inset-0 z-[-1]"
+          onClick={() => setUserMenuOpen(false)}
+        />
       )}
     </>
   );
 };
-
-const TopLink = ({ children, setHovered, title, sublinks }) => (
-  <span
-    onMouseEnter={() => {
-      setHovered(sublinks.length > 0 ? title : null);
-    }}
-    className="cursor-pointer"
-  >
-    {children}
-  </span>
-);

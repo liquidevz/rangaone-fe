@@ -1,90 +1,71 @@
+// components/auth/auth-guard.tsx
 "use client";
 
-import { authService } from "@/services/auth.service";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useAuth } from "./auth-context";
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [isLoading, setIsLoading] = useState(true);
+  const { isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
-    const checkAuth = async () => {
-      setIsLoading(true);
+    // Skip auth check during loading
+    if (isLoading) return;
 
-      try {
-        // Skip auth check for public routes
-        if (authService.isPublicRoute(pathname)) {
-          setIsLoading(false);
-          return;
-        }
+    // Define public routes that don't require authentication
+    const publicRoutes = ["/", "/login", "/signup", "/contact-us"];
+    const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith("/auth/");
 
-        // Check if user is authenticated
-        const isAuthenticated = authService.isAuthenticated();
+    // Define auth routes that should redirect to dashboard if authenticated
+    const authRoutes = ["/login", "/signup"];
+    const isAuthRoute = authRoutes.includes(pathname);
 
-        // Handle token refresh if needed
-        if (isAuthenticated) {
-          try {
-            // Verify if token is still valid (you might need to decode JWT here)
-            // If token is expired or about to expire, refresh it
-            const accessToken = authService.getAccessToken();
-            if (accessToken && isTokenExpired(accessToken)) {
-              await authService.refreshTokens();
-            }
-          } catch (error) {
-            console.error("Token refresh failed:", error);
-            authService.clearTokens();
-            sessionStorage.setItem("redirectPath", pathname);
-            router.replace("/login");
-            return;
-          }
-        }
-
-        // Handle route redirections
-        if (authService.shouldRedirectToDashboard(pathname)) {
-          router.replace("/dashboard");
-          return;
-        }
-
-        if (authService.shouldRedirectToLogin(pathname)) {
-          sessionStorage.setItem("redirectPath", pathname);
-          router.replace("/login");
-          return;
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, [pathname, router]);
-
-  // Simple token expiration check (you might want to use a proper JWT decoder)
-  const isTokenExpired = (token: string): boolean => {
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return payload.exp * 1000 < Date.now();
-    } catch {
-      return true;
+    if (isAuthenticated && isAuthRoute) {
+      // If user is authenticated and trying to access auth pages, redirect to home
+      router.replace("/");
+      return;
     }
-  };
 
+    if (!isAuthenticated && !isPublicRoute) {
+      // If user is not authenticated and trying to access protected route
+      // Store the current path for redirect after login
+      sessionStorage.setItem("redirectPath", pathname);
+      router.replace("/login");
+      return;
+    }
+  }, [isAuthenticated, isLoading, pathname, router]);
+
+  // Show loading spinner while authentication is being checked
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-20 h-20 border-8 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center min-h-screen bg-white">
+        <div className="text-center">
+          <div className="w-20 h-20 border-8 border-[#001633] border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
       </div>
     );
   }
 
-  if (authService.isPublicRoute(pathname) || authService.isAuthenticated()) {
+  // Define public routes that don't require authentication
+  const publicRoutes = ["/", "/login", "/signup", "/contact-us"];
+  const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith("/auth/");
+
+  // If it's a public route or user is authenticated, render children
+  if (isPublicRoute || isAuthenticated) {
     return <>{children}</>;
   }
 
+  // If user is not authenticated and trying to access protected route,
+  // the useEffect above will handle the redirect, so show loading
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="w-20 h-20 border-8 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+    <div className="flex items-center justify-center min-h-screen bg-white">
+      <div className="text-center">
+        <div className="w-20 h-20 border-8 border-[#001633] border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <p className="mt-4 text-gray-600">Redirecting...</p>
+      </div>
     </div>
   );
 }

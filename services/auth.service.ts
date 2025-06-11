@@ -1,4 +1,5 @@
-import axiosApi, { post } from "@/lib/axios";
+// services/auth.service.ts
+import axiosApi, { get, post } from "@/lib/axios";
 
 interface SignupPayload {
   username: string;
@@ -30,6 +31,19 @@ interface RefreshTokenResponse {
   refreshToken: string;
 }
 
+export interface UserProfile {
+  _id: string;
+  username: string;
+  email: string;
+  provider: string;
+  providerId?: string;
+  mainUserId?: string;
+  changedPasswordAt?: string;
+  emailVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export const authService = {
   // Authentication methods
   signup: async (payload: SignupPayload): Promise<SignupResponse> => {
@@ -46,6 +60,35 @@ export const authService = {
       headers: {
         accept: "application/json",
         "Content-Type": "application/json",
+      },
+    });
+  },
+
+  logout: async (): Promise<void> => {
+    try {
+      // Call backend logout to invalidate tokens
+      await post("/auth/logout", {}, {
+        headers: {
+          accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authService.getAccessToken()}`,
+        },
+      });
+    } catch (error) {
+      console.error("Logout API call failed:", error);
+      // Don't throw error, just log it
+    }
+    
+    // Always clear local tokens regardless of API call result
+    authService.clearTokens();
+  },
+
+  // User profile method
+  getCurrentUser: async (): Promise<UserProfile> => {
+    return await get<UserProfile>("/api/user/profile", {
+      headers: {
+        accept: "application/json",
+        Authorization: `Bearer ${authService.getAccessToken()}`,
       },
     });
   },
@@ -68,7 +111,7 @@ export const authService = {
       );
 
       // Store the new tokens using the same rememberMe preference
-      const rememberMe = !!localStorage.getItem("refreshToken");
+      const rememberMe = !localStorage.getItem("refreshToken");
       authService.setTokens(
         response.accessToken,
         response.refreshToken,
@@ -98,7 +141,6 @@ export const authService = {
         sessionStorage.getItem("accessToken");
 
       if (!token) {
-        console.log("No access token found");
         return null;
       }
 
@@ -164,9 +206,20 @@ export const authService = {
     }
   },
 
+  // JWT token utilities
+  isTokenExpired: (token: string): boolean => {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      return payload.exp * 1000 < Date.now() + 60000; // Check if expires in 1 minute
+    } catch {
+      return true;
+    }
+  },
+
+  // Route management
   isPublicRoute: (path: string): boolean => {
-    const publicRoutes = ["/", "/login", "/sign-up"];
-    return publicRoutes.includes(path);
+    const publicRoutes = ["/", "/login", "/signup", "/contact-us"];
+    return publicRoutes.includes(path) || path.startsWith("/auth/");
   },
 
   shouldRedirectToLogin: (path: string): boolean => {
@@ -174,7 +227,17 @@ export const authService = {
   },
 
   shouldRedirectToDashboard: (path: string): boolean => {
-    const authRoutes = ["/login", "/sign-up"];
+    const authRoutes = ["/login", "/signup"];
     return authRoutes.includes(path) && authService.isAuthenticated();
+  },
+
+  // Initialize auth on app start
+  initializeAuth: (): void => {
+    if (typeof window !== "undefined") {
+      const token = authService.getAccessToken();
+      if (token) {
+        axiosApi.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      }
+    }
   },
 };

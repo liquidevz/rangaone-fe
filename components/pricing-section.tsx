@@ -1,443 +1,462 @@
-"use client"
+// components/pricing-section.tsx
+"use client";
 
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { CheckCircle, X } from "lucide-react"
-import Link from "next/link"
-import { SectionHeading } from "@/components/ui/section-heading"
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { CheckCircle, X, Star, Crown, TrendingUp, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/components/auth/auth-context";
+import { bundleService, Bundle } from "@/services/bundle.service";
+import { CheckoutModal } from "./checkout-modal";
+import { SectionHeading } from "@/components/ui/section-heading";
+
+type SubscriptionType = "monthly" | "quarterly" | "yearly";
+type PlanType = "basic" | "premium";
 
 export default function PricingSection() {
-  const [activeTab, setActiveTab] = useState("basic")
+  const [bundles, setBundles] = useState<Bundle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [subscriptionType, setSubscriptionType] = useState<SubscriptionType>("monthly");
+  const [planType, setPlanType] = useState<PlanType>("basic");
+  const [checkoutModal, setCheckoutModal] = useState<{
+    isOpen: boolean;
+    type: "single" | "cart";
+    bundle?: Bundle;
+    isBasicPlan?: boolean;
+  }>({
+    isOpen: false,
+    type: "single",
+  });
+
+  const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
+
+  // Basic plan pricing (fixed) - Create a bundle-like structure for consistency
+  const basicPlanBundle: Bundle = {
+    _id: "basic-plan-id", // Dummy ID for basic plan
+    name: "RangaOne Wealth Basic",
+    description: "Essential investment guidance with quality stock recommendations for beginners",
+    portfolios: [], // No portfolios for basic plan
+    discountPercentage: 0,
+    monthlyPrice: 599,
+    quarterlyPrice: 1599, // ~11% discount
+    yearlyPrice: 5990, // ~17% discount
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  const basicPlanFeatures = [
+    "10-12 Quality Stock Recommendations",
+    "5 Short Term/Swing Trades per month",
+    "Timely Entry & Exit Alerts",
+    "Real Time Market Updates",
+    "Email & SMS Notifications",
+    "Basic Customer Support",
+    "Market Analysis Reports"
+  ];
+
+  const basicPlanExcludedFeatures = [
+    "Premium Model Portfolios",
+    "IPO Recommendations",
+    "Direct Call Support",
+    "Live Webinars & Sessions",
+    "Advanced Analytics"
+  ];
+
+  useEffect(() => {
+    if (planType === "premium") {
+      loadBundles();
+    }
+  }, [planType]);
+
+  const loadBundles = async () => {
+    try {
+      setLoading(true);
+      const bundlesData = await bundleService.getAll();
+      setBundles(bundlesData);
+    } catch (error) {
+      console.error("Failed to load bundles:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load premium bundles. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getBasicPrice = () => {
+    switch (subscriptionType) {
+      case "monthly":
+        return basicPlanBundle.monthlyPrice;
+      case "quarterly":
+        return basicPlanBundle.quarterlyPrice;
+      case "yearly":
+        return basicPlanBundle.yearlyPrice;
+      default:
+        return basicPlanBundle.monthlyPrice;
+    }
+  };
+
+  const getBundlePrice = (bundle: Bundle) => {
+    switch (subscriptionType) {
+      case "monthly":
+        return bundle.monthlyPrice;
+      case "quarterly":
+        return bundle.quarterlyPrice;
+      case "yearly":
+        return bundle.yearlyPrice;
+      default:
+        return bundle.monthlyPrice;
+    }
+  };
+
+  const getIndividualPortfolioPrice = (portfolio: any) => {
+    const fee = portfolio.subscriptionFee?.find((f: any) => f.type === subscriptionType);
+    return fee?.price || 0;
+  };
+
+  const calculateBundleSavings = (bundle: Bundle) => {
+    const bundlePrice = getBundlePrice(bundle);
+    const individualTotal = bundle.portfolios.reduce((total, portfolio) => {
+      return total + getIndividualPortfolioPrice(portfolio);
+    }, 0);
+
+    const savings = individualTotal - bundlePrice;
+    const savingsPercentage = individualTotal > 0 ? Math.round((savings / individualTotal) * 100) : 0;
+
+    return { savings, savingsPercentage, individualTotal };
+  };
+
+  const getSubscriptionLabel = () => {
+    switch (subscriptionType) {
+      case "monthly": return "per month";
+      case "quarterly": return "per quarter";
+      case "yearly": return "per year";
+      default: return "per month";
+    }
+  };
+
+  const getSavingsFromBasic = () => {
+    const basicMonthly = basicPlanBundle.monthlyPrice;
+    const currentPrice = getBasicPrice();
+
+    switch (subscriptionType) {
+      case "quarterly":
+        const quarterlySavings = (basicMonthly * 3) - currentPrice;
+        return { amount: quarterlySavings, percentage: Math.round((quarterlySavings / (basicMonthly * 3)) * 100) };
+      case "yearly":
+        const yearlySavings = (basicMonthly * 12) - currentPrice;
+        return { amount: yearlySavings, percentage: Math.round((yearlySavings / (basicMonthly * 12)) * 100) };
+      default:
+        return { amount: 0, percentage: 0 };
+    }
+  };
+
+  const handleBasicPlanPurchase = () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to purchase a subscription plan.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCheckoutModal({
+      isOpen: true,
+      type: "single",
+      bundle: basicPlanBundle,
+      isBasicPlan: true
+    });
+  };
+
+  const handleBundlePurchase = (bundle: Bundle) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to purchase a subscription plan.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCheckoutModal({
+      isOpen: true,
+      type: "single",
+      bundle,
+    });
+  };
 
   return (
-    <section className="py-24 bg-white" id="pricing">
-      <div className="container mx-auto px-4">
-        <SectionHeading title="Choose Your Plan" subtitle="Select the perfect plan for your investment journey" />
+    <>
+      <section className="py-24 bg-white" id="pricing">
+        <div className="container mx-auto px-4">
+          <SectionHeading title="Choose Your Plan" subtitle="Select the perfect plan for your investment journey" />
 
-        {/* Tab Selector */}
-        <div className="flex justify-center mb-10">
-          <div className="inline-flex p-1 bg-gray-100 rounded-full shadow-sm">
-            <button
-              onClick={() => setActiveTab("basic")}
-              className={`px-5 py-1.5 rounded-full text-sm font-medium transition-all ${
-                activeTab === "basic" ? "bg-[#1e3a8a] text-white" : "bg-transparent text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Basic
-            </button>
-            <button
-              onClick={() => setActiveTab("premium")}
-              className={`px-5 py-1.5 rounded-full text-sm font-medium transition-all ${
-                activeTab === "premium"
-                  ? "bg-[#ffc107] text-gray-900"
-                  : "bg-transparent text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Premium
-            </button>
+          {/* Plan Type Toggle */}
+          <div className="flex justify-center mb-8">
+            <div className="flex items-center bg-gray-100 rounded-full p-1">
+              <button
+                onClick={() => setPlanType("basic")}
+                className={`px-8 py-3 rounded-full text-sm font-medium transition-all ${planType === "basic"
+                    ? "bg-[#1e3a8a] text-white shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
+                  }`}
+              >
+                <Star className="w-4 h-4 inline mr-2" />
+                Basic
+              </button>
+              <button
+                onClick={() => setPlanType("premium")}
+                className={`px-8 py-3 rounded-full text-sm font-medium transition-all ${planType === "premium"
+                    ? "bg-[#ffc107] text-gray-900 shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
+                  }`}
+              >
+                <Crown className="w-4 h-4 inline mr-2" />
+                Premium
+              </button>
+            </div>
           </div>
-        </div>
 
-        {/* Pricing Cards */}
-        <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-6">
-          {activeTab === "basic" ? (
-            <>
-              {/* Basic Yearly */}
+          {/* Subscription Type Toggle */}
+          <div className="flex justify-center mb-12">
+            <div className="flex items-center bg-gray-50 rounded-full p-1 border">
+              <button
+                onClick={() => setSubscriptionType("monthly")}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${subscriptionType === "monthly"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
+                  }`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setSubscriptionType("quarterly")}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${subscriptionType === "quarterly"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
+                  }`}
+              >
+                Quarterly
+                <span className="ml-2 bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">
+                  Save 11%
+                </span>
+              </button>
+              <button
+                onClick={() => setSubscriptionType("yearly")}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${subscriptionType === "yearly"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
+                  }`}
+              >
+                Yearly
+                <span className="ml-2 bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">
+                  Save 17%
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* Basic Plan View */}
+          {planType === "basic" && (
+            <div className="max-w-md mx-auto">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
-                className="bg-gradient-to-br from-[#1e3a8a] to-[#3b82f6] rounded-xl overflow-hidden shadow-xl border border-gray-200"
+                className="bg-gradient-to-br from-[#1e3a8a] to-[#3b82f6] rounded-xl overflow-hidden shadow-xl border border-gray-200 relative"
               >
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-white mb-4 text-center">Yearly</h3>
-                  <div className="flex items-baseline justify-center mb-4">
-                    <span className="text-5xl font-bold text-white">₹477</span>
-                    <span className="text-lg text-white ml-2">/mo</span>
-                  </div>
-                  <p className="text-center text-white mb-6 text-sm">(Annual, Billed Monthly)</p>
+                <div className="p-8">
+                  <div className="text-center mb-6">
+                    <div className="flex items-center justify-center gap-2 mb-4">
+                      <Star className="h-6 w-6 text-white" />
+                      <h3 className="text-2xl font-bold text-white">{basicPlanBundle.name}</h3>
+                    </div>
 
-                  <div className="border-t border-white/20 my-4"></div>
+                    <div className="flex items-baseline justify-center mb-4">
+                      <span className="text-5xl font-bold text-white">₹{getBasicPrice()}</span>
+                      <span className="text-lg text-white ml-2">{getSubscriptionLabel()}</span>
+                    </div>
 
-                  <div className="space-y-3 mb-6">
-                    <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-white mr-2.5 flex-shrink-0" />
-                      <span className="text-white text-sm">Get 10-12 Quality Stocks</span>
-                    </div>
-                    <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-white mr-2.5 flex-shrink-0" />
-                      <span className="text-white text-sm">Get 5 Short Term/Swing Trades</span>
-                    </div>
-                    <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-white mr-2.5 flex-shrink-0" />
-                      <span className="text-white text-sm">Timely Alert For Entry & Exit</span>
-                    </div>
-                    <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-white mr-2.5 flex-shrink-0" />
-                      <span className="text-white text-sm">Real Time Market Updates</span>
-                    </div>
-                    <div className="flex items-start">
-                      <div className="h-5 w-5 bg-gray-800 rounded-full flex items-center justify-center mr-2.5 flex-shrink-0">
-                        <X className="h-3 w-3 text-gray-500" />
+                    {subscriptionType !== "monthly" && (
+                      <div className="mb-6">
+                        <span className="bg-green-500 text-white text-sm px-4 py-2 rounded-full">
+                          Save ₹{getSavingsFromBasic().amount} ({getSavingsFromBasic().percentage}% off)
+                        </span>
                       </div>
-                      <span className="text-gray-300 text-sm">2 Model Portfolios</span>
-                    </div>
-                    <div className="flex items-start">
-                      <div className="h-5 w-5 bg-gray-800 rounded-full flex items-center justify-center mr-2.5 flex-shrink-0">
-                        <X className="h-3 w-3 text-gray-500" />
-                      </div>
-                      <span className="text-gray-300 text-sm">IPO Recommendations</span>
-                    </div>
-                    <div className="flex items-start">
-                      <div className="h-5 w-5 bg-gray-800 rounded-full flex items-center justify-center mr-2.5 flex-shrink-0">
-                        <X className="h-3 w-3 text-gray-500" />
-                      </div>
-                      <span className="text-gray-300 text-sm">Call Support</span>
-                    </div>
-                    <div className="flex items-start">
-                      <div className="h-5 w-5 bg-gray-800 rounded-full flex items-center justify-center mr-2.5 flex-shrink-0">
-                        <X className="h-3 w-3 text-gray-500" />
-                      </div>
-                      <span className="text-gray-300 text-sm">Free Live Webinar</span>
-                    </div>
+                    )}
                   </div>
 
-                  <div className="space-y-3">
-                    <button className="w-full bg-white text-[#1e3a8a] font-medium py-2.5 rounded-lg hover:bg-gray-100 transition-colors text-sm">
-                      BUY NOW
-                    </button>
-                    <Link
-                      href="/basic-subscription"
-                      className="block w-full text-center text-white text-sm hover:text-blue-300 transition-colors"
-                    >
-                      View Detailed Description
-                    </Link>
+                  <div className="space-y-4 mb-8">
+                    <h4 className="text-white font-semibold text-center">What's Included:</h4>
+                    {basicPlanFeatures.map((feature, i) => (
+                      <div key={i} className="flex items-start">
+                        <CheckCircle className="h-5 w-5 text-white mr-3 flex-shrink-0 mt-0.5" />
+                        <span className="text-white text-sm">{feature}</span>
+                      </div>
+                    ))}
                   </div>
+
+                  <div className="space-y-4 mb-8 opacity-60">
+                    <h4 className="text-gray-200 font-semibold text-center">Not Included:</h4>
+                    {basicPlanExcludedFeatures.map((feature, i) => (
+                      <div key={i} className="flex items-start">
+                        <X className="h-5 w-5 text-gray-300 mr-3 flex-shrink-0 mt-0.5" />
+                        <span className="text-gray-300 text-sm line-through">{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Button
+                    onClick={handleBasicPlanPurchase}
+                    className="w-full bg-white text-[#1e3a8a] font-bold py-4 rounded-lg hover:bg-gray-100 transition-colors text-lg"
+                  >
+                    Buy Now - ₹{getBasicPrice()}
+                  </Button>
                 </div>
               </motion.div>
+            </div>
+          )}
 
-              {/* Basic Monthly */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.1 }}
-                className="bg-gradient-to-br from-[#1e3a8a] to-[#3b82f6] rounded-xl overflow-hidden shadow-xl border border-gray-200"
-              >
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-white mb-4 text-center">Monthly</h3>
-                  <div className="flex items-baseline justify-center mb-4">
-                    <span className="text-5xl font-bold text-white">₹666</span>
-                    <span className="text-lg text-white ml-2">/mo</span>
-                  </div>
-                  <p className="text-center text-white mb-6 text-sm">(Flexible, but higher cost)</p>
-
-                  <div className="border-t border-white/20 my-4"></div>
-
-                  <div className="space-y-3 mb-6">
-                    <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-white mr-2.5 flex-shrink-0" />
-                      <span className="text-white text-sm">Get 10-12 Quality Stocks</span>
-                    </div>
-                    <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-white mr-2.5 flex-shrink-0" />
-                      <span className="text-white text-sm">Get 5 Short Term/Swing Trades</span>
-                    </div>
-                    <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-white mr-2.5 flex-shrink-0" />
-                      <span className="text-white text-sm">Timely Alert For Entry & Exit</span>
-                    </div>
-                    <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-white mr-2.5 flex-shrink-0" />
-                      <span className="text-white text-sm">Real Time Market Updates</span>
-                    </div>
-                    <div className="flex items-start">
-                      <div className="h-5 w-5 bg-gray-800 rounded-full flex items-center justify-center mr-2.5 flex-shrink-0">
-                        <X className="h-3 w-3 text-gray-500" />
-                      </div>
-                      <span className="text-gray-300 text-sm">2 Model Portfolios</span>
-                    </div>
-                    <div className="flex items-start">
-                      <div className="h-5 w-5 bg-gray-800 rounded-full flex items-center justify-center mr-2.5 flex-shrink-0">
-                        <X className="h-3 w-3 text-gray-500" />
-                      </div>
-                      <span className="text-gray-300 text-sm">IPO Recommendations</span>
-                    </div>
-                    <div className="flex items-start">
-                      <div className="h-5 w-5 bg-gray-800 rounded-full flex items-center justify-center mr-2.5 flex-shrink-0">
-                        <X className="h-3 w-3 text-gray-500" />
-                      </div>
-                      <span className="text-gray-300 text-sm">Call Support</span>
-                    </div>
-                    <div className="flex items-start">
-                      <div className="h-5 w-5 bg-gray-800 rounded-full flex items-center justify-center mr-2.5 flex-shrink-0">
-                        <X className="h-3 w-3 text-gray-500" />
-                      </div>
-                      <span className="text-gray-300 text-sm">Free Live Webinar</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <button className="w-full bg-white text-[#1e3a8a] font-medium py-2.5 rounded-lg hover:bg-gray-100 transition-colors text-sm">
-                      BUY NOW
-                    </button>
-                    <Link
-                      href="/basic-subscription"
-                      className="block w-full text-center text-white text-sm hover:text-blue-300 transition-colors"
-                    >
-                      View Detailed Description
-                    </Link>
-                  </div>
-                </div>
-              </motion.div>
-            </>
-          ) : (
+          {/* Premium Bundles View */}
+          {planType === "premium" && (
             <>
-              {/* Premium Yearly */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-                className="bg-gradient-to-br from-[#ffc107] to-[#ffeb3b] rounded-xl overflow-hidden shadow-xl border border-gray-200"
-              >
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">Yearly</h3>
-                  <div className="flex items-baseline justify-center mb-4">
-                    <span className="text-5xl font-bold text-gray-900">₹1998</span>
-                    <span className="text-lg text-gray-700 ml-2">/mo</span>
-                  </div>
-                  <p className="text-center text-gray-700 mb-6 text-sm">(Annual, Billed Monthly)</p>
-
-                  <div className="border-t border-gray-800/20 my-4"></div>
-
-                  <div className="space-y-3 mb-6">
-                    <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-gray-900 mr-2.5 flex-shrink-0" />
-                      <span className="text-gray-900 text-sm">Get 20-25 High Growth Stocks</span>
-                    </div>
-                    <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-gray-900 mr-2.5 flex-shrink-0" />
-                      <span className="text-gray-900 text-sm">Get 10 Short Term/Swing Trades</span>
-                    </div>
-                    <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-gray-900 mr-2.5 flex-shrink-0" />
-                      <span className="text-gray-900 text-sm">Timely Alert For Entry & Exit</span>
-                    </div>
-                    <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-gray-900 mr-2.5 flex-shrink-0" />
-                      <span className="text-gray-900 text-sm">Real Time Market Updates</span>
-                    </div>
-                    <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-gray-900 mr-2.5 flex-shrink-0" />
-                      <span className="text-gray-900 text-sm">2 Model Portfolios</span>
-                    </div>
-                    <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-gray-900 mr-2.5 flex-shrink-0" />
-                      <span className="text-gray-900 text-sm">IPO Recommendations</span>
-                    </div>
-                    <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-gray-900 mr-2.5 flex-shrink-0" />
-                      <span className="text-gray-900 text-sm">Call Support</span>
-                    </div>
-                    <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-gray-900 mr-2.5 flex-shrink-0" />
-                      <span className="text-gray-900 text-sm">Free Live Webinar</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <button className="w-full bg-gray-900 text-[#ffc107] font-medium py-2.5 rounded-lg hover:bg-gray-800 transition-colors text-sm">
-                      BUY NOW
-                    </button>
-                    <Link
-                      href="/premium-subscription"
-                      className="block w-full text-center text-gray-900 text-sm hover:text-gray-700 transition-colors"
-                    >
-                      View Detailed Description
-                    </Link>
-                  </div>
+              {loading ? (
+                <div className="text-center">
+                  <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading premium bundles...</p>
                 </div>
-              </motion.div>
+              ) : (
+                <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-8 max-w-7xl mx-auto">
+                  {bundles.map((bundle, index) => {
+                    const { savings, savingsPercentage, individualTotal } = calculateBundleSavings(bundle);
+                    const bundlePrice = getBundlePrice(bundle);
 
-              {/* Premium Monthly */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.1 }}
-                className="bg-gradient-to-br from-[#ffc107] to-[#ffeb3b] rounded-xl overflow-hidden shadow-xl border border-gray-200"
-              >
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">Monthly</h3>
-                  <div className="flex items-baseline justify-center mb-4">
-                    <span className="text-5xl font-bold text-gray-900">₹2799</span>
-                    <span className="text-lg text-gray-700 ml-2">/mo</span>
-                  </div>
-                  <p className="text-center text-gray-700 mb-6 text-sm">(Flexible, but higher cost)</p>
+                    return (
+                      <motion.div
+                        key={bundle._id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: index * 0.1 }}
+                        className="bg-gradient-to-br from-[#ffc107] to-[#ffeb3b] rounded-xl overflow-hidden shadow-xl border border-gray-200 relative"
+                      >
+                        <div className="p-6">
+                          <div className="text-center mb-6">
+                            <div className="flex items-center justify-center gap-2 mb-4">
+                              <Crown className="h-6 w-6 text-gray-900" />
+                              <h3 className="text-xl font-bold text-gray-900">{bundle.name}</h3>
+                            </div>
 
-                  <div className="border-t border-gray-800/20 my-4"></div>
+                            <div className="flex items-baseline justify-center mb-2">
+                              <span className="text-4xl font-bold text-gray-900">₹{bundlePrice}</span>
+                              <span className="text-lg text-gray-700 ml-2">{getSubscriptionLabel()}</span>
+                            </div>
 
-                  <div className="space-y-3 mb-6">
-                    <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-gray-900 mr-2.5 flex-shrink-0" />
-                      <span className="text-gray-900 text-sm">Get 20-25 High Growth Stocks</span>
-                    </div>
-                    <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-gray-900 mr-2.5 flex-shrink-0" />
-                      <span className="text-gray-900 text-sm">Get 10 Short Term/Swing Trades</span>
-                    </div>
-                    <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-gray-900 mr-2.5 flex-shrink-0" />
-                      <span className="text-gray-900 text-sm">Timely Alert For Entry & Exit</span>
-                    </div>
-                    <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-gray-900 mr-2.5 flex-shrink-0" />
-                      <span className="text-gray-900 text-sm">Real Time Market Updates</span>
-                    </div>
-                    <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-gray-900 mr-2.5 flex-shrink-0" />
-                      <span className="text-gray-900 text-sm">2 Model Portfolios</span>
-                    </div>
-                    <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-gray-900 mr-2.5 flex-shrink-0" />
-                      <span className="text-gray-900 text-sm">IPO Recommendations</span>
-                    </div>
-                    <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-gray-900 mr-2.5 flex-shrink-0" />
-                      <span className="text-gray-900 text-sm">Call Support</span>
-                    </div>
-                    <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-gray-900 mr-2.5 flex-shrink-0" />
-                      <span className="text-gray-900 text-sm">Free Live Webinar</span>
-                    </div>
-                  </div>
+                            {savings > 0 && (
+                              <div className="text-center mb-4">
+                                <div className="bg-green-100 text-green-800 text-sm px-3 py-1 rounded-full inline-block mb-1">
+                                  <TrendingUp className="w-4 h-4 inline mr-1" />
+                                  Save ₹{savings} ({savingsPercentage}% off)
+                                </div>
+                                <p className="text-xs text-gray-600">vs buying individually</p>
+                              </div>
+                            )}
+                          </div>
 
-                  <div className="space-y-3">
-                    <button className="w-full bg-gray-900 text-[#ffc107] font-medium py-2.5 rounded-lg hover:bg-gray-800 transition-colors text-sm">
-                      BUY NOW
-                    </button>
-                    <Link
-                      href="/premium-subscription"
-                      className="block w-full text-center text-gray-900 text-sm hover:text-gray-700 transition-colors"
-                    >
-                      View Detailed Description
-                    </Link>
-                  </div>
+                          <p className="text-gray-700 text-sm mb-6 text-center">{bundle.description}</p>
+
+                          {/* Portfolio Breakdown */}
+                          <div className="bg-white/50 rounded-lg p-4 mb-6">
+                            <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                              <Zap className="w-4 h-4 mr-2" />
+                              Included Portfolios:
+                            </h4>
+                            <div className="space-y-2">
+                              {bundle.portfolios.map((portfolio, pIndex) => {
+                                const individualPrice = getIndividualPortfolioPrice(portfolio);
+                                return (
+                                  <div key={pIndex} className="flex justify-between items-center text-sm">
+                                    <span className="font-medium text-gray-800">{portfolio.name}</span>
+                                    <span className="text-gray-600">₹{individualPrice}</span>
+                                  </div>
+                                );
+                              })}
+                              <div className="border-t pt-2 mt-2">
+                                <div className="flex justify-between items-center font-semibold">
+                                  <span className="text-gray-700">Individual Total:</span>
+                                  <span className="text-gray-700 line-through">₹{individualTotal}</span>
+                                </div>
+                                <div className="flex justify-between items-center font-bold text-green-700">
+                                  <span>Bundle Price:</span>
+                                  <span>₹{bundlePrice}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Additional Benefits */}
+                          <div className="space-y-3 mb-6">
+                            <div className="flex items-start">
+                              <CheckCircle className="h-4 w-4 text-gray-900 mr-2 flex-shrink-0 mt-0.5" />
+                              <span className="text-gray-900 text-sm">All portfolio recommendations & alerts</span>
+                            </div>
+                            <div className="flex items-start">
+                              <CheckCircle className="h-4 w-4 text-gray-900 mr-2 flex-shrink-0 mt-0.5" />
+                              <span className="text-gray-900 text-sm">Advanced analytics & insights</span>
+                            </div>
+                            <div className="flex items-start">
+                              <CheckCircle className="h-4 w-4 text-gray-900 mr-2 flex-shrink-0 mt-0.5" />
+                              <span className="text-gray-900 text-sm">Priority customer support</span>
+                            </div>
+                            <div className="flex items-start">
+                              <CheckCircle className="h-4 w-4 text-gray-900 mr-2 flex-shrink-0 mt-0.5" />
+                              <span className="text-gray-900 text-sm">Quarterly rebalancing alerts</span>
+                            </div>
+                          </div>
+
+                          {/* Single Buy Now Button */}
+                          <Button
+                            onClick={() => handleBundlePurchase(bundle)}
+                            className="w-full bg-gray-900 text-[#ffc107] font-bold py-4 rounded-lg hover:bg-gray-800 transition-colors text-lg"
+                          >
+                            Buy Now - Save ₹{savings}
+                          </Button>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
                 </div>
-              </motion.div>
+              )}
             </>
           )}
 
-          {/* Contact Us Card - Always visible */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
-            className={`${
-              activeTab === "basic"
-                ? "bg-gradient-to-br from-[#1e3a8a] to-[#3b82f6]"
-                : "bg-gradient-to-br from-[#ffc107] to-[#ffeb3b]"
-            } rounded-xl overflow-hidden shadow-xl border border-gray-200`}
-          >
-            <div className="p-6">
-              <h3
-                className={`text-xl font-bold mb-4 text-center ${
-                  activeTab === "basic" ? "text-white" : "text-gray-900"
-                }`}
-              >
-                Contact Us
-              </h3>
-              <div className="flex items-baseline justify-center mb-4">
-                <span className={`text-3xl font-bold ${activeTab === "basic" ? "text-white" : "text-gray-900"}`}>
-                  Need Help?
-                </span>
-              </div>
-              <p className={`text-center mb-6 text-sm ${activeTab === "basic" ? "text-white" : "text-gray-700"}`}>
-                For personalized investment advice
-              </p>
-
-              <div
-                className={`border-t my-4 ${activeTab === "basic" ? "border-white/20" : "border-gray-800/20"}`}
-              ></div>
-
-              <div className="space-y-3 mb-6">
-                <div className="flex items-start">
-                  <CheckCircle
-                    className={`h-5 w-5 mr-2.5 flex-shrink-0 ${activeTab === "basic" ? "text-white" : "text-gray-900"}`}
-                  />
-                  <span className={`text-sm ${activeTab === "basic" ? "text-white" : "text-gray-900"}`}>
-                    Custom Investment Strategy
-                  </span>
-                </div>
-                <div className="flex items-start">
-                  <CheckCircle
-                    className={`h-5 w-5 mr-2.5 flex-shrink-0 ${activeTab === "basic" ? "text-white" : "text-gray-900"}`}
-                  />
-                  <span className={`text-sm ${activeTab === "basic" ? "text-white" : "text-gray-900"}`}>
-                    One-on-One Consultation
-                  </span>
-                </div>
-                <div className="flex items-start">
-                  <CheckCircle
-                    className={`h-5 w-5 mr-2.5 flex-shrink-0 ${activeTab === "basic" ? "text-white" : "text-gray-900"}`}
-                  />
-                  <span className={`text-sm ${activeTab === "basic" ? "text-white" : "text-gray-900"}`}>
-                    Portfolio Review
-                  </span>
-                </div>
-                <div className="flex items-start">
-                  <CheckCircle
-                    className={`h-5 w-5 mr-2.5 flex-shrink-0 ${activeTab === "basic" ? "text-white" : "text-gray-900"}`}
-                  />
-                  <span className={`text-sm ${activeTab === "basic" ? "text-white" : "text-gray-900"}`}>
-                    Risk Assessment
-                  </span>
-                </div>
-                <div className="flex items-start">
-                  <CheckCircle
-                    className={`h-5 w-5 mr-2.5 flex-shrink-0 ${activeTab === "basic" ? "text-white" : "text-gray-900"}`}
-                  />
-                  <span className={`text-sm ${activeTab === "basic" ? "text-white" : "text-gray-900"}`}>
-                    Wealth Management
-                  </span>
-                </div>
-                <div className="flex items-start">
-                  <CheckCircle
-                    className={`h-5 w-5 mr-2.5 flex-shrink-0 ${activeTab === "basic" ? "text-white" : "text-gray-900"}`}
-                  />
-                  <span className={`text-sm ${activeTab === "basic" ? "text-white" : "text-gray-900"}`}>
-                    Tax Planning Advice
-                  </span>
-                </div>
-                <div className="flex items-start">
-                  <CheckCircle
-                    className={`h-5 w-5 mr-2.5 flex-shrink-0 ${activeTab === "basic" ? "text-white" : "text-gray-900"}`}
-                  />
-                  <span className={`text-sm ${activeTab === "basic" ? "text-white" : "text-gray-900"}`}>
-                    Retirement Planning
-                  </span>
-                </div>
-                <div className="flex items-start">
-                  <CheckCircle
-                    className={`h-5 w-5 mr-2.5 flex-shrink-0 ${activeTab === "basic" ? "text-white" : "text-gray-900"}`}
-                  />
-                  <span className={`text-sm ${activeTab === "basic" ? "text-white" : "text-gray-900"}`}>
-                    24/7 Priority Support
-                  </span>
-                </div>
-              </div>
-
-              <button
-                className={`w-full font-medium py-2.5 rounded-lg transition-colors text-sm ${
-                  activeTab === "basic"
-                    ? "bg-white text-[#1e3a8a] hover:bg-gray-100"
-                    : "bg-gray-900 text-[#ffc107] hover:bg-gray-800"
-                }`}
-              >
-                CONTACT US
-              </button>
-            </div>
-          </motion.div>
+          {/* Additional Info */}
+          <div className="mt-16 text-center">
+            <p className="text-gray-600 max-w-2xl mx-auto mb-4">
+              {planType === "basic"
+                ? "Perfect for individual investors starting their journey with quality stock recommendations."
+                : "Premium bundles offer the best value with multiple portfolios and exclusive features."
+              }
+            </p>
+            <p className="text-sm text-gray-500">
+              All plans include email support, mobile app access, and regular market updates.
+            </p>
+          </div>
         </div>
-      </div>
-    </section>
-  )
+      </section>
+
+      {/* Checkout Modal */}
+      <CheckoutModal
+        isOpen={checkoutModal.isOpen}
+        onClose={() => setCheckoutModal({ isOpen: false, type: "single" })}
+        type={checkoutModal.type}
+        bundle={checkoutModal.bundle}
+        subscriptionType={subscriptionType}
+      />
+    </>
+  );
 }
