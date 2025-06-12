@@ -1,4 +1,4 @@
-// components/checkout-modal.tsx
+// components/checkout-modal.tsx - FIXED VERSION
 "use client";
 
 import { useState, useEffect } from "react";
@@ -114,35 +114,61 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             return;
           } else {
             // Bundle purchase
+            console.log("Creating bundle order with:", {
+              productType: "Bundle",
+              productId: bundle._id,
+              planType: subscriptionType
+            });
+            
             orderResponse = await paymentService.createOrder({
               productType: "Bundle",
               productId: bundle._id,
+              planType: subscriptionType,
             });
           }
         } else if (portfolio) {
           // Individual portfolio purchase
+          console.log("Creating portfolio order with:", {
+            productType: "Portfolio",
+            productId: portfolio._id,
+            planType: subscriptionType
+          });
+          
           orderResponse = await paymentService.createOrder({
             productType: "Portfolio",
             productId: portfolio._id,
+            planType: subscriptionType,
           });
         } else {
           throw new Error("No product selected for purchase");
         }
       } else if (type === "cart") {
-        // Cart checkout for individual portfolios
-        orderResponse = await paymentService.cartCheckout();
+        // Cart checkout - FIXED: Pass the subscription type
+        console.log("Creating cart checkout order with planType:", subscriptionType);
+        orderResponse = await paymentService.cartCheckout(subscriptionType);
       } else {
         throw new Error("Invalid checkout configuration");
       }
 
+      console.log("Order created successfully:", orderResponse);
       setOrderData(orderResponse);
       await initiatePayment(orderResponse);
     } catch (error: any) {
       console.error("Order creation failed:", error);
       setPaymentStep("error");
+      
+      // Improved error handling
+      let errorMessage = "Failed to create order. Please try again.";
+      
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Order Creation Failed",
-        description: error.message || "Failed to create order. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -154,6 +180,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     if (!user) return;
 
     try {
+      console.log("Initiating payment with order:", orderResponse);
+      
       await paymentService.openCheckout(
         orderResponse,
         {
@@ -161,10 +189,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           email: user.email,
         },
         async (response: any) => {
+          console.log("Payment success response:", response);
           // Payment successful, verify it
           await handlePaymentSuccess(response);
         },
         (error: any) => {
+          console.error("Payment failed:", error);
           // Payment failed or cancelled
           setPaymentStep("error");
           toast({
@@ -175,6 +205,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         }
       );
     } catch (error: any) {
+      console.error("Payment initialization error:", error);
       setPaymentStep("error");
       toast({
         title: "Payment Error",
@@ -186,6 +217,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const handlePaymentSuccess = async (response: any) => {
     try {
+      console.log("Verifying payment:", {
+        orderId: response.razorpay_order_id,
+        paymentId: response.razorpay_payment_id,
+        hasSignature: !!response.razorpay_signature
+      });
+      
       // Verify payment with backend
       await paymentService.verifyPayment({
         orderId: response.razorpay_order_id,
@@ -218,6 +255,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         await refreshCart(); // Use cart context refresh
       }
     } catch (error: any) {
+      console.error("Payment verification failed:", error);
       setPaymentStep("error");
       toast({
         title: "Payment Verification Failed",
@@ -278,6 +316,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             {paymentStep === "review" && (
               <div className="space-y-4">
                 <h3 className="font-semibold text-gray-900">Order Summary</h3>
+                
+                {/* Debug info - Remove in production */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
+                    Debug: Type: {type}, Subscription: {subscriptionType}, Total: ₹{calculateTotal()}
+                  </div>
+                )}
                 
                 {/* Single Portfolio */}
                 {type === "single" && portfolio && (
