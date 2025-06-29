@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { purchasePortfolio } from "@/lib/portfolio-service";
 import type { Portfolio } from "@/lib/types";
 import { portfolioService } from "@/services/portfolio.service";
+import { useAuth } from "@/components/auth/auth-context";
 import {
   ArrowUpRight,
   Eye,
@@ -23,26 +24,61 @@ export default function ModelPortfoliosPage() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   useEffect(() => {
     async function loadPortfolios() {
-      try {
-        const data = await portfolioService.getAll();
-        setPortfolios(data);
-      } catch (error) {
-        console.error("Failed to load portfolios:", error);
+      // Wait for auth to finish loading
+      if (authLoading) {
+        return;
+      }
+
+      // Check if user is authenticated
+      if (!isAuthenticated) {
         toast({
-          title: "Error",
-          description: "Failed to load portfolios. Please try again later.",
+          title: "Authentication Required",
+          description: "Please log in to view portfolios.",
           variant: "destructive",
         });
+        router.push("/login");
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const data = await portfolioService.getAll();
+        setPortfolios(data);
+      } catch (error: any) {
+        console.error("Failed to load portfolios:", error);
+        
+        // Handle specific error cases
+        if (error?.response?.status === 401) {
+          toast({
+            title: "Authentication Error",
+            description: "Your session has expired. Please log in again.",
+            variant: "destructive",
+          });
+          router.push("/login");
+        } else if (error?.response?.status === 403) {
+          toast({
+            title: "Access Denied",
+            description: "You don't have permission to view portfolios. Please check your subscription.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to load portfolios. Please try again later.",
+            variant: "destructive",
+          });
+        }
       } finally {
         setLoading(false);
       }
     }
 
     loadPortfolios();
-  }, [toast]);
+  }, [toast, router, isAuthenticated, authLoading]);
 
   const handleSubscribe = async (portfolioId: string) => {
     try {
@@ -66,7 +102,7 @@ export default function ModelPortfoliosPage() {
       toast({
         title: "Error",
         description:
-          "Failed to subscribe to portfolio?. Please try again later.",
+          "Failed to subscribe to portfolio. Please try again later.",
         variant: "destructive",
       });
     }
@@ -75,6 +111,23 @@ export default function ModelPortfoliosPage() {
   const handleViewDetails = (portfolioId: string) => {
     router.push(`/rangaone-wealth/model-portfolios/${portfolioId}`);
   };
+
+  // Show loading while auth is loading
+  if (authLoading) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-6xl mx-auto">
+          <div className="bg-[#0a2463] text-white rounded-lg p-6 mb-8 text-center">
+            <h1 className="text-3xl font-bold mb-2">MODEL PORTFOLIO</h1>
+            <p className="text-lg">YOUR GROWTH OUR PRIORITY</p>
+          </div>
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

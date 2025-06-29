@@ -57,6 +57,11 @@ export interface Portfolio {
   PortfolioCategory: string;
   holdings: Holding[];
   downloadLinks: DownloadLink[];
+  monthlyGains?: number;
+  oneYearGains?: number;
+  totalInvestment?: number;
+  currentValue?: number;
+  isPurchased?: boolean;
 }
 
 export interface TipDownloadLink {

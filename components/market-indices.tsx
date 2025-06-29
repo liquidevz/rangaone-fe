@@ -1,7 +1,7 @@
 "use client"
 
 import { ArrowDown, ArrowUp } from "lucide-react"
-import { useState } from "react"
+import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 
 const indices = [
@@ -29,54 +29,33 @@ const indices = [
 ]
 
 export default function MarketIndices() {
-  const [activeIndex, setActiveIndex] = useState("Sensex")
-
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-      <div className="flex border-b border-gray-200">
-        <div className="w-1/4 border-r border-gray-200">
-          <div className="p-3 bg-blue-50">
-            <h3 className="font-semibold text-navy-blue">Market Indices</h3>
-          </div>
-          <div className="divide-y divide-gray-200">
-            {indices.map((index) => (
-              <button
-                key={index.name}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      {indices.map((index) => (
+        <Card key={index.name} className="bg-white shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+          <CardContent className="p-6">
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold text-gray-900">{index.name}</h3>
+              <div className="text-2xl font-bold text-gray-900">{index.value}</div>
+              <div
                 className={cn(
-                  "w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors",
-                  activeIndex === index.name && "bg-blue-50 font-semibold",
+                  "flex items-center text-sm font-medium",
+                  index.isNegative ? "text-red-500" : "text-green-500",
                 )}
-                onClick={() => setActiveIndex(index.name)}
               >
-                {index.name}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="w-3/4 flex">
-          {indices.map((index) => (
-            <div
-              key={index.name}
-              className="flex-1 flex items-center justify-center border-r border-gray-200 last:border-r-0 p-4"
-            >
-              <div className="text-center">
-                <div className="text-lg font-bold">{index.value}</div>
-                <div
-                  className={cn(
-                    "flex items-center justify-center text-sm",
-                    index.isNegative ? "text-red-500" : "text-green-500",
-                  )}
-                >
-                  {index.isNegative ? <ArrowDown className="h-3 w-3 mr-1" /> : <ArrowUp className="h-3 w-3 mr-1" />}
-                  <span>
-                    {index.change} {index.changePercent}
-                  </span>
-                </div>
+                {index.isNegative ? (
+                  <ArrowDown className="h-4 w-4 mr-1" />
+                ) : (
+                  <ArrowUp className="h-4 w-4 mr-1" />
+                )}
+                <span>
+                  {index.change} {index.changePercent}
+                </span>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   )
 }

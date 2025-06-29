@@ -12,18 +12,102 @@ const axiosApi: AxiosInstance = axios.create({
   baseURL: API_URL,
 });
 
-// Only set the token if we're on the client side and a token exists
-if (typeof window !== "undefined") {
-  const token = localStorage.getItem("accessToken");
-  if (token) {
-    axiosApi.defaults.headers.common["Authorization"] = "Bearer " + token;
-  } else {
-    const sessionToken = sessionStorage.getItem("accessToken");
-    if (sessionToken) {
-      axiosApi.defaults.headers.common["Authorization"] = sessionToken;
-    }
+// Function to get token from storage
+const getAccessToken = (): string | null => {
+  if (typeof window === "undefined") {
+    return process.env.ACCESS_TOKEN || null;
   }
-}
+  return localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+};
+
+// Function to get refresh token from storage
+const getRefreshToken = (): string | null => {
+  if (typeof window === "undefined") {
+    return process.env.REFRESH_TOKEN || null;
+  }
+  return localStorage.getItem("refreshToken") || sessionStorage.getItem("refreshToken");
+};
+
+// Function to check if token is expired
+const isTokenExpired = (token: string): boolean => {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.exp * 1000 < Date.now();
+  } catch {
+    return true;
+  }
+};
+
+// Request interceptor to add auth header
+axiosApi.interceptors.request.use(
+  (config) => {
+    const token = getAccessToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor to handle 401 errors and token refresh
+axiosApi.interceptors.response.use(
+  (response: AxiosResponse) => response,
+  async (error: AxiosError) => {
+    const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      const refreshToken = getRefreshToken();
+      if (refreshToken) {
+        try {
+          // Try to refresh the token
+          const response = await axios.post(`${API_URL}/auth/refresh`, {
+            refreshToken
+          });
+
+          const { accessToken, refreshToken: newRefreshToken } = response.data;
+
+          // Store new tokens
+          if (typeof window !== "undefined") {
+            const useLocalStorage = !!localStorage.getItem("refreshToken");
+            if (useLocalStorage) {
+              localStorage.setItem("accessToken", accessToken);
+              localStorage.setItem("refreshToken", newRefreshToken);
+            } else {
+              sessionStorage.setItem("accessToken", accessToken);
+              sessionStorage.setItem("refreshToken", newRefreshToken);
+            }
+          }
+
+          // Retry the original request with new token
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          }
+          return axiosApi(originalRequest);
+        } catch (refreshError) {
+          // Refresh failed, clear tokens and redirect to login
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
+            sessionStorage.removeItem("accessToken");
+            sessionStorage.removeItem("refreshToken");
+            window.location.href = "/login";
+          }
+          return Promise.reject(refreshError);
+        }
+      } else {
+        // No refresh token, redirect to login
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
+        }
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 const getFormData = (values: Record<string, any>): FormData => {
   const formData: FormData = new FormData();
@@ -36,11 +120,6 @@ const getFormData = (values: Record<string, any>): FormData => {
 
   return formData;
 };
-
-axiosApi.interceptors.response.use(
-  (response: AxiosResponse) => response,
-  (error: AxiosError) => Promise.reject(error)
-);
 
 export async function get<T>(
   url: string,

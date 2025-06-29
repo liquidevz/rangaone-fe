@@ -45,6 +45,16 @@ export interface UserProfile {
 }
 
 export const authService = {
+  // Initialize authentication - sets up axios headers
+  initializeAuth: (): void => {
+    if (typeof window !== "undefined") {
+      const token = authService.getAccessToken();
+      if (token) {
+        axiosApi.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      }
+    }
+  },
+
   // Authentication methods
   signup: async (payload: SignupPayload): Promise<SignupResponse> => {
     return await post<SignupResponse>("/auth/signup", payload, {
@@ -111,7 +121,7 @@ export const authService = {
       );
 
       // Store the new tokens using the same rememberMe preference
-      const rememberMe = !localStorage.getItem("refreshToken");
+      const rememberMe = !!localStorage.getItem("refreshToken");
       authService.setTokens(
         response.accessToken,
         response.refreshToken,
@@ -175,6 +185,15 @@ export const authService = {
     );
   },
 
+  isTokenExpired: (token: string): boolean => {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.exp * 1000 < Date.now();
+    } catch {
+      return true;
+    }
+  },
+
   setTokens: (
     accessToken: string,
     refreshToken: string,
@@ -189,6 +208,7 @@ export const authService = {
         sessionStorage.setItem("refreshToken", refreshToken);
       }
 
+      // Update axios default headers
       axiosApi.defaults.headers.common[
         "Authorization"
       ] = `Bearer ${accessToken}`;
@@ -202,17 +222,8 @@ export const authService = {
       sessionStorage.removeItem("accessToken");
       sessionStorage.removeItem("refreshToken");
 
+      // Clear axios default headers
       delete axiosApi.defaults.headers.common["Authorization"];
-    }
-  },
-
-  // JWT token utilities
-  isTokenExpired: (token: string): boolean => {
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return payload.exp * 1000 < Date.now() + 60000; // Check if expires in 1 minute
-    } catch {
-      return true;
     }
   },
 
@@ -229,15 +240,5 @@ export const authService = {
   shouldRedirectToDashboard: (path: string): boolean => {
     const authRoutes = ["/login", "/signup"];
     return authRoutes.includes(path) && authService.isAuthenticated();
-  },
-
-  // Initialize auth on app start
-  initializeAuth: (): void => {
-    if (typeof window !== "undefined") {
-      const token = authService.getAccessToken();
-      if (token) {
-        axiosApi.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-      }
-    }
   },
 };
