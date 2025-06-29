@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "./auth/auth-context";
 import { useCart } from "./cart/cart-context";
 import { paymentService, CreateOrderResponse } from "@/services/payment.service";
+import { subscriptionService } from "@/services/subscription.service";
 import { Bundle } from "@/services/bundle.service";
 import { UserPortfolio, userPortfolioService } from "@/services/user-portfolio.service";
 
@@ -103,17 +104,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
       if (type === "single") {
         if (bundle) {
-          if (isBasicPlan) {
-            // Basic plan - show coming soon message
+          // Check if it's the basic plan (dummy ID)
+          if (bundle._id === "basic-plan-id" || isBasicPlan) {
+            // Basic plan purchase - show message that it's not available yet
+            setPaymentStep("error");
             toast({
-              title: "Basic Plan Purchase",
-              description: "Basic plan purchase will be available soon. Please contact support.",
+              title: "Basic Plan Coming Soon",
+              description: "Basic plan payment integration is being set up. Please contact support for assistance.",
               variant: "destructive",
             });
-            setPaymentStep("error");
             return;
           } else {
-            // Bundle purchase
+            // Regular bundle purchase
             console.log("Creating bundle order with:", {
               productType: "Bundle",
               productId: bundle._id,
@@ -250,10 +252,24 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         description: successMessage,
       });
 
+      // Force refresh subscription data to reflect the new purchase
+      console.log("Refreshing subscription data after successful payment...");
+      try {
+        await subscriptionService.forceRefresh();
+        console.log("Subscription data refreshed successfully");
+      } catch (refreshError) {
+        console.error("Failed to refresh subscription data:", refreshError);
+      }
+
       // Refresh cart if it was a cart checkout
       if (type === "cart") {
         await refreshCart(); // Use cart context refresh
       }
+
+      // Trigger a page refresh after a short delay to ensure all data is updated
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     } catch (error: any) {
       console.error("Payment verification failed:", error);
       setPaymentStep("error");
@@ -412,7 +428,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     </div>
                     
                     {/* Show bundle discount if applicable */}
-                    {!isBasicPlan && bundle.discountPercentage > 0 && (
+                    {bundle.discountPercentage > 0 && (
                       <div className="text-sm text-green-600 mt-2 flex items-center">
                         <Check className="w-4 h-4 mr-1" />
                         {bundle.discountPercentage}% bundle discount applied
@@ -488,17 +504,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 {((type === "cart" && cart && cart.items.length > 0) || type === "single") && (
                   <Button
                     onClick={handleCreateOrder}
-                    disabled={loading || isBasicPlan}
+                    disabled={loading}
                     className="w-full bg-[#001633] hover:bg-[#002244] text-white py-3"
                   >
-                    {loading ? "Processing..." : isBasicPlan ? "Coming Soon" : `Pay ₹${calculateTotal()}`}
+                    {loading ? "Processing..." : `Pay ₹${calculateTotal()}`}
                   </Button>
-                )}
-                
-                {isBasicPlan && (
-                  <p className="text-xs text-gray-500 text-center mt-2">
-                    Basic plan payment integration coming soon. Please contact support for assistance.
-                  </p>
                 )}
               </div>
             )}
@@ -519,10 +529,16 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <h3 className="text-lg font-semibold mb-2 text-green-800">Payment Successful!</h3>
                 
                 {/* Success message based on purchase type */}
-                {type === "single" && bundle && !isBasicPlan ? (
+                {type === "single" && bundle ? (
                   <div className="text-gray-600 mb-6">
-                    <p className="mb-2">Bundle subscription activated successfully!</p>
-                    <p className="text-sm">You now have access to all {bundle.portfolios.length} portfolio{bundle.portfolios.length > 1 ? 's' : ''} in this bundle.</p>
+                    <p className="mb-2">
+                      {bundle._id === "basic-plan-id" ? "Basic plan activated successfully!" : "Bundle subscription activated successfully!"}
+                    </p>
+                    {bundle._id === "basic-plan-id" ? (
+                      <p className="text-sm">You now have access to all basic features and recommendations.</p>
+                    ) : (
+                      <p className="text-sm">You now have access to all {bundle.portfolios.length} portfolio{bundle.portfolios.length > 1 ? 's' : ''} in this bundle.</p>
+                    )}
                   </div>
                 ) : type === "single" && portfolio ? (
                   <div className="text-gray-600 mb-6">
@@ -542,39 +558,39 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </div>
             )}
 
-            {paymentStep === "error" && (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <AlertCircle className="h-8 w-8 text-red-600" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2 text-red-800">
-                  {isBasicPlan ? "Coming Soon" : "Payment Failed"}
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  {isBasicPlan 
-                    ? "Basic plan purchase is not available yet. Please contact support." 
-                    : "Something went wrong with your payment. Please try again."
-                  }
-                </p>
-                <div className="space-y-2">
-                  {!isBasicPlan && (
+                          {paymentStep === "error" && (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <AlertCircle className="h-8 w-8 text-red-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2 text-red-800">
+                    {isBasicPlan ? "Basic Plan Coming Soon" : "Payment Failed"}
+                  </h3>
+                  <p className="text-gray-600 mb-6">
+                    {isBasicPlan 
+                      ? "Basic plan payment integration is being set up. Please contact our support team for assistance with purchasing the basic plan." 
+                      : "Something went wrong with your payment. Please try again."
+                    }
+                  </p>
+                  <div className="space-y-2">
+                    {!isBasicPlan && (
+                      <Button
+                        onClick={() => setPaymentStep("review")}
+                        className="w-full bg-[#001633] hover:bg-[#002244]"
+                      >
+                        Try Again
+                      </Button>
+                    )}
                     <Button
-                      onClick={() => setPaymentStep("review")}
-                      className="w-full bg-[#001633] hover:bg-[#002244]"
+                      onClick={handleClose}
+                      variant="outline"
+                      className="w-full"
                     >
-                      Try Again
+                      {isBasicPlan ? "Contact Support" : "Cancel"}
                     </Button>
-                  )}
-                  <Button
-                    onClick={handleClose}
-                    variant="outline"
-                    className="w-full"
-                  >
-                    {isBasicPlan ? "Contact Support" : "Cancel"}
-                  </Button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
           </div>
         </motion.div>
       </motion.div>

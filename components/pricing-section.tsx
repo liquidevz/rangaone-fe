@@ -29,22 +29,22 @@ export default function PricingSection() {
     type: "single",
   });
 
-  const { isAuthenticated } = useAuth();
-  const { toast } = useToast();
-
-  // Basic plan pricing (fixed) - Create a bundle-like structure for consistency
-  const basicPlanBundle: Bundle = {
+  // Basic plan pricing - Start with default and update if real bundle found
+  const [basicPlanBundle, setBasicPlanBundle] = useState<Bundle>({
     _id: "basic-plan-id", // Dummy ID for basic plan
     name: "RangaOne Wealth Basic",
     description: "Essential investment guidance with quality stock recommendations for beginners",
     portfolios: [], // No portfolios for basic plan
     discountPercentage: 0,
-    monthlyPrice: 599,
-    quarterlyPrice: 1599, // ~11% discount
-    yearlyPrice: 5990, // ~17% discount
+    monthlyPrice: 300,
+    quarterlyPrice: 1100, // ~8% discount
+    yearlyPrice: 3000, // ~17% discount
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
-  };
+  });
+
+  const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
 
   const basicPlanFeatures = [
     "10-12 Quality Stock Recommendations",
@@ -65,9 +65,7 @@ export default function PricingSection() {
   ];
 
   useEffect(() => {
-    if (planType === "premium") {
-      loadBundles();
-    }
+    loadBundles(); // Load bundles for both basic and premium plans
   }, [planType]);
 
   const loadBundles = async () => {
@@ -75,11 +73,25 @@ export default function PricingSection() {
       setLoading(true);
       const bundlesData = await bundleService.getAll();
       setBundles(bundlesData);
+      
+      // Check if there's a real basic plan bundle in the backend
+      const realBasicPlan = bundlesData.find(bundle => 
+        bundle.name.toLowerCase().includes('basic') || 
+        bundle.description.toLowerCase().includes('basic')
+      );
+      
+      if (realBasicPlan) {
+        console.log("Found real basic plan bundle:", realBasicPlan);
+        // Update the basic plan bundle with real data
+        setBasicPlanBundle(realBasicPlan);
+      } else {
+        console.log("No real basic plan found, using dummy bundle");
+      }
     } catch (error) {
       console.error("Failed to load bundles:", error);
       toast({
         title: "Error",
-        description: "Failed to load premium bundles. Please try again later.",
+        description: "Failed to load bundles. Please try again later.",
         variant: "destructive",
       });
     } finally {
@@ -165,11 +177,23 @@ export default function PricingSection() {
       return;
     }
 
+    // Check if we have a real basic plan bundle (not the dummy one)
+    if (basicPlanBundle._id === "basic-plan-id") {
+      // Still using dummy bundle - show coming soon message
+      toast({
+        title: "Basic Plan Coming Soon",
+        description: "Basic plan payment integration is being set up. Please contact support for assistance.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Use real basic plan bundle
     setCheckoutModal({
       isOpen: true,
       type: "single",
       bundle: basicPlanBundle,
-      isBasicPlan: true
+      isBasicPlan: false // Real bundle, not basic plan dummy
     });
   };
 

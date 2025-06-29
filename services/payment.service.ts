@@ -70,6 +70,8 @@ export const paymentService = {
     });
   },
 
+
+
   // Updated cart checkout to include planType
   cartCheckout: async (planType: "monthly" | "quarterly" | "yearly" = "monthly"): Promise<CreateOrderResponse> => {
     const token = authService.getAccessToken();
