@@ -12,6 +12,7 @@ export interface Bundle {
   yearlyPrice: number;
   createdAt: string;
   updatedAt: string;
+  category: string;
 }
 
 export interface Portfolio {
