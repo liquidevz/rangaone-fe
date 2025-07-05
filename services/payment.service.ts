@@ -27,6 +27,10 @@ export interface CreateOrderResponse {
   receipt?: string;
 }
 
+export interface CreateEMandateResponse {
+  subscriptionId: string;
+}
+
 export interface VerifyPaymentPayload {
   orderId: string;
   paymentId: string;
@@ -56,62 +60,82 @@ export interface PaymentHistory {
 
 export const paymentService = {
   // Create order for single product
-  createOrder: async (payload: CreateOrderPayload): Promise<CreateOrderResponse> => {
+  createOrder: async (
+    payload: CreateOrderPayload
+  ): Promise<CreateOrderResponse> => {
     const token = authService.getAccessToken();
-    
+
     console.log("Payment service - creating order with payload:", payload);
-    
-    return await post<CreateOrderResponse>("/api/subscriptions/order", payload, {
-      headers: {
-        accept: "application/json",
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
+
+    return await post<CreateOrderResponse>(
+      "/api/subscriptions/order",
+      payload,
+      {
+        headers: {
+          accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
   },
 
-
-
   // Updated cart checkout to include planType
-  cartCheckout: async (planType: "monthly" | "quarterly" | "yearly" = "monthly"): Promise<CreateOrderResponse> => {
+  cartCheckout: async (
+    planType: "monthly" | "quarterly" | "yearly" = "monthly"
+  ): Promise<CreateOrderResponse> => {
     const token = authService.getAccessToken();
-    
+
     console.log("Payment service - cart checkout with planType:", planType);
-    
+
     const payload: CartCheckoutPayload = {
-      planType
+      planType,
     };
-    
-    return await post<CreateOrderResponse>("/api/subscriptions/checkout", payload, {
-      headers: {
-        accept: "application/json",
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
+
+    return await post<CreateOrderResponse>(
+      "/api/subscriptions/checkout",
+      payload,
+      {
+        headers: {
+          accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
   },
 
   // Verify payment
-  verifyPayment: async (payload: VerifyPaymentPayload): Promise<VerifyPaymentResponse> => {
+  verifyPayment: async (
+    payload: VerifyPaymentPayload
+  ): Promise<VerifyPaymentResponse> => {
     const token = authService.getAccessToken();
-    return await post<VerifyPaymentResponse>("/api/subscriptions/verify", payload, {
-      headers: {
-        accept: "application/json",
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    return await post<VerifyPaymentResponse>(
+      "/api/subscriptions/verify",
+      payload,
+      {
+        headers: {
+          accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
   },
 
   // Get payment history
   getPaymentHistory: async (): Promise<PaymentHistory[]> => {
     const token = authService.getAccessToken();
-    return await post<PaymentHistory[]>("/api/subscriptions/history", {}, {
-      headers: {
-        accept: "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    return await post<PaymentHistory[]>(
+      "/api/subscriptions/history",
+      {},
+      {
+        headers: {
+          accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
   },
 
   // Load Razorpay script
@@ -132,39 +156,52 @@ export const paymentService = {
 
   // Enhanced Razorpay checkout with better error handling and debugging
   openCheckout: async (
-    orderData: CreateOrderResponse,
+    orderData: CreateOrderResponse | CreateEMandateResponse,
     userInfo: { name: string; email: string },
     onSuccess: (response: any) => void,
     onFailure: (error: any) => void
   ): Promise<void> => {
     const isLoaded = await paymentService.loadRazorpayScript();
-    
+
     if (!isLoaded) {
       onFailure(new Error("Failed to load Razorpay SDK"));
       return;
     }
 
     // Get the Razorpay key with proper fallback and validation
-    const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 
-                       process.env.NEXT_PUBLIC_RAZORPAY_KEY || 
-                       'rzp_test_fxQtWo40gGB277';
+    const razorpayKey =
+      process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ||
+      process.env.NEXT_PUBLIC_RAZORPAY_KEY ||
+      "rzp_test_fxQtWo40gGB277";
 
-    console.log("Using Razorpay Key:", razorpayKey?.substring(0, 8) + '...');
+    console.log("Using Razorpay Key:", razorpayKey?.substring(0, 8) + "...");
     console.log("Order data for Razorpay:", orderData);
 
     // Validate required data
-    if (!orderData.orderId || !orderData.amount) {
-      onFailure(new Error("Invalid order data: missing orderId or amount"));
+    const orderId =
+      "orderId" in orderData ? orderData.orderId : orderData.subscriptionId;
+
+    if (!orderId) {
+      onFailure(
+        new Error("Invalid order data: missing orderId or subscriptionId")
+      );
       return;
     }
 
     const options = {
       key: razorpayKey,
-      amount: orderData.amount,
-      currency: orderData.currency || 'INR',
       name: "Rangaone Finwala",
-      description: `${orderData.planType || 'Monthly'} Subscription Payment`,
-      order_id: orderData.orderId,
+      description: `${
+        "planType" in orderData ? orderData.planType || "Monthly" : "Monthly"
+      } Subscription Payment`,
+      // order_id: orderId,
+      ...("subscriptionId" in orderData
+        ? { subscription_id: orderData.subscriptionId }
+        : {
+            order_id: orderData.orderId,
+            amount: orderData.amount,
+            currency: orderData.currency,
+          }),
       prefill: {
         name: userInfo.name,
         email: userInfo.email,
@@ -186,16 +223,20 @@ export const paymentService = {
 
     console.log("Razorpay options:", {
       ...options,
-      key: options.key.substring(0, 8) + '...' // Hide full key in logs
+      key: options.key.substring(0, 8) + "...", // Hide full key in logs
     });
 
     try {
       const razorpay = new window.Razorpay(options);
-      razorpay.on('payment.failed', function (response: any) {
+      razorpay.on("payment.failed", function (response: any) {
         console.error("Payment failed:", response.error);
-        onFailure(new Error(`Payment failed: ${response.error.description || 'Unknown error'}`));
+        onFailure(
+          new Error(
+            `Payment failed: ${response.error.description || "Unknown error"}`
+          )
+        );
       });
-      
+
       razorpay.open();
     } catch (error) {
       console.error("Error opening Razorpay checkout:", error);
@@ -212,12 +253,16 @@ export const paymentService = {
         return false;
       }
 
-      const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 
-                         process.env.NEXT_PUBLIC_RAZORPAY_KEY || 
-                         'rzp_test_fxQtWo40gGB277';
+      const razorpayKey =
+        process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ||
+        process.env.NEXT_PUBLIC_RAZORPAY_KEY ||
+        "rzp_test_fxQtWo40gGB277";
 
-      if (!razorpayKey || !razorpayKey.startsWith('rzp_')) {
-        console.error("Invalid Razorpay key format:", razorpayKey?.substring(0, 8) + '...');
+      if (!razorpayKey || !razorpayKey.startsWith("rzp_")) {
+        console.error(
+          "Invalid Razorpay key format:",
+          razorpayKey?.substring(0, 8) + "..."
+        );
         return false;
       }
 
@@ -227,5 +272,25 @@ export const paymentService = {
       console.error("Razorpay configuration test failed:", error);
       return false;
     }
-  }
+  },
+
+  createEmandate: async (
+    payload: CreateOrderPayload
+  ): Promise<CreateEMandateResponse> => {
+    const token = authService.getAccessToken();
+
+    console.log("Payment service - creating emandate with payload:", payload);
+
+    return await post<CreateEMandateResponse>(
+      "/api/subscriptions/emandate",
+      payload,
+      {
+        headers: {
+          accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+  },
 };

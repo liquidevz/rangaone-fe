@@ -8,10 +8,17 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "./auth/auth-context";
 import { useCart } from "./cart/cart-context";
-import { paymentService, CreateOrderResponse } from "@/services/payment.service";
+import {
+  paymentService,
+  CreateOrderResponse,
+  CreateEMandateResponse,
+} from "@/services/payment.service";
 import { subscriptionService } from "@/services/subscription.service";
 import { Bundle } from "@/services/bundle.service";
-import { UserPortfolio, userPortfolioService } from "@/services/user-portfolio.service";
+import {
+  UserPortfolio,
+  userPortfolioService,
+} from "@/services/user-portfolio.service";
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -31,8 +38,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   subscriptionType = "monthly",
 }) => {
   const [loading, setLoading] = useState(false);
-  const [orderData, setOrderData] = useState<CreateOrderResponse | null>(null);
-  const [paymentStep, setPaymentStep] = useState<"review" | "processing" | "success" | "error">("review");
+  const [orderData, setOrderData] = useState<
+    CreateOrderResponse | CreateEMandateResponse | null
+  >(null);
+  const [paymentStep, setPaymentStep] = useState<
+    "review" | "processing" | "success" | "error"
+  >("review");
   const { user } = useAuth();
   const { cart, refreshCart } = useCart();
   const { toast } = useToast();
@@ -59,30 +70,42 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             return bundle.monthlyPrice;
         }
       }
-      
+
       if (portfolio) {
-        return userPortfolioService.getPriceByType(portfolio.subscriptionFee, subscriptionType);
+        return userPortfolioService.getPriceByType(
+          portfolio.subscriptionFee,
+          subscriptionType
+        );
       }
     }
-    
+
     if (type === "cart" && cart) {
       return cart.items.reduce((total, item) => {
         let price = 0;
         switch (subscriptionType) {
           case "yearly":
-            price = item.portfolio.subscriptionFee.find(fee => fee.type === "yearly")?.price || 0;
+            price =
+              item.portfolio.subscriptionFee.find(
+                (fee) => fee.type === "yearly"
+              )?.price || 0;
             break;
           case "quarterly":
-            price = item.portfolio.subscriptionFee.find(fee => fee.type === "quarterly")?.price || 0;
+            price =
+              item.portfolio.subscriptionFee.find(
+                (fee) => fee.type === "quarterly"
+              )?.price || 0;
             break;
           default:
-            price = item.portfolio.subscriptionFee.find(fee => fee.type === "monthly")?.price || 0;
+            price =
+              item.portfolio.subscriptionFee.find(
+                (fee) => fee.type === "monthly"
+              )?.price || 0;
             break;
         }
-        return total + (price * item.quantity);
+        return total + price * item.quantity;
       }, 0);
     }
-    
+
     return 0;
   };
 
@@ -100,7 +123,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     setPaymentStep("processing");
 
     try {
-      let orderResponse: CreateOrderResponse;
+      let orderResponse: CreateOrderResponse | CreateEMandateResponse;
 
       if (type === "single") {
         if (bundle) {
@@ -110,7 +133,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             setPaymentStep("error");
             toast({
               title: "Basic Plan Coming Soon",
-              description: "Basic plan payment integration is being set up. Please contact support for assistance.",
+              description:
+                "Basic plan payment integration is being set up. Please contact support for assistance.",
               variant: "destructive",
             });
             return;
@@ -119,23 +143,32 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             console.log("Creating bundle order with:", {
               productType: "Bundle",
               productId: bundle._id,
-              planType: subscriptionType
-            });
-            
-            orderResponse = await paymentService.createOrder({
-              productType: "Bundle",
-              productId: bundle._id,
               planType: subscriptionType,
             });
+
+            if (subscriptionType === "quarterly") {
+              orderResponse = await paymentService.createEmandate({
+                productType: "Bundle",
+                productId: bundle._id,
+                planType: subscriptionType,
+              });
+            } else {
+              orderResponse = await paymentService.createOrder({
+                productType: "Bundle",
+                productId: bundle._id,
+
+                planType: subscriptionType,
+              });
+            }
           }
         } else if (portfolio) {
           // Individual portfolio purchase
           console.log("Creating portfolio order with:", {
             productType: "Portfolio",
             productId: portfolio._id,
-            planType: subscriptionType
+            planType: subscriptionType,
           });
-          
+
           orderResponse = await paymentService.createOrder({
             productType: "Portfolio",
             productId: portfolio._id,
@@ -146,7 +179,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         }
       } else if (type === "cart") {
         // Cart checkout - FIXED: Pass the subscription type
-        console.log("Creating cart checkout order with planType:", subscriptionType);
+        console.log(
+          "Creating cart checkout order with planType:",
+          subscriptionType
+        );
         orderResponse = await paymentService.cartCheckout(subscriptionType);
       } else {
         throw new Error("Invalid checkout configuration");
@@ -158,16 +194,16 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     } catch (error: any) {
       console.error("Order creation failed:", error);
       setPaymentStep("error");
-      
+
       // Improved error handling
       let errorMessage = "Failed to create order. Please try again.";
-      
+
       if (error.response?.data?.error) {
         errorMessage = error.response.data.error;
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       toast({
         title: "Order Creation Failed",
         description: errorMessage,
@@ -178,12 +214,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
   };
 
-  const initiatePayment = async (orderResponse: CreateOrderResponse) => {
+  const initiatePayment = async (
+    orderResponse: CreateOrderResponse | CreateEMandateResponse
+  ) => {
     if (!user) return;
 
     try {
       console.log("Initiating payment with order:", orderResponse);
-      
+
       await paymentService.openCheckout(
         orderResponse,
         {
@@ -222,9 +260,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       console.log("Verifying payment:", {
         orderId: response.razorpay_order_id,
         paymentId: response.razorpay_payment_id,
-        hasSignature: !!response.razorpay_signature
+        hasSignature: !!response.razorpay_signature,
       });
-      
+
       // Verify payment with backend
       await paymentService.verifyPayment({
         orderId: response.razorpay_order_id,
@@ -233,10 +271,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       });
 
       setPaymentStep("success");
-      
+
       // Success message based on purchase type
       let successMessage = "Your subscription has been activated successfully.";
-      
+
       if (type === "single") {
         if (bundle && !isBasicPlan) {
           successMessage = `Bundle subscription activated! You now have access to all ${bundle.portfolios.length} portfolios.`;
@@ -244,7 +282,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           successMessage = `${portfolio.name} subscription activated! You now have access to this portfolio.`;
         }
       } else if (type === "cart") {
-        successMessage = "All portfolio subscriptions have been activated successfully.";
+        successMessage =
+          "All portfolio subscriptions have been activated successfully.";
       }
 
       toast({
@@ -275,7 +314,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       setPaymentStep("error");
       toast({
         title: "Payment Verification Failed",
-        description: error.message || "Payment completed but verification failed. Please contact support.",
+        description:
+          error.message ||
+          "Payment completed but verification failed. Please contact support.",
         variant: "destructive",
       });
     }
@@ -293,7 +334,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   };
 
   const getCheckoutDescription = (portfolio: UserPortfolio) => {
-    return userPortfolioService.getDescriptionByKey(portfolio.description, "checkout card");
+    return userPortfolioService.getDescriptionByKey(
+      portfolio.description,
+      "checkout card"
+    );
   };
 
   if (!isOpen) return null;
@@ -316,7 +360,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b">
             <h2 className="text-xl font-bold flex items-center gap-2">
-              {type === "cart" ? <ShoppingCart className="h-5 w-5" /> : <CreditCard className="h-5 w-5" />}
+              {type === "cart" ? (
+                <ShoppingCart className="h-5 w-5" />
+              ) : (
+                <CreditCard className="h-5 w-5" />
+              )}
               {paymentStep === "success" ? "Payment Successful" : "Checkout"}
             </h2>
             <button
@@ -332,19 +380,22 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             {paymentStep === "review" && (
               <div className="space-y-4">
                 <h3 className="font-semibold text-gray-900">Order Summary</h3>
-                
+
                 {/* Debug info - Remove in production */}
-                {process.env.NODE_ENV === 'development' && (
+                {process.env.NODE_ENV === "development" && (
                   <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
-                    Debug: Type: {type}, Subscription: {subscriptionType}, Total: ₹{calculateTotal()}
+                    Debug: Type: {type}, Subscription: {subscriptionType},
+                    Total: ₹{calculateTotal()}
                   </div>
                 )}
-                
+
                 {/* Single Portfolio */}
                 {type === "single" && portfolio && (
                   <div className="bg-gray-50 rounded-lg p-4 border">
-                    <h4 className="font-semibold text-gray-900 mb-2">{portfolio.name}</h4>
-                    
+                    <h4 className="font-semibold text-gray-900 mb-2">
+                      {portfolio.name}
+                    </h4>
+
                     {/* Checkout Description */}
                     {getCheckoutDescription(portfolio) && (
                       <p className="text-sm text-gray-600 mb-4">
@@ -355,15 +406,21 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     {/* Key Metrics */}
                     <div className="grid grid-cols-3 gap-3 mb-4 p-3 bg-white rounded border">
                       <div className="text-center">
-                        <div className="text-sm font-bold text-green-600">{portfolio.CAGRSinceInception || "N/A"}%</div>
+                        <div className="text-sm font-bold text-green-600">
+                          {portfolio.CAGRSinceInception || "N/A"}%
+                        </div>
                         <div className="text-xs text-gray-500">CAGR</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-sm font-bold text-blue-600">{portfolio.oneYearGains || "N/A"}%</div>
+                        <div className="text-sm font-bold text-blue-600">
+                          {portfolio.oneYearGains || "N/A"}%
+                        </div>
                         <div className="text-xs text-gray-500">1Y Returns</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-sm font-bold text-purple-600">{portfolio.monthlyGains || "N/A"}%</div>
+                        <div className="text-sm font-bold text-purple-600">
+                          {portfolio.monthlyGains || "N/A"}%
+                        </div>
                         <div className="text-xs text-gray-500">Monthly</div>
                       </div>
                     </div>
@@ -372,21 +429,33 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     <div className="space-y-2 mb-4 p-3 bg-white rounded border">
                       <div className="flex justify-between text-xs">
                         <span className="text-gray-600">Min Investment:</span>
-                        <span className="font-medium">₹{portfolio.minInvestment.toLocaleString()}</span>
+                        <span className="font-medium">
+                          ₹{portfolio.minInvestment.toLocaleString()}
+                        </span>
                       </div>
                       <div className="flex justify-between text-xs">
                         <span className="text-gray-600">Time Horizon:</span>
-                        <span className="font-medium">{portfolio.timeHorizon || `${portfolio.durationMonths} months`}</span>
+                        <span className="font-medium">
+                          {portfolio.timeHorizon ||
+                            `${portfolio.durationMonths} months`}
+                        </span>
                       </div>
                       <div className="flex justify-between text-xs">
                         <span className="text-gray-600">Rebalancing:</span>
-                        <span className="font-medium">{portfolio.rebalancing || "Quarterly"}</span>
+                        <span className="font-medium">
+                          {portfolio.rebalancing || "Quarterly"}
+                        </span>
                       </div>
                     </div>
-                    
+
                     <div className="flex justify-between items-center mt-3 pt-3 border-t">
                       <span className="text-sm text-gray-500">
-                        {subscriptionType === "yearly" ? "Yearly" : subscriptionType === "quarterly" ? "Quarterly" : "Monthly"} Subscription
+                        {subscriptionType === "yearly"
+                          ? "Yearly"
+                          : subscriptionType === "quarterly"
+                          ? "Quarterly"
+                          : "Monthly"}{" "}
+                        Subscription
                       </span>
                       <span className="font-bold text-lg text-blue-600">
                         ₹{calculateTotal()}
@@ -399,34 +468,46 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 {type === "single" && bundle && (
                   <div className="bg-gray-50 rounded-lg p-4">
                     <h4 className="font-medium">{bundle.name}</h4>
-                    <p className="text-sm text-gray-600 mt-1">{bundle.description}</p>
-                    
+                    <p className="text-sm text-gray-600 mt-1">
+                      {bundle.description}
+                    </p>
+
                     {/* Show bundle portfolios if not basic plan */}
                     {!isBasicPlan && bundle.portfolios.length > 0 && (
                       <div className="mt-3 p-3 bg-white rounded border">
                         <p className="text-sm font-medium text-gray-700 mb-2">
-                          Includes {bundle.portfolios.length} Portfolio{bundle.portfolios.length > 1 ? 's' : ''}:
+                          Includes {bundle.portfolios.length} Portfolio
+                          {bundle.portfolios.length > 1 ? "s" : ""}:
                         </p>
                         <ul className="text-xs text-gray-600 space-y-1">
-                          {bundle.portfolios.slice(0, 3).map((portfolio, index) => (
-                            <li key={index}>• {portfolio.name}</li>
-                          ))}
+                          {bundle.portfolios
+                            .slice(0, 3)
+                            .map((portfolio, index) => (
+                              <li key={index}>• {portfolio.name}</li>
+                            ))}
                           {bundle.portfolios.length > 3 && (
-                            <li>• And {bundle.portfolios.length - 3} more...</li>
+                            <li>
+                              • And {bundle.portfolios.length - 3} more...
+                            </li>
                           )}
                         </ul>
                       </div>
                     )}
-                    
+
                     <div className="flex justify-between items-center mt-3">
                       <span className="text-sm text-gray-500">
-                        {subscriptionType === "yearly" ? "Yearly" : subscriptionType === "quarterly" ? "Quarterly" : "Monthly"} Subscription
+                        {subscriptionType === "yearly"
+                          ? "Yearly"
+                          : subscriptionType === "quarterly"
+                          ? "Quarterly"
+                          : "Monthly"}{" "}
+                        Subscription
                       </span>
                       <span className="font-bold text-lg">
                         ₹{calculateTotal()}
                       </span>
                     </div>
-                    
+
                     {/* Show bundle discount if applicable */}
                     {bundle.discountPercentage > 0 && (
                       <div className="text-sm text-green-600 mt-2 flex items-center">
@@ -443,35 +524,59 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     {cart.items.map((item) => {
                       let price = 0;
                       let period = "";
-                      
+
                       switch (subscriptionType) {
                         case "yearly":
-                          price = item.portfolio.subscriptionFee.find(fee => fee.type === "yearly")?.price || 0;
+                          price =
+                            item.portfolio.subscriptionFee.find(
+                              (fee) => fee.type === "yearly"
+                            )?.price || 0;
                           period = "Yearly";
                           break;
                         case "quarterly":
-                          price = item.portfolio.subscriptionFee.find(fee => fee.type === "quarterly")?.price || 0;
+                          price =
+                            item.portfolio.subscriptionFee.find(
+                              (fee) => fee.type === "quarterly"
+                            )?.price || 0;
                           period = "Quarterly";
                           break;
                         default:
-                          price = item.portfolio.subscriptionFee.find(fee => fee.type === "monthly")?.price || 0;
+                          price =
+                            item.portfolio.subscriptionFee.find(
+                              (fee) => fee.type === "monthly"
+                            )?.price || 0;
                           period = "Monthly";
                           break;
                       }
 
-                      const checkoutDesc = userPortfolioService.getDescriptionByKey(item.portfolio.description, "checkout card");
-                      
+                      const checkoutDesc =
+                        userPortfolioService.getDescriptionByKey(
+                          item.portfolio.description,
+                          "checkout card"
+                        );
+
                       return (
-                        <div key={item._id} className="bg-gray-50 rounded-lg p-4">
+                        <div
+                          key={item._id}
+                          className="bg-gray-50 rounded-lg p-4"
+                        >
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
-                              <h4 className="font-medium">{item.portfolio.name}</h4>
+                              <h4 className="font-medium">
+                                {item.portfolio.name}
+                              </h4>
                               {checkoutDesc && (
-                                <p className="text-xs text-gray-600 mt-1">{checkoutDesc}</p>
+                                <p className="text-xs text-gray-600 mt-1">
+                                  {checkoutDesc}
+                                </p>
                               )}
-                              <p className="text-sm text-gray-600 mt-1">Quantity: {item.quantity}</p>
+                              <p className="text-sm text-gray-600 mt-1">
+                                Quantity: {item.quantity}
+                              </p>
                             </div>
-                            <span className="font-bold">₹{price * item.quantity}</span>
+                            <span className="font-bold">
+                              ₹{price * item.quantity}
+                            </span>
                           </div>
                         </div>
                       );
@@ -488,20 +593,27 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 )}
 
                 {/* Total */}
-                {((type === "cart" && cart && cart.items.length > 0) || type === "single") && (
+                {((type === "cart" && cart && cart.items.length > 0) ||
+                  type === "single") && (
                   <div className="border-t pt-4">
                     <div className="flex justify-between items-center text-lg font-bold">
                       <span>Total Amount</span>
                       <span className="text-blue-600">₹{calculateTotal()}</span>
                     </div>
                     <p className="text-sm text-gray-500 mt-1">
-                      Billed {subscriptionType === "yearly" ? "annually" : subscriptionType === "quarterly" ? "per quarter" : "monthly"}
+                      Billed{" "}
+                      {subscriptionType === "yearly"
+                        ? "annually"
+                        : subscriptionType === "quarterly"
+                        ? "per quarter"
+                        : "monthly"}
                     </p>
                   </div>
                 )}
 
                 {/* Payment Button */}
-                {((type === "cart" && cart && cart.items.length > 0) || type === "single") && (
+                {((type === "cart" && cart && cart.items.length > 0) ||
+                  type === "single") && (
                   <Button
                     onClick={handleCreateOrder}
                     disabled={loading}
@@ -516,8 +628,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             {paymentStep === "processing" && (
               <div className="text-center py-8">
                 <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                <h3 className="text-lg font-semibold mb-2">Processing Payment</h3>
-                <p className="text-gray-600">Please complete the payment in the Razorpay window...</p>
+                <h3 className="text-lg font-semibold mb-2">
+                  Processing Payment
+                </h3>
+                <p className="text-gray-600">
+                  Please complete the payment in the Razorpay window...
+                </p>
               </div>
             )}
 
@@ -526,29 +642,47 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Check className="h-8 w-8 text-green-600" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2 text-green-800">Payment Successful!</h3>
-                
+                <h3 className="text-lg font-semibold mb-2 text-green-800">
+                  Payment Successful!
+                </h3>
+
                 {/* Success message based on purchase type */}
                 {type === "single" && bundle ? (
                   <div className="text-gray-600 mb-6">
                     <p className="mb-2">
-                      {bundle._id === "basic-plan-id" ? "Basic plan activated successfully!" : "Bundle subscription activated successfully!"}
+                      {bundle._id === "basic-plan-id"
+                        ? "Basic plan activated successfully!"
+                        : "Bundle subscription activated successfully!"}
                     </p>
                     {bundle._id === "basic-plan-id" ? (
-                      <p className="text-sm">You now have access to all basic features and recommendations.</p>
+                      <p className="text-sm">
+                        You now have access to all basic features and
+                        recommendations.
+                      </p>
                     ) : (
-                      <p className="text-sm">You now have access to all {bundle.portfolios.length} portfolio{bundle.portfolios.length > 1 ? 's' : ''} in this bundle.</p>
+                      <p className="text-sm">
+                        You now have access to all {bundle.portfolios.length}{" "}
+                        portfolio{bundle.portfolios.length > 1 ? "s" : ""} in
+                        this bundle.
+                      </p>
                     )}
                   </div>
                 ) : type === "single" && portfolio ? (
                   <div className="text-gray-600 mb-6">
-                    <p className="mb-2">{portfolio.name} subscription activated!</p>
-                    <p className="text-sm">You now have full access to this portfolio's recommendations and insights.</p>
+                    <p className="mb-2">
+                      {portfolio.name} subscription activated!
+                    </p>
+                    <p className="text-sm">
+                      You now have full access to this portfolio's
+                      recommendations and insights.
+                    </p>
                   </div>
                 ) : (
-                  <p className="text-gray-600 mb-6">Your subscription has been activated successfully.</p>
+                  <p className="text-gray-600 mb-6">
+                    Your subscription has been activated successfully.
+                  </p>
                 )}
-                
+
                 <Button
                   onClick={handleClose}
                   className="w-full bg-green-600 hover:bg-green-700"
@@ -558,39 +692,38 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </div>
             )}
 
-                          {paymentStep === "error" && (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <AlertCircle className="h-8 w-8 text-red-600" />
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2 text-red-800">
-                    {isBasicPlan ? "Basic Plan Coming Soon" : "Payment Failed"}
-                  </h3>
-                  <p className="text-gray-600 mb-6">
-                    {isBasicPlan 
-                      ? "Basic plan payment integration is being set up. Please contact our support team for assistance with purchasing the basic plan." 
-                      : "Something went wrong with your payment. Please try again."
-                    }
-                  </p>
-                  <div className="space-y-2">
-                    {!isBasicPlan && (
-                      <Button
-                        onClick={() => setPaymentStep("review")}
-                        className="w-full bg-[#001633] hover:bg-[#002244]"
-                      >
-                        Try Again
-                      </Button>
-                    )}
-                    <Button
-                      onClick={handleClose}
-                      variant="outline"
-                      className="w-full"
-                    >
-                      {isBasicPlan ? "Contact Support" : "Cancel"}
-                    </Button>
-                  </div>
+            {paymentStep === "error" && (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <AlertCircle className="h-8 w-8 text-red-600" />
                 </div>
-              )}
+                <h3 className="text-lg font-semibold mb-2 text-red-800">
+                  {isBasicPlan ? "Basic Plan Coming Soon" : "Payment Failed"}
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  {isBasicPlan
+                    ? "Basic plan payment integration is being set up. Please contact our support team for assistance with purchasing the basic plan."
+                    : "Something went wrong with your payment. Please try again."}
+                </p>
+                <div className="space-y-2">
+                  {!isBasicPlan && (
+                    <Button
+                      onClick={() => setPaymentStep("review")}
+                      className="w-full bg-[#001633] hover:bg-[#002244]"
+                    >
+                      Try Again
+                    </Button>
+                  )}
+                  <Button
+                    onClick={handleClose}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {isBasicPlan ? "Contact Support" : "Cancel"}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </motion.div>
       </motion.div>
