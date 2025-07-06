@@ -46,6 +46,13 @@ interface PriceHistoryData {
   benchmarkValue: number;
 }
 
+interface PortfolioAllocationItem {
+  name: string;
+  value: number;
+  color: string;
+  sector: string;
+}
+
 interface HoldingWithPrice extends Holding {
   currentPrice?: number;
   previousPrice?: number;
@@ -270,17 +277,33 @@ export default function PortfolioDetailsPage() {
   ];
 
   // Remove credit rating functions and use portfolio allocation chart instead
-  const portfolioAllocationData = holdingsWithPrices.map((holding, index) => {
-    const colors = [
-      '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', 
-      '#82CA9D', '#FFC658', '#FF7C7C', '#8DD1E1', '#D084D0',
-      '#87D068', '#FFA07A', '#20B2AA', '#778899', '#B0C4DE'
-    ];
-    
+  const chartColors = [
+    '#00C49F', // Green for largest holding
+    '#0088FE', // Blue for second largest
+    '#FFBB28', // Orange/Yellow for third
+    '#FF8042', // Red-Orange for fourth
+    '#8884D8', // Purple for fifth
+    '#82CA9D', // Light green
+    '#FFC658', // Gold
+    '#FF7C7C', // Light red
+    '#8DD1E1', // Light blue
+    '#D084D0', // Pink
+    '#87D068', // Lime green
+    '#FFA07A', // Light salmon
+    '#20B2AA', // Light sea green
+    '#778899', // Light slate gray
+    '#B0C4DE'  // Light steel blue
+  ];
+
+  // Sort holdings by weight first to ensure consistent color assignment
+  const sortedHoldings = [...holdingsWithPrices].sort((a, b) => b.weight - a.weight);
+  
+  const portfolioAllocationData: PortfolioAllocationItem[] = sortedHoldings.map((holding, index) => {
     return {
       name: holding.symbol,
       value: holding.weight,
-      color: colors[index % colors.length],
+      color: chartColors[index % chartColors.length],
+      sector: holding.sector || holding.marketCap || 'Banking',
     };
   });
 
@@ -394,7 +417,7 @@ export default function PortfolioDetailsPage() {
                 </div>
               </div>
 
-              <div className="mt-6 pt-4 border-t text-xs text-gray-500">
+              <div className="mt-6 pt-4 border-t text-sm text-gray-500">
                 <p><strong>Disclaimer:</strong> The information on this site is provided for reference purposes only purposes only and should not be misconstrued as investment advice. Under no circumstances does this information represent a recommendation to buy or sell stocks. All these portfolios are created based on our experts experience in the market. These Model Portfolio are prepared by SEBI Registered RIA.</p>
               </div>
             </div>
@@ -585,18 +608,18 @@ export default function PortfolioDetailsPage() {
           <Card>
             <CardContent className="p-4 sm:p-6">
               <h3 className="text-lg font-semibold mb-6">Portfolio Allocation</h3>
-              <div className="relative flex items-center justify-center">
-                <div className="w-80 h-80 sm:w-96 sm:h-96">
+              <div className="relative flex items-center justify-center w-full">
+                <div className="w-full max-w-sm sm:max-w-md lg:max-w-lg aspect-square">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
                         data={portfolioAllocationData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={80}
-                        outerRadius={140}
-                        startAngle={90}
-                        endAngle={450}
+                        innerRadius="35%"
+                        outerRadius="65%"
+                        startAngle={-90}
+                        endAngle={270}
                         paddingAngle={1}
                         dataKey="value"
                         stroke="#fff"
@@ -606,17 +629,38 @@ export default function PortfolioDetailsPage() {
                           <Cell 
                             key={`cell-${index}`} 
                             fill={entry.color}
+                            style={{ cursor: 'pointer' }}
                           />
                         ))}
                       </Pie>
                       <Tooltip 
-                        formatter={(value: number) => [`${value.toFixed(2)}%`, 'Weight']}
+                        formatter={(value: number, name: string, props: any) => [
+                          `${value.toFixed(2)}%`,
+                          props.payload.name
+                        ]}
+                        labelFormatter={() => ''}
                         contentStyle={{
-                          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                          backgroundColor: 'rgba(0, 0, 0, 0.9)',
                           color: 'white',
                           border: 'none',
-                          borderRadius: '6px',
-                          fontSize: '12px'
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          padding: '12px',
+                          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                          minWidth: '150px'
+                        }}
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            return (
+                              <div className="bg-gray-900 text-white p-3 rounded-lg shadow-lg">
+                                <p className="font-semibold text-sm mb-1">{data.name}</p>
+                                <p className="text-xs text-gray-300">Weight: <span className="text-white font-medium">{data.value.toFixed(2)}%</span></p>
+                                <p className="text-xs text-gray-300">Sector: <span className="text-white font-medium">{data.sector}</span></p>
+                              </div>
+                            );
+                          }
+                          return null;
                         }}
                       />
                     </PieChart>
@@ -624,12 +668,12 @@ export default function PortfolioDetailsPage() {
                 </div>
                 
                 {/* Center Content */}
-                <div className="absolute inset-0 flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="text-center">
-                    <div className="text-4xl sm:text-5xl font-bold text-gray-900 mb-1">
+                    <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-1">
                       {largestHolding.value.toFixed(2)}%
                     </div>
-                    <div className="text-gray-600 text-sm font-medium">
+                    <div className="text-gray-600 text-xs sm:text-sm font-medium">
                       {largestHolding.name}
                     </div>
                   </div>
@@ -643,19 +687,26 @@ export default function PortfolioDetailsPage() {
               <h3 className="text-lg font-semibold mb-6">Holdings <span className="float-right text-sm text-gray-500">% of portfolio</span></h3>
               <div className="space-y-2 max-h-80 sm:h-96 overflow-y-auto pr-2">
                 {portfolioAllocationData
-                  .sort((a, b) => b.value - a.value)
                   .map((stock, index) => (
-                  <div key={index} className="flex items-center justify-between py-3 px-2 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                  <div key={index} className="flex items-center justify-between py-3 px-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 cursor-pointer border border-transparent hover:border-gray-200">
                     <div className="flex items-center space-x-3 min-w-0 flex-1">
                       <div 
                         className="w-3 h-3 rounded-full flex-shrink-0" 
                         style={{ backgroundColor: stock.color }}
                       ></div>
-                      <span className="text-gray-800 font-medium text-sm truncate">{stock.name}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-gray-800 font-medium text-sm truncate">{stock.name}</div>
+                        <div className="text-xs text-gray-500">{stock.sector}</div>
+                      </div>
                     </div>
-                    <span className="font-bold text-sm text-gray-900 ml-3">
-                      {stock.value.toFixed(2)}%
-                    </span>
+                    <div className="text-right ml-3">
+                      <div className="font-bold text-sm text-gray-900">
+                        {stock.value.toFixed(2)}%
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        ₹{((stock.value / 100) * 30000).toFixed(0)}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
