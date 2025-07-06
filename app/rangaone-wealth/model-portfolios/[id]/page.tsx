@@ -1,51 +1,223 @@
 "use client";
 
 import DashboardLayout from "@/components/dashboard-layout";
-import PortfolioAllocationChart from "@/components/portfolio-allocation-chart";
-import PortfolioPerformanceChart from "@/components/portfolio-performance-chart";
-import RecommendationSlider from "@/components/recommendation-slider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import type { Portfolio, Tip } from "@/lib/types";
+import type { Portfolio, Holding } from "@/lib/types";
 import { portfolioService } from "@/services/portfolio.service";
-import { tipsService } from "@/services/tip.service";
+import axiosApi from "@/lib/axios";
+import { authService } from "@/services/auth.service";
 import {
-  ChevronRight,
   Download,
   FileText,
-  TrendingDown,
-  TrendingUp,
+  Play,
+  Calculator,
 } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+import { PageHeader } from '@/components/page-header';
+
+interface StockPrice {
+  _id: string;
+  symbol: string;
+  exchange: string;
+  name: string;
+  currentPrice: string;
+  previousPrice: string;
+}
+
+interface PriceHistoryData {
+  date: string;
+  portfolioValue: number;
+  benchmarkValue: number;
+}
+
+interface HoldingWithPrice extends Holding {
+  currentPrice?: number;
+  previousPrice?: number;
+  change?: number;
+  changePercent?: number;
+  value?: number;
+  marketCap?: string;
+}
 
 export default function PortfolioDetailsPage() {
   const params = useParams();
   const portfolioId = params.id as string;
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tips, setTips] = useState<Tip[]>([]);
-
+  const [priceHistory, setPriceHistory] = useState<PriceHistoryData[]>([]);
+  const [holdingsWithPrices, setHoldingsWithPrices] = useState<HoldingWithPrice[]>([]);
   const { toast } = useToast();
 
-  useEffect(() => {
-    async function loadPortfolio() {
+  // Helper function to safely convert values
+  const safeNumber = (value: any): number => {
+    if (value === null || value === undefined) return 0;
+    const num = Number(value);
+    return isNaN(num) ? 0 : num;
+  };
+
+  const safeString = (value: any): string => {
+    if (value === null || value === undefined) return '';
+    return String(value);
+  };
+
+  // Fetch stock prices for holdings
+  const fetchStockPrices = async (holdings: Holding[]): Promise<HoldingWithPrice[]> => {
+    const updatedHoldings: HoldingWithPrice[] = [];
+    
+    for (const holding of holdings) {
       try {
-        const data = await portfolioService.getById(portfolioId);
-        setPortfolio(data);
-
-        const tipData = await tipsService.getByPortfolioId(portfolioId);
-        setTips(tipData);
-
-        console.log("Portfolio Data:", data);
-        console.log("Tips Data:", tipData);
+        const token = authService.getAccessToken();
+        const response = await axiosApi.get(`/api/stock-symbols/search?keyword=${holding.symbol}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        
+        if (response.data.success && response.data.data.length > 0) {
+          const stockData = response.data.data[0];
+          const currentPrice = parseFloat(stockData.currentPrice);
+          const previousPrice = parseFloat(stockData.previousPrice);
+          const change = currentPrice - previousPrice;
+          const changePercent = (change / previousPrice) * 100;
+          
+          updatedHoldings.push({
+            ...holding,
+            currentPrice,
+            previousPrice,
+            change,
+            changePercent,
+            value: currentPrice * (holding.weight / 100) * 30000, // Base investment calculation
+            marketCap: getMarketCapCategory(holding.symbol),
+          });
+        } else {
+          updatedHoldings.push({
+            ...holding,
+            marketCap: getMarketCapCategory(holding.symbol),
+          });
+        }
       } catch (error) {
-        console.error("Failed to load portfolio or tips:", error);
+        console.error(`Failed to fetch price for ${holding.symbol}:`, error);
+        updatedHoldings.push({
+          ...holding,
+          marketCap: getMarketCapCategory(holding.symbol),
+        });
+      }
+    }
+    
+    return updatedHoldings;
+  };
+
+  // Helper function to determine market cap category
+  const getMarketCapCategory = (symbol: string): string => {
+    // This is a simplified categorization - in real app, this would come from API
+    const largeCap = ['HDFCBANK', 'RELIANCE', 'TCS', 'INFY', 'ICICIBANK', 'AXIS', 'TATAPWR'];
+    const midCap = ['IDFCFIRSTB', 'KALYAN', 'NYKAA'];
+    const smallCap = ['YATHARTH', 'FIVESTAR', 'EIH', 'CROMPTON', 'AVALON'];
+    
+    if (largeCap.some(stock => symbol.includes(stock))) return 'Large Cap';
+    if (midCap.some(stock => symbol.includes(stock))) return 'Mid cap';
+    if (smallCap.some(stock => symbol.includes(stock))) return 'Small cap';
+    return 'Mid cap';
+  };
+
+  // Fetch price history for charts
+  const fetchPriceHistory = async (portfolioId: string) => {
+    try {
+      const token = authService.getAccessToken();
+      const response = await axiosApi.get(`/api/portfolios/${portfolioId}/price-history`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      
+      if (response.data && Array.isArray(response.data)) {
+        // Transform the API data to match our chart format
+        const transformedData = response.data.map((item: any) => ({
+          date: item.date || item.period || item.timestamp,
+          portfolioValue: parseFloat(item.portfolioReturn || item.return || item.value || 0),
+          benchmarkValue: parseFloat(item.benchmarkReturn || item.benchmark || item.benchmarkValue || 0),
+        }));
+        setPriceHistory(transformedData);
+      } else {
+        // If API doesn't return data, use mock data similar to the image
+        const mockData = [
+          { date: '15-Mar', portfolioValue: 0, benchmarkValue: 0 },
+          { date: '16-Mar', portfolioValue: 0.5, benchmarkValue: 0.3 },
+          { date: '17-Mar', portfolioValue: 2.5, benchmarkValue: 1.8 },
+          { date: '18-Mar', portfolioValue: 5.2, benchmarkValue: 3.5 },
+          { date: '19-Mar', portfolioValue: 6.8, benchmarkValue: 4.2 },
+          { date: '21-Mar', portfolioValue: 8.5, benchmarkValue: 5.8 },
+          { date: '22-Mar', portfolioValue: 9.2, benchmarkValue: 6.1 },
+          { date: '23-Mar', portfolioValue: 9.8, benchmarkValue: 6.8 },
+          { date: '28-Mar', portfolioValue: 7.02, benchmarkValue: 5.66 },
+          { date: '29-Mar', portfolioValue: 7.5, benchmarkValue: 5.8 },
+          { date: '30-Mar', portfolioValue: 8.9, benchmarkValue: 4.8 },
+          { date: '31-Mar', portfolioValue: 7.3, benchmarkValue: 4.2 },
+          { date: '01-Apr', portfolioValue: 9.1, benchmarkValue: 5.1 },
+        ];
+        setPriceHistory(mockData);
+      }
+    } catch (error) {
+      console.error("Failed to fetch price history:", error);
+      // Fallback to mock data if API fails
+      const mockData = [
+        { date: '15-Mar', portfolioValue: 0, benchmarkValue: 0 },
+        { date: '16-Mar', portfolioValue: 0.5, benchmarkValue: 0.3 },
+        { date: '17-Mar', portfolioValue: 2.5, benchmarkValue: 1.8 },
+        { date: '18-Mar', portfolioValue: 5.2, benchmarkValue: 3.5 },
+        { date: '19-Mar', portfolioValue: 6.8, benchmarkValue: 4.2 },
+        { date: '21-Mar', portfolioValue: 8.5, benchmarkValue: 5.8 },
+        { date: '22-Mar', portfolioValue: 9.2, benchmarkValue: 6.1 },
+        { date: '23-Mar', portfolioValue: 9.8, benchmarkValue: 6.8 },
+        { date: '28-Mar', portfolioValue: 7.02, benchmarkValue: 5.66 },
+        { date: '29-Mar', portfolioValue: 7.5, benchmarkValue: 5.8 },
+        { date: '30-Mar', portfolioValue: 8.9, benchmarkValue: 4.8 },
+        { date: '31-Mar', portfolioValue: 7.3, benchmarkValue: 4.2 },
+        { date: '01-Apr', portfolioValue: 9.1, benchmarkValue: 5.1 },
+      ];
+      setPriceHistory(mockData);
+    }
+  };
+
+  useEffect(() => {
+    async function loadPortfolioData() {
+      try {
+        setLoading(true);
+        
+        // Fetch portfolio details
+        const portfolioData = await portfolioService.getById(portfolioId);
+        setPortfolio(portfolioData);
+        
+        // Fetch live prices for holdings
+        if (portfolioData.holdings && portfolioData.holdings.length > 0) {
+          const holdingsWithLivePrices = await fetchStockPrices(portfolioData.holdings);
+          setHoldingsWithPrices(holdingsWithLivePrices);
+        }
+        
+        // Fetch price history
+        await fetchPriceHistory(portfolioId);
+        
+      } catch (error) {
+        console.error("Failed to load portfolio:", error);
         toast({
           title: "Error",
-          description:
-            "Failed to load portfolio details. Please try again later.",
+          description: "Failed to load portfolio details. Please try again later.",
           variant: "destructive",
         });
       } finally {
@@ -53,17 +225,16 @@ export default function PortfolioDetailsPage() {
       }
     }
 
-    loadPortfolio();
+    loadPortfolioData();
   }, [portfolioId, toast]);
 
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="max-w-6xl mx-auto">
-          <div className="animate-pulse bg-gray-200 h-16 rounded-lg mb-8"></div>
-          <div className="animate-pulse bg-gray-200 h-64 rounded-lg mb-8"></div>
-          <div className="animate-pulse bg-gray-200 h-48 rounded-lg mb-8"></div>
-          <div className="animate-pulse bg-gray-200 h-96 rounded-lg"></div>
+        <div className="max-w-7xl mx-auto p-4">
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -72,608 +243,424 @@ export default function PortfolioDetailsPage() {
   if (!portfolio) {
     return (
       <DashboardLayout>
-        <div className="max-w-6xl mx-auto text-center py-12">
-          <h2 className="text-2xl font-bold mb-4">Portfolio Not Found</h2>
-          <p className="text-gray-600 mb-6">
-            The portfolio you're looking for doesn't exist or you don't have
-            access to it.
-          </p>
-          <Button onClick={() => window.history.back()}>Go Back</Button>
+        <div className="max-w-7xl mx-auto p-4">
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold mb-4">Portfolio Not Found</h2>
+            <Button onClick={() => window.history.back()}>Go Back</Button>
+          </div>
         </div>
       </DashboardLayout>
     );
   }
 
-  // Mock data for the portfolio details page
-  const portfolioReturns = [
-    { period: "1M", portfolio: 3.45, benchmark: 2.87 },
-    { period: "3M", portfolio: 8.32, benchmark: 7.15 },
-    { period: "6M", portfolio: 12.68, benchmark: 10.45 },
-    { period: "1Y", portfolio: 18.75, benchmark: 15.32 },
-    { period: "3Y", portfolio: 45.62, benchmark: 38.75 },
-    { period: "5Y", portfolio: 87.45, benchmark: 72.18 },
-    { period: "Since Inception", portfolio: 112.35, benchmark: 95.42 },
+  // Calculate portfolio metrics
+  const totalValue = holdingsWithPrices.reduce((sum, holding) => sum + (holding.value || 0), 0);
+
+  // Trailing Returns data - this should come from API in real implementation
+  const trailingReturns = [
+    { period: "1 day", value: safeString((portfolio as any).dailyReturn || "0") },
+    { period: "1 Week", value: safeString((portfolio as any).weeklyReturn || "0") },
+    { period: "1 Month", value: safeString(portfolio.monthlyGains || "0") },
+    { period: "3 Months", value: safeString((portfolio as any).quarterlyReturn || "0") },
+    { period: "6 Months", value: safeString((portfolio as any).halfYearlyReturn || "0") },
+    { period: "1 year", value: safeString(portfolio.oneYearGains || "0") },
+    { period: "3 Years", value: safeString((portfolio as any).threeYearReturn || "0") },
+    { period: "5 Years", value: safeString((portfolio as any).fiveYearReturn || "—") },
+    { period: "Since Inception", value: safeString(portfolio.cagr || "0") },
   ];
 
-  const portfolioHoldings = [
-    {
-      name: "HDFC Bank",
-      symbol: "HDFCBANK",
-      sector: "Financial Services",
-      allocation: 12.5,
-      currentPrice: 1650.75,
-      purchasePrice: 1520.3,
-      change: 8.58,
-      value: 206250,
-    },
-    {
-      name: "Reliance Industries",
-      symbol: "RELIANCE",
-      sector: "Energy",
-      allocation: 10.2,
-      currentPrice: 2450.6,
-      purchasePrice: 2100.45,
-      change: 16.67,
-      value: 168300,
-    },
-    {
-      name: "Infosys",
-      symbol: "INFY",
-      sector: "Information Technology",
-      allocation: 8.7,
-      currentPrice: 1450.25,
-      purchasePrice: 1350.8,
-      change: 7.36,
-      value: 143550,
-    },
-    {
-      name: "TCS",
-      symbol: "TCS",
-      sector: "Information Technology",
-      allocation: 7.5,
-      currentPrice: 3450.4,
-      purchasePrice: 3200.15,
-      change: 7.82,
-      value: 123750,
-    },
-    {
-      name: "ICICI Bank",
-      symbol: "ICICIBANK",
-      sector: "Financial Services",
-      allocation: 6.8,
-      currentPrice: 950.3,
-      purchasePrice: 880.25,
-      change: 7.96,
-      value: 112200,
-    },
-    {
-      name: "Hindustan Unilever",
-      symbol: "HINDUNILVR",
-      sector: "Consumer Goods",
-      allocation: 5.4,
-      currentPrice: 2650.15,
-      purchasePrice: 2500.75,
-      change: 5.97,
-      value: 89100,
-    },
-    {
-      name: "Axis Bank",
-      symbol: "AXISBANK",
-      sector: "Financial Services",
-      allocation: 4.9,
-      currentPrice: 1105.2,
-      purchasePrice: 980.45,
-      change: 12.72,
-      value: 80850,
-    },
-  ];
+  // Remove credit rating functions and use portfolio allocation chart instead
+  const portfolioAllocationData = holdingsWithPrices.map((holding, index) => {
+    const colors = [
+      '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', 
+      '#82CA9D', '#FFC658', '#FF7C7C', '#8DD1E1', '#D084D0',
+      '#87D068', '#FFA07A', '#20B2AA', '#778899', '#B0C4DE'
+    ];
+    
+    return {
+      name: holding.symbol,
+      value: holding.weight,
+      color: colors[index % colors.length],
+    };
+  });
 
-  const topHoldings = [
-    { name: "HDFC Bank", value: 206250, allocation: 12.5 },
-    { name: "Reliance Industries", value: 168300, allocation: 10.2 },
-    { name: "Infosys", value: 143550, allocation: 8.7 },
-  ];
-
-  const creditRatings = [
-    { rating: "U.S. Government", percentage: 0 },
-    { rating: "AAA", percentage: 0 },
-    { rating: "AA", percentage: 0 },
-    { rating: "A", percentage: 15.8 },
-    { rating: "BBB", percentage: 37.0 },
-    { rating: "BB", percentage: 22.5 },
-    { rating: "B", percentage: 7.2 },
-    { rating: "CCC or Lower", percentage: 0 },
-    { rating: "NR", percentage: 17.5 },
-  ];
-
-  const researchReports = [
-    {
-      title:
-        "Live Session for Early Growth Portfolio Subscribers on 12th May 2023",
-      date: "May 10, 2023",
-      description:
-        "Exclusive live session for subscribers to discuss market trends and portfolio adjustments.",
-    },
-    {
-      title:
-        "Growth and Early Stage - Stock Only Model Portfolio Major News & Events - February 2023",
-      date: "February 28, 2023",
-      description:
-        "Monthly update on major news and events affecting the Growth and Early Stage portfolio.",
-    },
-    {
-      title:
-        "Growth and Early Stage - Stock Only Model Portfolio Monthly Rebalancing March 2023",
-      date: "March 5, 2023",
-      description:
-        "Monthly rebalancing report with detailed analysis and recommendations.",
-    },
-    {
-      title:
-        "Growth and Early Stage - Stock Only Model Portfolio Major News & Events - January 2023",
-      date: "January 31, 2023",
-      description:
-        "Monthly update on major news and events affecting the Growth and Early Stage portfolio?.",
-    },
-    {
-      title:
-        "Special Update for Growth Model Portfolio Subscribers for Market Instability and Trader View Analysis",
-      date: "January 15, 2023",
-      description:
-        "Special update addressing market volatility and providing strategic guidance for portfolio holders.",
-    },
-  ];
-
-  // Sample recommendations for the slider
-  const recommendations = [
-    {
-      id: "1",
-      type: "RECOMMENDED",
-      name: "IDFC FIRST B",
-      ticker: "IDFCFIRSTB",
-      price: 108.2,
-      returnPercentage: 5.4,
-    },
-    {
-      id: "2",
-      type: "MODEL PORTFOLIO",
-      name: "AXIS BANK",
-      ticker: "AXISBANK",
-      price: 1108.2,
-      totalValue: 110820,
-      returnPercentage: 4.0,
-    },
-    {
-      id: "3",
-      type: "RECOMMENDED",
-      name: "IDFC FIRST B",
-      ticker: "IDFCFIRSTB",
-      price: 108.2,
-      returnPercentage: 5.4,
-    },
-  ];
+  // Find the largest holding for center display
+  const largestHolding = portfolioAllocationData.reduce((prev, current) => 
+    (prev.value > current.value) ? prev : current, portfolioAllocationData[0] || { name: "No Holdings", value: 0 }
+  );
 
   return (
     <DashboardLayout>
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="bg-[#0a2463] text-white rounded-lg p-6 mb-8 text-center">
-          <h1 className="text-3xl font-bold mb-2">MODEL PORTFOLIO</h1>
-          <p className="text-lg">YOUR GROWTH OUR PRIORITY</p>
+      <div className="max-w-7xl mx-auto p-2 sm:p-4">
+        {/* Header Section */}
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-xl sm:text-2xl font-bold mb-2">YOUR GROWTH OUR PRIORITY</h1>
         </div>
 
-        {/* Portfolio Overview */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-8">
-          <div className="p-4 border-b border-gray-200">
-            <div className="flex flex-wrap items-center justify-between">
-              <div className="flex items-center mb-2 md:mb-0">
-                <h2 className="text-xl font-semibold">{portfolio?.name}</h2>
-                <span className="ml-2 px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
-                  {portfolio?.PortfolioCategory}
-                </span>
-              </div>
-              <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center"
-                >
-                  <FileText className="h-4 w-4 mr-1" />
-                  PDF
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center"
-                >
-                  <Download className="h-4 w-4 mr-1" />
-                  Export
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <div className="text-sm text-gray-500 mb-1">Monthly Yield</div>
-              <div
-                className={`text-lg font-semibold flex items-center ${
-                  Number(portfolio?.monthlyGains) >= 0
-                    ? "text-green-600"
-                    : "text-red-600"
-                }`}
-              >
-                {Number(portfolio?.monthlyGains) >= 0 ? (
-                  <TrendingUp className="h-4 w-4 mr-1" />
-                ) : (
-                  <TrendingDown className="h-4 w-4 mr-1" />
-                )}
-                {Number(portfolio?.monthlyGains)?.toFixed(2)}%
-              </div>
-            </div>
-
-            <div>
-              <div className="text-sm text-gray-500 mb-1">Year-to-Date</div>
-              <div
-                className={`text-lg font-semibold flex items-center ${
-                  Number(portfolio?.oneYearGains) >= 0
-                    ? "text-green-600"
-                    : "text-red-600"
-                }`}
-              >
-                {Number(portfolio?.oneYearGains) >= 0 ? (
-                  <TrendingUp className="h-4 w-4 mr-1" />
-                ) : (
-                  <TrendingDown className="h-4 w-4 mr-1" />
-                )}
-                {Number(portfolio?.oneYearGains)?.toFixed(2)}%
-              </div>
-            </div>
-
-            <div>
-              <div className="text-sm text-gray-500 mb-1">Total Investment</div>
-              <div className="text-lg font-semibold">
-                ₹{portfolio?.totalInvestment?.toLocaleString()}
-              </div>
-            </div>
-
-            <div>
-              <div className="text-sm text-gray-500 mb-1">Current Value</div>
-              <div className="text-lg font-semibold">
-                ₹{portfolio?.currentValue?.toLocaleString()}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Recommendation Slider */}
-        <RecommendationSlider recommendations={recommendations} />
-
-        {/* Portfolio Description */}
-        <div className="bg-white rounded-lg shadow-sm border border-blue-500 mb-8 p-6">
-          <h3 className="text-lg font-semibold mb-4">About this portfolio</h3>
-
-          {portfolio?.details || "No Details Available"}
-        </div>
-
-        {/* Portfolio Returns */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-8">
-          <div className="p-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold">Portfolio Returns</h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                    Period
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                    Portfolio
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                    Benchmark
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                    +/-
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {portfolioReturns.map((item, index) => (
-                  <tr
-                    key={index}
-                    className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
-                  >
-                    <td className="px-4 py-3 text-sm text-gray-700">
-                      {item.period}
-                    </td>
-                    <td className="px-4 py-3 text-sm font-medium text-green-600">
-                      {item.portfolio?.toFixed(2)}%
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
-                      {item.benchmark.toFixed(2)}%
-                    </td>
-                    <td className="px-4 py-3 text-sm font-medium text-green-600">
-                      +{(item.portfolio - item.benchmark).toFixed(2)}%
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Performance Chart */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-8 p-4">
-          <h3 className="text-lg font-semibold mb-4">Performance Analysis</h3>
-          <div className="h-80">
-            <PortfolioPerformanceChart />
-          </div>
-        </div>
-
-        {/* Portfolio Holdings */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-8">
-          <div className="p-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold">Portfolio Holdings</h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                    Name
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                    Sector
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                    Allocation
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                    Current Price
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                    Purchase Price
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                    Change (%)
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                    Value (₹)
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {portfolioHoldings.map((stock, index) => (
-                  <tr
-                    key={index}
-                    className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
-                  >
-                    <td className="px-4 py-3 text-sm font-medium text-gray-800">
-                      {stock.name}
-                      <div className="text-xs text-gray-500">
-                        {stock.symbol}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
-                      {stock.sector}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
-                      {stock.allocation.toFixed(1)}%
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
-                      ₹{stock.currentPrice.toFixed(2)}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
-                      ₹{stock.purchasePrice.toFixed(2)}
-                    </td>
-                    <td
-                      className={`px-4 py-3 text-sm font-medium ${
-                        stock.change >= 0 ? "text-green-600" : "text-red-600"
-                      }`}
-                    >
-                      {stock.change >= 0 ? "+" : ""}
-                      {stock.change.toFixed(2)}%
-                    </td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-800">
-                      ₹{stock.value.toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot className="bg-gray-50 border-t border-gray-200">
-                <tr>
-                  <td
-                    colSpan={2}
-                    className="px-4 py-3 text-sm font-medium text-gray-800"
-                  >
-                    Total Equity Amount
-                  </td>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-800">
-                    100%
-                  </td>
-                  <td colSpan={3}></td>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-800">
-                    ₹
-                    {portfolioHoldings
-                      .reduce((sum, stock) => sum + stock.value, 0)
-                      .toLocaleString()}
-                  </td>
-                </tr>
-                <tr>
-                  <td
-                    colSpan={2}
-                    className="px-4 py-3 text-sm font-medium text-gray-800"
-                  >
-                    Cash
-                  </td>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-800">
-                    0.1%
-                  </td>
-                  <td colSpan={3}></td>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-800">
-                    ₹1,000
-                  </td>
-                </tr>
-                <tr>
-                  <td
-                    colSpan={2}
-                    className="px-4 py-3 text-sm font-medium text-gray-800"
-                  >
-                    Total Portfolio Value
-                  </td>
-                  <td colSpan={4}></td>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-800">
-                    ₹
-                    {(
-                      portfolioHoldings.reduce(
-                        (sum, stock) => sum + stock.value,
-                        0
-                      ) + 1000
-                    ).toLocaleString()}
-                  </td>
-                </tr>
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-4 py-3 text-sm font-medium text-green-600"
-                  >
-                    +{Number(portfolio?.oneYearGains)?.toFixed(2)}% Since
-                    Inception
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-
-        {/* Top Holdings and Allocation */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {topHoldings.map((holding, index) => (
-            <Card key={index} className="border border-gray-200">
-              <CardContent className="p-4">
-                <div className="flex justify-between items-center mb-2">
-                  <h4 className="font-medium text-gray-800">{holding.name}</h4>
-                  <span
-                    className={`text-sm font-medium ${
-                      index === 0
-                        ? "text-green-600"
-                        : index === 1
-                        ? "text-blue-600"
-                        : "text-purple-600"
-                    }`}
-                  >
-                    {holding.allocation.toFixed(1)}%
-                  </span>
+        {/* Portfolio Info Card */}
+        <Card className="mb-4 sm:mb-6">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 space-y-4 sm:space-y-0">
+              <div className="flex items-center space-x-3 sm:space-x-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-green-600 font-bold text-lg sm:text-xl">📊</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 text-sm">Value</span>
-                  <span className="font-medium">
-                    ₹{holding.value.toLocaleString()}
-                  </span>
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-lg sm:text-xl font-bold truncate">{portfolio.name}</h2>
+                  <p className="text-gray-600 text-sm sm:text-base line-clamp-2">{safeString(portfolio.description)}</p>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Allocation Chart and Credit Rating */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <h3 className="text-lg font-semibold mb-4">Asset Allocation</h3>
-            <div className="h-64">
-              <PortfolioAllocationChart />
-            </div>
-            <div className="text-center mt-4">
-              <div className="text-2xl font-bold">49.80%</div>
-              <div className="text-sm text-gray-500">Equity Investments</div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <h3 className="text-lg font-semibold mb-4">Credit rating*</h3>
-            <div className="space-y-2">
-              {creditRatings.map((item, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div
-                      className={`h-3 w-3 rounded-full mr-2 ${
-                        index === 0
-                          ? "bg-green-500"
-                          : index === 1
-                          ? "bg-blue-500"
-                          : index === 2
-                          ? "bg-cyan-500"
-                          : index === 3
-                          ? "bg-teal-500"
-                          : index === 4
-                          ? "bg-yellow-500"
-                          : index === 5
-                          ? "bg-orange-500"
-                          : index === 6
-                          ? "bg-red-500"
-                          : index === 7
-                          ? "bg-pink-500"
-                          : "bg-gray-500"
-                      }`}
-                    ></div>
-                    <span className="text-sm text-gray-700">{item.rating}</span>
-                  </div>
-                  <span className="text-sm font-medium">
-                    {item.percentage.toFixed(1)}%
-                  </span>
-                </div>
-              ))}
-            </div>
-            <div className="text-xs text-gray-500 mt-4">
-              * Credit ratings are based on the latest available data and are
-              subject to change.
-            </div>
-          </div>
-        </div>
-
-        {/* Research Reports */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-8">
-          <div className="p-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold">
-              Latest Research Reports on Early Bird Investor Portfolio
-            </h3>
-          </div>
-          <div className="p-4">
-            <div className="space-y-4">
-              {researchReports.map((report, index) => (
-                <div
-                  key={index}
-                  className="border-b border-gray-100 pb-4 last:border-0 last:pb-0"
-                >
-                  <h4 className="font-medium text-blue-600 mb-1">
-                    {report.title}
-                  </h4>
-                  <p className="text-sm text-gray-600 mb-1">
-                    {report.description}
-                  </p>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-500">
-                      Published on {report.date}
-                    </span>
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="text-blue-600 p-0 h-auto"
-                    >
-                      Read More <ChevronRight className="h-3 w-3 ml-1" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 text-center">
-              <Button variant="outline" size="sm">
-                View All
+              </div>
+              <Button variant="outline" className="flex items-center space-x-2 w-full sm:w-auto justify-center">
+                <FileText className="h-4 w-4" />
+                <Play className="h-4 w-4" />
+                <span className="text-sm">Methodology</span>
               </Button>
             </div>
-          </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8">
+              <div className="text-center sm:text-left">
+                <p className="text-sm text-gray-600">Monthly Gains</p>
+                <p className="text-xl sm:text-2xl font-bold text-green-600">+{safeString(portfolio.monthlyGains)}%</p>
+              </div>
+              <div className="text-center sm:text-left">
+                <p className="text-sm text-gray-600">1 Year Gains</p>
+                <p className="text-xl sm:text-2xl font-bold text-green-600">+{safeString(portfolio.oneYearGains)}%</p>
+              </div>
+              <div className="text-center sm:text-left">
+                <p className="text-sm text-gray-600">CAGR Since Inception</p>
+                <p className="text-xl sm:text-2xl font-bold text-green-600">+{safeString(portfolio.cagr)}%</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Details Section */}
+        <Card className="mb-4 sm:mb-6">
+          <CardContent className="p-4 sm:p-6">
+            <h3 className="text-lg font-semibold mb-4">Details</h3>
+            
+            <div className="space-y-4 text-sm sm:text-base">
+              <div>
+                <p className="font-semibold mb-2">Who should refer to this portfolio?</p>
+                <p className="text-gray-700 leading-relaxed">
+                  This Student and Early Earner Model portfolio is a small denomination model portfolio using which an investor can start building his/her stock portfolio at an early age. The investible amount for this portfolio is between 10000 to 15000 per month.
+                </p>
+              </div>
+
+              <div>
+                <p className="text-gray-700 leading-relaxed">
+                  Students get small amounts in the form of pocket money or through part-time income. Also, individuals who are just starting their careers usually have high expenses and low saving rates. Such students and early earners can take up position with their investments as typically the responsibilities are low, and the investment horizon is very high. This model portfolio gives such students and early-earners the opportunity to participate in capital markets and benefit from the edge that they have on their side, i.e., TIME for long-term capital growth.
+                </p>
+              </div>
+
+              <div>
+                <p className="text-gray-700 leading-relaxed">
+                  The expected average rate of return from this portfolio is 15-18% over time. In its best year, it might gain 25-30% and in its worst year, it could decline by 20-25%.
+                </p>
+              </div>
+
+              <div>
+                <p className="text-gray-700 font-semibold">These are a typical investor profiles who can refer to this portfolio -</p>
+                <ol className="list-decimal list-inside mt-2 space-y-1 text-gray-700 pl-2">
+                  <li>A student with high-risk appetite; typically, 18 to 25-year-old with low savings and low liabilities</li>
+                  <li>A young professional who just started working & interested in creating a new stock portfolio</li>
+                  <li>A homemaker who wants to utilize a portion of the monthly savings to take first exposure to stock markets for meeting a long-term goal</li>
+                </ol>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-4 border-t">
+                <div>
+                  <p className="font-semibold text-gray-800">Time Horizon</p>
+                  <p className="text-gray-600">Min. 10 years</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Rebalancing</p>
+                  <p className="text-gray-600">Quarterly</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Index</p>
+                  <p className="text-gray-600">BSE 500 Index</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Important Dates</p>
+                  <div className="text-xs sm:text-sm text-gray-600">
+                    <p>Inception Date - August 25th, 2021</p>
+                    <p>Launch Date - August 25th, 2021</p>
+                    <p>Market Cap Category - Multi Cap</p>
+                    <p>Last Market Driven Rebalancing - Oct 28, 2024</p>
+                    <p>Last Quarterly Rebalancing Mar 1, 2025</p>
+                    <p>Next Quarterly Rebalancing on - June 7, 2025</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-4 border-t text-xs text-gray-500">
+                <p><strong>Disclaimer:</strong> The information on this site is provided for reference purposes only purposes only and should not be misconstrued as investment advice. Under no circumstances does this information represent a recommendation to buy or sell stocks. All these portfolios are created based on our experts experience in the market. These Model Portfolio are prepared by SEBI Registered RIA.</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Trailing Returns */}
+        <Card className="mb-4 sm:mb-6">
+          <CardContent className="p-4 sm:p-6">
+            <h3 className="text-lg font-semibold text-blue-600 mb-4">Trailing Returns</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[600px]">
+                <thead>
+                  <tr className="bg-blue-900 text-white">
+                    {trailingReturns.map((item, index) => (
+                      <th key={index} className="px-2 sm:px-4 py-3 text-center font-medium text-xs sm:text-sm whitespace-nowrap">
+                        {item.period}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="bg-gray-50">
+                    {trailingReturns.map((item, index) => (
+                      <td key={index} className="px-2 sm:px-4 py-3 text-center text-xs sm:text-sm">
+                        {item.value}
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Returns Graph */}
+        <Card className="mb-4 sm:mb-6">
+          <CardContent className="p-4 sm:p-6">
+            <h3 className="text-lg font-semibold text-blue-600 mb-4">Returns Graph</h3>
+            
+            {/* Time period buttons */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {['1m', '3m', '6m', '1Yr', '2Yr', '3Yr', 'Since Inception'].map((period) => (
+                <Button
+                  key={period}
+                  variant={period === '1m' ? 'default' : 'outline'}
+                  size="sm"
+                  className="text-blue-600 text-xs sm:text-sm px-2 sm:px-3"
+                >
+                  {period}
+                </Button>
+              ))}
+            </div>
+
+            <div className="h-64 sm:h-80 lg:h-96">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={priceHistory}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="date" 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <YAxis 
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(value) => `${value}%`}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <Tooltip 
+                    formatter={(value: number, name: string) => [
+                      `${value.toFixed(2)}%`,
+                      name === 'portfolioValue' ? 'Student and Early Earner - Stock Only' : 'BSE 500 - TRI'
+                    ]}
+                    labelFormatter={(label) => `Date: ${label}`}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="portfolioValue" 
+                    stroke="#10B981" 
+                    strokeWidth={2}
+                    name="Student and Early Earner - Stock Only"
+                    dot={{ fill: '#10B981', strokeWidth: 2, r: 3 }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="benchmarkValue" 
+                    stroke="#6B7280" 
+                    strokeWidth={2}
+                    name="BSE 500 - TRI"
+                    dot={{ fill: '#6B7280', strokeWidth: 2, r: 3 }}
+                  />
+                  <Legend />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="mt-4 text-center text-xs sm:text-sm text-gray-600">
+              <p>— Student and Early Earner - Stock Only — BSE 500 - TRI</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Portfolio & Weights Table */}
+        <Card className="mb-4 sm:mb-6">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 space-y-2 sm:space-y-0">
+              <h3 className="text-lg font-semibold">Portfolio & Weights</h3>
+              <Button variant="outline" className="flex items-center space-x-2 w-full sm:w-auto justify-center">
+                <Calculator className="h-4 w-4" />
+                <span className="text-sm">Investment calculator</span>
+              </Button>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[800px]">
+                <thead>
+                  <tr className="bg-blue-900 text-white">
+                    <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm">Stock name</th>
+                    <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm">Type</th>
+                    <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm">Sector</th>
+                    <th className="px-2 sm:px-4 py-3 text-center text-xs sm:text-sm">Weightage</th>
+                    <th className="px-2 sm:px-4 py-3 text-center text-xs sm:text-sm">Current Action</th>
+                    <th className="px-2 sm:px-4 py-3 text-center text-xs sm:text-sm whitespace-nowrap">LTP(as of 17/06/2025 03:30 pm)</th>
+                    <th className="px-2 sm:px-4 py-3 text-center text-xs sm:text-sm whitespace-nowrap">Value As Per Minimum Investment</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {holdingsWithPrices.map((holding, index) => (
+                    <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                      <td className="px-2 sm:px-4 py-3">
+                        <div>
+                          <p className="font-medium text-xs sm:text-sm">{holding.symbol}</p>
+                          <p className="text-xs text-gray-500">NSE: {holding.symbol}</p>
+                        </div>
+                      </td>
+                      <td className="px-2 sm:px-4 py-3 text-xs sm:text-sm">{holding.marketCap}</td>
+                      <td className="px-2 sm:px-4 py-3 text-xs sm:text-sm">{holding.sector}</td>
+                      <td className="px-2 sm:px-4 py-3 text-center text-xs sm:text-sm">{holding.weight.toFixed(1)}</td>
+                      <td className="px-2 sm:px-4 py-3 text-center">
+                        <span className="bg-gray-400 text-white px-2 py-1 rounded text-xs">HOLD</span>
+                      </td>
+                      <td className="px-2 sm:px-4 py-3 text-center">
+                        <div>
+                          <p className="text-xs sm:text-sm">{holding.currentPrice?.toFixed(2) || holding.price.toFixed(2)}</p>
+                          {holding.changePercent !== undefined && (
+                            <p className={`text-xs ${holding.changePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {holding.changePercent >= 0 ? '+' : ''}{holding.changePercent.toFixed(2)} ({holding.changePercent >= 0 ? '+' : ''}{holding.changePercent.toFixed(2)}%) ▲
+                            </p>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-2 sm:px-4 py-3 text-center text-xs sm:text-sm">
+                        {holding.value?.toFixed(2) || holding.price.toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-6 space-y-2 text-sm">
+              <div className="flex justify-between items-center py-2 border-t">
+                <span className="font-semibold">Total Equity Amount</span>
+                <span className="font-semibold">29900/-</span>
+              </div>
+              <div className="flex justify-between items-center py-2">
+                <span className="text-blue-600 font-semibold">Cash</span>
+                <div className="text-right">
+                  <span className="text-blue-600 font-semibold">0.1 %</span>
+                  <div className="text-blue-600 font-semibold">100/-</div>
+                </div>
+              </div>
+              <div className="flex justify-between items-center py-2 border-t">
+                <span className="text-blue-600 font-semibold">Total Portfolio Value</span>
+                <span className="text-blue-600 font-semibold">30000/-</span>
+              </div>
+              <div className="text-center py-2 border-t">
+                <span className="text-green-600 font-bold text-base sm:text-lg">+1.94% Since Inception</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Portfolio Allocation Chart */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
+          <Card>
+            <CardContent className="p-4 sm:p-6">
+              <h3 className="text-lg font-semibold mb-6">Portfolio Allocation</h3>
+              <div className="relative flex items-center justify-center">
+                <div className="w-80 h-80 sm:w-96 sm:h-96">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={portfolioAllocationData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={80}
+                        outerRadius={140}
+                        startAngle={90}
+                        endAngle={450}
+                        paddingAngle={1}
+                        dataKey="value"
+                        stroke="#fff"
+                        strokeWidth={2}
+                      >
+                        {portfolioAllocationData.map((entry, index) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={entry.color}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value: number) => [`${value.toFixed(2)}%`, 'Weight']}
+                        contentStyle={{
+                          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '12px'
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                
+                {/* Center Content */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-4xl sm:text-5xl font-bold text-gray-900 mb-1">
+                      {largestHolding.value.toFixed(2)}%
+                    </div>
+                    <div className="text-gray-600 text-sm font-medium">
+                      {largestHolding.name}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4 sm:p-6">
+              <h3 className="text-lg font-semibold mb-6">Holdings <span className="float-right text-sm text-gray-500">% of portfolio</span></h3>
+              <div className="space-y-2 max-h-80 sm:h-96 overflow-y-auto pr-2">
+                {portfolioAllocationData
+                  .sort((a, b) => b.value - a.value)
+                  .map((stock, index) => (
+                  <div key={index} className="flex items-center justify-between py-3 px-2 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                    <div className="flex items-center space-x-3 min-w-0 flex-1">
+                      <div 
+                        className="w-3 h-3 rounded-full flex-shrink-0" 
+                        style={{ backgroundColor: stock.color }}
+                      ></div>
+                      <span className="text-gray-800 font-medium text-sm truncate">{stock.name}</span>
+                    </div>
+                    <span className="font-bold text-sm text-gray-900 ml-3">
+                      {stock.value.toFixed(2)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </DashboardLayout>

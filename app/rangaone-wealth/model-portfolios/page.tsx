@@ -1,5 +1,6 @@
 "use client";
 
+import { PageHeader } from "@/components/page-header";
 import DashboardLayout from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,11 +12,13 @@ import { subscriptionService, SubscriptionAccess } from "@/services/subscription
 import { useAuth } from "@/components/auth/auth-context";
 import {
   ArrowUpRight,
+  FileText,
   Eye,
   Lock,
   TrendingDown,
   TrendingUp,
   Unlock,
+  ClipboardList,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -164,14 +167,19 @@ export default function ModelPortfoliosPage() {
     router.push(`/rangaone-wealth/model-portfolios/${portfolioId}`);
   };
 
+  const handleMethodologyClick = (portfolioId: string) => {
+    // TODO: Implement methodology view
+    console.log("View methodology for portfolio:", portfolioId);
+  };
+
   if (authLoading) {
     return (
       <DashboardLayout>
-        <div className="max-w-6xl mx-auto">
-          <div className="bg-[#1e1b4b] text-white rounded-lg p-8 mb-8">
-            <h1 className="text-3xl font-bold mb-2">Model Portfolios</h1>
-            <p className="text-lg opacity-90">Discover our expertly crafted investment strategies</p>
-          </div>
+        <div className="max-w-6xl mx-auto p-4">
+          <PageHeader 
+            title="Model Portfolios" 
+            subtitle="Discover our expertly crafted investment strategies" 
+          />
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
           </div>
@@ -182,85 +190,85 @@ export default function ModelPortfoliosPage() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-6xl mx-auto">
-        <div className="bg-[#1e1b4b] text-white rounded-lg p-8 mb-8">
-          <h1 className="text-3xl font-bold mb-2">Model Portfolios</h1>
-          <p className="text-lg opacity-90">Discover our expertly crafted investment strategies</p>
-        </div>
-
-        {/* Rest of the content */}
+      <div className="max-w-6xl mx-auto p-4">
+        <PageHeader 
+          title="Model Portfolios" 
+          subtitle="Discover our expertly crafted investment strategies" 
+        />
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="space-y-6">
             {portfolios.map((portfolio) => (
               <Card key={portfolio._id} className="overflow-hidden">
                 <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-1">{portfolio.name}</h3>
-                      <p className="text-sm text-gray-600">{renderDescription(portfolio.description)}</p>
-                  </div>
-                    {hasPortfolioAccess(portfolio._id) ? (
-                      <Unlock className="h-5 w-5 text-green-500" />
-                    ) : (
-                      <Lock className="h-5 w-5 text-gray-400" />
-                    )}
-                  </div>
-
-                  <div className="space-y-3 mb-6">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">CAGR</span>
-                      <div className="flex items-center gap-1">
-                        {safeNumber(portfolio.cagr) >= 0 ? (
-                          <TrendingUp className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <TrendingDown className="h-4 w-4 text-red-500" />
-                        )}
-                        <span className={safeNumber(portfolio.cagr) >= 0 ? "text-green-600" : "text-red-600"}>
-                          {safeString(portfolio.cagr)}%
-                        </span>
+                  <div className="flex items-start justify-between mb-6">
+                    <div className="flex items-center space-x-4">
+                      <div className="bg-blue-100 p-3 rounded-lg">
+                        <FileText className="h-6 w-6 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-semibold">{portfolio.name}</h3>
+                        <p className="text-sm text-gray-600">{renderDescription(portfolio.description)}</p>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Returns</span>
-                      <div className="flex items-center gap-1">
-                        {safeNumber(portfolio.returns) >= 0 ? (
-                          <TrendingUp className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <TrendingDown className="h-4 w-4 text-red-500" />
-                        )}
-                        <span className={safeNumber(portfolio.returns) >= 0 ? "text-green-600" : "text-red-600"}>
-                          {safeString(portfolio.returns)}%
-                        </span>
-                      </div>
-                      </div>
-                    </div>
-
-                  <div className="flex flex-col gap-2">
-                    {hasPortfolioAccess(portfolio._id) ? (
-                          <Button
-                        className="w-full bg-[#1e1b4b] hover:bg-[#2d2a5a]"
-                            onClick={() => handleViewDetails(portfolio._id)}
-                          >
-                        View Details
-                        <ArrowUpRight className="h-4 w-4 ml-2" />
-                      </Button>
-                    ) : (
+                    <div className="flex space-x-2">
                       <Button
-                        className="w-full"
                         variant="outline"
-                        onClick={() => handleSubscribe(portfolio._id)}
+                        className="flex items-center space-x-2"
+                        onClick={() => handleMethodologyClick(portfolio._id)}
                       >
-                        <Eye className="h-4 w-4 mr-2" />
-                        {getUpgradeMessage(portfolio._id)}
-                          </Button>
-                    )}
+                        <FileText className="h-4 w-4" />
+                        <span>Methodology</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="flex items-center space-x-2"
+                        onClick={() => handleViewDetails(portfolio._id)}
+                      >
+                        <Eye className="h-4 w-4" />
+                        <span>View Details</span>
+                      </Button>
+                    </div>
                   </div>
-                  </CardContent>
-                </Card>
+
+                  <div className="grid grid-cols-4 gap-4 mb-4">
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-600">Monthly Gains</p>
+                      <p className={`text-xl font-semibold ${safeNumber(portfolio.monthlyGains) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {safeString(portfolio.monthlyGains)}%
+                      </p>
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-600">1 Year Gains</p>
+                      <p className={`text-xl font-semibold ${safeNumber(portfolio.oneYearGains) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {safeString(portfolio.oneYearGains)}%
+                      </p>
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-600">CAGR Since Inception</p>
+                      <p className={`text-xl font-semibold ${safeNumber(portfolio.cagr) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {safeString(portfolio.cagr)}%
+                      </p>
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-600">Min. Investment Stocks</p>
+                      <p className="text-xl font-semibold">₹{safeString(portfolio.minInvestment)}</p>
+                    </div>
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    className="flex items-center space-x-2"
+                    onClick={() => console.log('View reports for:', portfolio._id)}
+                  >
+                    <ClipboardList className="h-4 w-4" />
+                    <span>Reports</span>
+                  </Button>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}
