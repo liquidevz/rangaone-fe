@@ -172,6 +172,10 @@ export default function ModelPortfoliosPage() {
     console.log("View methodology for portfolio:", portfolioId);
   };
 
+  const handleViewReports = (portfolioId: string) => {
+    router.push(`/rangaone-wealth/model-portfolios/${portfolioId}/reports`);
+  };
+
   if (authLoading) {
     return (
       <DashboardLayout>
@@ -270,7 +274,7 @@ export default function ModelPortfoliosPage() {
                     variant="outline"
                     size="sm"
                     className="flex items-center justify-center space-x-2 w-full sm:w-auto"
-                    onClick={() => console.log('View reports for:', portfolio._id)}
+                    onClick={() => handleViewReports(portfolio._id)}
                   >
                     <ClipboardList className="h-4 w-4" />
                     <span className="text-sm">Reports</span>

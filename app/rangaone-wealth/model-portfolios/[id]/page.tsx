@@ -509,13 +509,31 @@ export default function PortfolioDetailsPage() {
               </div>
                 <div className="min-w-0 flex-1">
                   <h2 className="text-lg sm:text-xl font-bold truncate">{safeString(portfolio.name)}</h2>
-                  <p className="text-gray-600 text-sm sm:text-base line-clamp-2">{safeString(portfolio.description)}</p>
+                  <div className="text-gray-600 text-sm sm:text-base line-clamp-2">
+                    {(() => {
+                      // Handle description array with "home card" key for header description
+                      if (Array.isArray(portfolio.description)) {
+                        const homeCardDesc = portfolio.description.find((item: any) => item.key === "home card");
+                        if (homeCardDesc && homeCardDesc.value) {
+                          // Strip HTML tags for header display and truncate
+                          const textContent = homeCardDesc.value.replace(/<[^>]*>/g, '');
+                          return textContent.length > 100 ? textContent.substring(0, 100) + '...' : textContent;
+                        }
+                      }
+                      // Fallback to string description
+                      return safeString(portfolio.description);
+                    })()}
+                  </div>
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row gap-2">
+              {/* Action Buttons Section */}
+              <div className="flex flex-row gap-3 mb-6">
                 <Button
                   variant="outline"
-                  className="flex items-center space-x-2 w-full sm:w-auto justify-center"
+                  size="lg"
+                  className="flex-1 sm:flex-none sm:min-w-[120px] flex items-center justify-center space-x-2 
+                           border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-all duration-200
+                           bg-white shadow-sm hover:shadow-md"
                   onClick={() => {
                     const downloadLinks = (portfolio as any)?.downloadLinks;
                     if (downloadLinks && downloadLinks.length > 0) {
@@ -523,38 +541,42 @@ export default function PortfolioDetailsPage() {
                     }
                   }}
                 >
-                  <FileText className="h-4 w-4" />
-                  <span className="text-sm">Reports</span>
+                  <FileText className="h-4 w-4 text-gray-600" />
+                  <span className="text-sm font-medium text-gray-700">Reports</span>
                 </Button>
+                
                 {(portfolio as any)?.youTubeLinks && (portfolio as any).youTubeLinks.length > 0 && (
                 <Button
                   variant="outline"
-                    className="flex items-center space-x-2 w-full sm:w-auto justify-center"
-                    onClick={() => window.open((portfolio as any).youTubeLinks[0].link, '_blank')}
+                  size="lg"
+                  className="flex-1 sm:flex-none sm:min-w-[120px] flex items-center justify-center space-x-2
+                           border-gray-300 hover:border-red-500 hover:bg-red-50 transition-all duration-200
+                           bg-white shadow-sm hover:shadow-md"
+                  onClick={() => window.open((portfolio as any).youTubeLinks[0].link, '_blank')}
                 >
-                    <Play className="h-4 w-4" />
-                    <span className="text-sm">Video</span>
+                  <Play className="h-4 w-4 text-gray-600" />
+                  <span className="text-sm font-medium text-gray-700">Video</span>
                 </Button>
                 )}
             </div>
           </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8">
-              <div className="text-center sm:text-left">
-                <p className="text-sm text-gray-600">Monthly Gains</p>
-                <p className="text-xl sm:text-2xl font-bold text-green-600">
+                        <div className="grid grid-cols-3 gap-3 sm:gap-6">
+              <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 text-center shadow-sm hover:shadow-md transition-shadow duration-200">
+                <p className="text-xs sm:text-sm text-gray-600 mb-2 font-medium leading-tight h-8 flex items-center justify-center">Monthly Gains</p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600">
                   +{safeString((portfolio as any)?.monthlyGains || "0")}%
                 </p>
               </div>
-              <div className="text-center sm:text-left">
-                <p className="text-sm text-gray-600">1 Year Gains</p>
-                <p className="text-xl sm:text-2xl font-bold text-green-600">
+              <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 text-center shadow-sm hover:shadow-md transition-shadow duration-200">
+                <p className="text-xs sm:text-sm text-gray-600 mb-2 font-medium leading-tight h-8 flex items-center justify-center">1 Year<br/>Gains</p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600">
                   +{safeString((portfolio as any)?.oneYearGains || "0")}%
                 </p>
             </div>
-              <div className="text-center sm:text-left">
-                <p className="text-sm text-gray-600">CAGR Since Inception</p>
-                <p className="text-xl sm:text-2xl font-bold text-green-600">
+              <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 text-center shadow-sm hover:shadow-md transition-shadow duration-200">
+                <p className="text-xs sm:text-sm text-gray-600 mb-2 font-medium leading-tight h-8 flex items-center justify-center">CAGR Since<br/>Inception</p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600">
                   +{safeString((portfolio as any)?.CAGRSinceInception || "0")}%
                 </p>
               </div>
@@ -567,43 +589,85 @@ export default function PortfolioDetailsPage() {
           <CardContent className="p-4 sm:p-6">
             <h3 className="text-lg font-semibold mb-4">Details</h3>
 
-                        <div className="space-y-4 text-sm sm:text-base">
+                        <div className="space-y-6">
             <div>
                 {/* Extract and render portfolio card description */}
                 {(() => {
+                  // Debug logging
+                  console.log("=== PORTFOLIO DESCRIPTION DEBUG ===");
+                  console.log("Portfolio description:", (portfolio as any)?.description);
+                  console.log("Portfolio description type:", typeof (portfolio as any)?.description);
+                  console.log("Is array:", Array.isArray((portfolio as any)?.description));
+                  
+                  let htmlContent = '';
+                  
                   // Check if description is an array of key-value pairs
                   if (Array.isArray((portfolio as any)?.description)) {
+                    console.log("Processing array description...");
                     const portfolioCardItem = (portfolio as any).description.find((item: any) => 
                       item.key && item.key.toLowerCase() === 'portfolio card'
                     );
-                    if (portfolioCardItem) {
-                      return (
-                        <div 
-                          className="prose prose-sm max-w-none text-gray-700 leading-relaxed"
-                          dangerouslySetInnerHTML={{
-                            __html: safeString(portfolioCardItem.value)
-                          }}
-                          style={{
-                            lineHeight: '1.6',
-                            fontSize: '14px'
-                          }}
-                        />
-                      );
+                    console.log("Portfolio card item found:", portfolioCardItem);
+                    
+                    if (portfolioCardItem && portfolioCardItem.value) {
+                      htmlContent = portfolioCardItem.value;
+                    } else {
+                      // Try to find any description content
+                      const firstDesc = (portfolio as any).description.find((item: any) => item.value);
+                      console.log("First description item:", firstDesc);
+                      htmlContent = firstDesc?.value || '';
                     }
+                  } else if (typeof (portfolio as any)?.description === 'string') {
+                    console.log("Processing string description...");
+                    htmlContent = (portfolio as any).description;
                   }
                   
-                  // Fallback to regular description if no portfolio card key found
+                  // Fallback
+                  if (!htmlContent) {
+                    console.log("Using fallback content...");
+                    htmlContent = (portfolio as any)?.details || "This portfolio is designed for investors looking for balanced growth and risk management.";
+                  }
+                  
+                  console.log("Final HTML content:", htmlContent);
+                  console.log("=== END DEBUG ===");
+                  
                   return (
-                    <div 
-                      className="prose prose-sm max-w-none text-gray-700 leading-relaxed"
-                      dangerouslySetInnerHTML={{
-                        __html: safeString((portfolio as any)?.description || (portfolio as any)?.details || "This portfolio is designed for investors looking for balanced growth and risk management.")
-                      }}
-                      style={{
-                        lineHeight: '1.6',
-                        fontSize: '14px'
-                      }}
-                    />
+                    <div className="tinymce-content">
+                      <div 
+                        className="
+                          [&>h1]:text-2xl [&>h1]:font-bold [&>h1]:text-gray-900 [&>h1]:mb-4
+                          [&>h2]:text-xl [&>h2]:font-semibold [&>h2]:text-gray-900 [&>h2]:mb-3
+                          [&>h3]:text-lg [&>h3]:font-semibold [&>h3]:text-gray-900 [&>h3]:mb-2
+                          [&>h4]:text-base [&>h4]:font-semibold [&>h4]:text-gray-900 [&>h4]:mb-2
+                          [&>h5]:text-sm [&>h5]:font-semibold [&>h5]:text-gray-900 [&>h5]:mb-2
+                          [&>h6]:text-xs [&>h6]:font-semibold [&>h6]:text-gray-900 [&>h6]:mb-2
+                          [&>p]:text-gray-700 [&>p]:leading-relaxed [&>p]:mb-4 [&>p]:text-base
+                          [&>strong]:font-semibold [&>strong]:text-gray-900
+                          [&>em]:italic [&>em]:text-gray-700
+                          [&>b]:font-semibold [&>b]:text-gray-900
+                          [&>i]:italic [&>i]:text-gray-700
+                          [&>ul]:my-4 [&>ul]:pl-6 [&>ul]:list-disc
+                          [&>ol]:my-4 [&>ol]:pl-6 [&>ol]:list-decimal
+                          [&>li]:text-gray-700 [&>li]:mb-2 [&>li]:leading-relaxed
+                          [&>blockquote]:border-l-4 [&>blockquote]:border-blue-500 [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:text-gray-600 [&>blockquote]:my-4
+                          [&>table]:border-collapse [&>table]:w-full [&>table]:my-4
+                          [&>thead]:bg-gray-50
+                          [&>th]:border [&>th]:border-gray-300 [&>th]:p-2 [&>th]:font-semibold [&>th]:text-left
+                          [&>td]:border [&>td]:border-gray-300 [&>td]:p-2
+                          [&>a]:text-blue-600 [&>a]:underline hover:[&>a]:text-blue-800
+                          [&>code]:bg-gray-100 [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded [&>code]:text-sm [&>code]:font-mono
+                          [&>pre]:bg-gray-100 [&>pre]:p-4 [&>pre]:rounded [&>pre]:overflow-x-auto [&>pre]:my-4
+                          [&>img]:max-w-full [&>img]:h-auto [&>img]:my-4 [&>img]:rounded
+                          [&>hr]:my-6 [&>hr]:border-gray-300
+                          [&>div]:mb-2
+                          [&>span]:text-gray-700
+                          text-gray-800 leading-relaxed
+                        "
+                        dangerouslySetInnerHTML={{
+                          __html: safeString(htmlContent)
+                        }}
+                      />
+              </div>
                   );
                 })()}
             </div>
@@ -774,8 +838,8 @@ export default function PortfolioDetailsPage() {
 
                         {/* Mobile Table Layout - 4 columns */}
             <div className="block lg:hidden overflow-x-auto">
-              <table className="w-full">
-                <thead>
+            <table className="w-full">
+              <thead>
                   <tr className="bg-gray-600 text-white text-xs">
                     <th className="px-2 py-2 text-left font-medium">
                       <div className="flex items-center">
@@ -784,7 +848,7 @@ export default function PortfolioDetailsPage() {
                           <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                         </svg>
                       </div>
-                    </th>
+                  </th>
                     <th className="px-2 py-2 text-center font-medium">
                       <div className="flex items-center justify-center">
                         Type
@@ -792,7 +856,7 @@ export default function PortfolioDetailsPage() {
                           <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                         </svg>
                       </div>
-                    </th>
+                  </th>
                     <th className="px-2 py-2 text-center font-medium">
                       <div className="flex items-center justify-center">
                         Wt (%)
@@ -800,12 +864,12 @@ export default function PortfolioDetailsPage() {
                           <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                         </svg>
                       </div>
-                    </th>
+                  </th>
                     <th className="px-2 py-2 text-center font-medium">
                       Last Traded Price ({new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric' })} {new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase()})
-                    </th>
+                  </th>
                 </tr>
-                </thead>
+              </thead>
                 <tbody className="text-xs">
                   {holdingsWithPrices.length > 0 ? holdingsWithPrices.map((holding, index) => (
                     <React.Fragment key={index}>
@@ -817,11 +881,11 @@ export default function PortfolioDetailsPage() {
                           <div>
                             <div className="font-medium text-blue-600 leading-tight">{holding.symbol}</div>
                             <div className="text-gray-500 text-xs leading-tight">NSE : {holding.symbol}</div>
-                          </div>
-                        </td>
+                      </div>
+                    </td>
                         <td className="px-2 py-2 text-center">
                           <span className="text-gray-700">{(holding.marketCap || getMarketCapCategory(holding.symbol)).replace(' Cap', '\ncap')}</span>
-                        </td>
+                    </td>
                         <td className="px-2 py-2 text-center font-medium">{holding.weight.toFixed(1)}</td>
                         <td className="px-2 py-2 text-center">
                           {holding.currentPrice ? (
@@ -840,7 +904,7 @@ export default function PortfolioDetailsPage() {
                           ) : (
                             <span className="text-gray-400">Loading...</span>
                           )}
-                        </td>
+                    </td>
                       </tr>
                       {expandedRow === index && (
                         <tr className="bg-blue-50">
@@ -873,16 +937,16 @@ export default function PortfolioDetailsPage() {
                                 </div>
                               </div>
                             </div>
-                          </td>
-                        </tr>
+                    </td>
+                  </tr>
                       )}
                     </React.Fragment>
                   )) : (
                     <tr>
                       <td colSpan={4} className="px-4 py-8 text-center text-gray-500">
                         {loading ? "Loading holdings..." : "No holdings data available"}
-                      </td>
-                    </tr>
+                  </td>
+                </tr>
                   )}
                 </tbody>
               </table>
@@ -938,10 +1002,10 @@ export default function PortfolioDetailsPage() {
                           <div className="font-medium text-blue-600 leading-tight">{holding.symbol}</div>
                           <div className="text-gray-500 text-xs leading-tight">NSE : {holding.symbol} BSE : {Math.floor(Math.random() * 600000) + 500000}</div>
                         </div>
-                      </td>
+                  </td>
                       <td className="px-1 sm:px-2 py-2 text-center">
                         <span className="text-gray-700">{(holding.marketCap || getMarketCapCategory(holding.symbol)).replace(' Cap', '\ncap')}</span>
-                      </td>
+                  </td>
                       <td className="px-1 sm:px-2 py-2 text-center text-gray-700 leading-tight">{holding.sector}</td>
                       <td className="px-1 sm:px-2 py-2 text-center font-medium">{holding.weight.toFixed(1)}</td>
                       <td className="px-1 sm:px-2 py-2 text-center">
@@ -952,7 +1016,7 @@ export default function PortfolioDetailsPage() {
                         }`}>
                           {holding.status?.toUpperCase() || 'FRESH-BUY'}
                         </span>
-                      </td>
+                  </td>
                       <td className="px-1 sm:px-2 py-2 text-center">
                         {holding.currentPrice ? (
                           <div>
@@ -970,23 +1034,23 @@ export default function PortfolioDetailsPage() {
                         ) : (
                           <span className="text-gray-400">Loading...</span>
                         )}
-                      </td>
+                  </td>
                       <td className="px-1 sm:px-2 py-2 text-center">
                         <span className="font-medium">
                           ₹{holding.value ? holding.value.toFixed(0) : Math.floor(Math.random() * 10000) + 5000}
                         </span>
-                      </td>
-                    </tr>
+                  </td>
+                </tr>
                   )) : (
                     <tr>
                       <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
                         {loading ? "Loading holdings..." : "No holdings data available"}
-                      </td>
-                    </tr>
+                  </td>
+                </tr>
                   )}
                 </tbody>
-              </table>
-            </div>
+            </table>
+          </div>
 
                         <div className="mt-6 pt-4 border-t">
               {/* Mobile Layout */}
