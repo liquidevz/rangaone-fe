@@ -2,16 +2,17 @@
 "use client";
 
 import type React from "react";
-
-import Sidebar from "@/components/sidebar";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { UserProfile, userService } from "@/services/user.service";
-import { useAuth } from "@/components/auth/auth-context";
-import { Menu, PhoneCall, Search, X, LogOut, ChevronDown } from "lucide-react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Bell, ChevronDown, Menu, Search, X } from "lucide-react";
+
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/components/auth/auth-context";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import Sidebar from "@/components/sidebar";
+import { UserProfile, userService } from "@/services/user.service";
 
 export default function DashboardLayout({
   children,
@@ -20,22 +21,18 @@ export default function DashboardLayout({
   children: React.ReactNode;
   userId?: string;
 }) {
-  // Initialize sidebar state
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  
-  // Get logout function from auth context
+  const [showNotifications, setShowNotifications] = useState(false);
   const { logout } = useAuth();
 
-  // Set isMounted to true after component mounts
   useEffect(() => {
     setIsMounted(true);
     return () => setIsMounted(false);
   }, []);
 
-  // Initialize sidebar state based on screen size, but only after component mounts
   useEffect(() => {
     if (isMounted && typeof window !== "undefined") {
       setSidebarOpen(window.innerWidth >= 1024);
@@ -55,7 +52,6 @@ export default function DashboardLayout({
     fetchCurrentUser();
   }, []);
 
-  // Add a useEffect to handle window resize
   useEffect(() => {
     if (!isMounted) return;
 
@@ -69,7 +65,6 @@ export default function DashboardLayout({
     return () => window.removeEventListener("resize", handleResize);
   }, [isMounted]);
 
-  // Add effect to control body overflow when sidebar is open on mobile
   useEffect(() => {
     if (!isMounted) return;
 
@@ -88,18 +83,20 @@ export default function DashboardLayout({
     };
   }, [sidebarOpen, isMounted]);
 
-  // Close user menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
-      if (showUserMenu && !target.closest('.user-menu-container')) {
+      if (showUserMenu && !target.closest(".user-menu-container")) {
         setShowUserMenu(false);
+      }
+      if (showNotifications && !target.closest(".notifications-container")) {
+        setShowNotifications(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showUserMenu]);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showUserMenu, showNotifications]);
 
   const toggleSidebar = () => {
     setSidebarOpen((prev) => !prev);
@@ -118,113 +115,129 @@ export default function DashboardLayout({
     setShowUserMenu((prev) => !prev);
   };
 
+  const toggleNotifications = () => {
+    setShowNotifications((prev) => !prev);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
-        <div className="flex items-center justify-between px-4 py-2">
-          <div className="flex items-center">
-            <button
-              data-sidebar-trigger="true"
-              onClick={toggleSidebar}
-              className="p-2 mr-2 text-gray-600 rounded-md lg:hidden hover:bg-gray-100"
-              aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
-            >
-              {sidebarOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
-              )}
-            </button>
-            <Link href="/dashboard" className="flex items-center">
-              <div className="relative h-12 w-12 mr-2">
-                <div className="absolute inset-0 bg-navy-blue rounded-full flex items-center justify-center text-white font-bold text-xl">
-                  R
+      <header className="sticky top-0 z-30 w-full border-b border-gray-200 bg-white/80 backdrop-blur">
+        <div className="flex h-16 items-center gap-4 px-4">
+          <button
+            onClick={toggleSidebar}
+            className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 lg:hidden"
+          >
+            {sidebarOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <Menu className="h-5 w-5" />
+            )}
+          </button>
+
+          {/* Search */}
+          <div className="flex flex-1 items-center gap-4">
+            <form className="hidden flex-1 md:block">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                <Input
+                  type="search"
+                  placeholder="Search stocks, portfolios & research reports..."
+                  className="w-full bg-gray-50 pl-9 focus-visible:ring-[#1e1b4b]"
+                />
+              </div>
+            </form>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2">
+            {/* Notifications */}
+            <div className="notifications-container relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative"
+                onClick={toggleNotifications}
+              >
+                <Bell className="h-5 w-5" />
+                <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" />
+              </Button>
+
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-80 rounded-lg border border-gray-200 bg-white p-4 shadow-lg">
+                  <div className="mb-2 flex items-center justify-between">
+                    <h3 className="font-medium">Notifications</h3>
+                    <Button variant="ghost" size="sm">
+                      Mark all as read
+                    </Button>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex gap-4 rounded-lg p-2 hover:bg-gray-50">
+                      <div className="h-8 w-8 flex-none rounded-full bg-blue-100 text-blue-600" />
+                      <div className="flex-1">
+                        <p className="text-sm">New portfolio recommendation</p>
+                        <p className="text-xs text-gray-500">2 hours ago</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-4 rounded-lg p-2 hover:bg-gray-50">
+                      <div className="h-8 w-8 flex-none rounded-full bg-green-100 text-green-600" />
+                      <div className="flex-1">
+                        <p className="text-sm">Market update available</p>
+                        <p className="text-xs text-gray-500">5 hours ago</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="text-navy-blue font-bold leading-tight hidden sm:block">
-                <div>RANGAONE</div>
-                <div>FINWALA</div>
-              </div>
-            </Link>
-          </div>
-
-          <div className="hidden md:flex flex-1 max-w-xl mx-4">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                className="w-full pl-10 bg-gray-50 border-gray-200"
-                placeholder="Search Stocks, Portfolios & Research Reports"
-              />
+              )}
             </div>
-          </div>
 
-          <div className="flex items-center">
-            {/* User profile dropdown */}
+            {/* User menu */}
             <div className="relative user-menu-container">
-              <div 
-                className="flex items-center cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors" 
+              <Button
+                variant="ghost"
+                className="flex items-center gap-2"
                 onClick={toggleUserMenu}
               >
-                <div className="h-10 w-10 rounded-full bg-gray-200 mr-3 overflow-hidden relative">
-                  {!currentUser ? (
-                    <div className="animate-pulse bg-gray-300 h-full w-full" />
-                  ) : currentUser?.avatar ? (
+                <div className="h-8 w-8 overflow-hidden rounded-full bg-gray-200">
+                  {currentUser?.avatar ? (
                     <Image
-                      src={currentUser.avatar || "/placeholder.svg"}
-                      alt={currentUser?.username || "User"}
-                      width={40}
-                      height={40}
-                      className="object-cover"
+                      src={currentUser.avatar}
+                      alt={currentUser.username}
+                      width={32}
+                      height={32}
+                      className="h-full w-full object-cover"
                     />
                   ) : (
-                    <div className="flex items-center justify-center h-full w-full bg-navy-blue text-white font-bold text-sm">
+                    <div className="flex h-full w-full items-center justify-center bg-[#1e1b4b] text-sm font-medium text-white">
                       {currentUser?.username?.charAt(0)?.toUpperCase() || "U"}
                     </div>
                   )}
                 </div>
-                <div className="hidden sm:block">
-                  {!currentUser ? (
-                    <>
-                      <div className="h-4 bg-gray-300 rounded w-24 mb-1 animate-pulse"></div>
-                      <div className="h-3 bg-gray-200 rounded w-20 animate-pulse"></div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="font-semibold text-gray-900 text-sm">
-                        {currentUser?.username || "User"}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {currentUser?.email || "No Email"}
-                      </div>
-                    </>
-                  )}
-                </div>
-                <ChevronDown 
-                  className={`h-4 w-4 text-gray-400 ml-2 transition-transform ${
-                    showUserMenu ? 'rotate-180' : ''
-                  }`} 
-                />
-              </div>
+                <span className="hidden text-sm font-medium md:block">
+                  {currentUser?.username || "User"}
+                </span>
+                <ChevronDown className="h-4 w-4 text-gray-500" />
+              </Button>
 
-              {/* Dropdown Menu */}
               {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-1">
-                  <div className="px-4 py-2 border-b border-gray-100">
-                    <div className="font-medium text-gray-900 text-sm">
-                      {currentUser?.username || "User"}
-                    </div>
-                    <div className="text-xs text-gray-500 truncate">
-                      {currentUser?.email || "No Email"}
-                    </div>
-                  </div>                                    
-                  <div className="border-t border-gray-100 mt-1 pt-1">
+                <div className="absolute right-0 mt-2 w-56 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                  <div className="border-b border-gray-100 px-4 py-2">
+                    <div className="font-medium">{currentUser?.username}</div>
+                    <div className="text-sm text-gray-500">{currentUser?.email}</div>
+                  </div>
+                  <div className="py-1">
+                    <Link
+                      href="/settings"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      onClick={() => setShowUserMenu(false)}
+                    >
+                      Settings
+                    </Link>
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                     >
-                      <LogOut className="h-4 w-4 mr-3" />
-                      Logout
+                      Sign out
                     </button>
                   </div>
                 </div>
@@ -239,18 +252,7 @@ export default function DashboardLayout({
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
         {/* Main content */}
-        <main className="flex-1 p-4 overflow-x-hidden">{children}</main>
-      </div>
-
-      {/* Floating Contact Button */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <Button
-          className="bg-green-600 hover:bg-green-700 h-14 w-14 rounded-full shadow-lg flex items-center justify-center"
-          onClick={() => (window.location.href = "/contact-us")}
-        >
-          <PhoneCall className="h-6 w-6" />
-          <span className="sr-only">Contact Us</span>
-        </Button>
+        <main className="flex-1 overflow-x-hidden p-4">{children}</main>
       </div>
     </div>
   );

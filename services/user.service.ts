@@ -8,6 +8,7 @@ export interface UserProfile {
   provider: 'local' | 'google';
   providerId?: string;
   mainUserId?: string;
+  avatar?: string;
   changedPasswordAt: string;
   emailVerified: boolean;
   createdAt: string;

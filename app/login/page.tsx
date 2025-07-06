@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/components/auth/auth-context";
+import ForgotPasswordModal from "@/components/auth/forgot-password-modal";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -18,8 +19,9 @@ export default function LoginPage() {
   const { toast } = useToast();
   const { login, isAuthenticated, isLoading } = useAuth();
   const [formLoading, setFormLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [formData, setFormData] = useState({
-    email: "",
+    username: "",
     password: "",
     rememberMe: false,
   });
@@ -45,10 +47,10 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.email || !formData.password) {
+    if (!formData.username || !formData.password) {
       toast({
         title: "Missing fields",
-        description: "Please enter both email and password.",
+        description: "Please enter both username/email and password.",
         variant: "destructive",
       });
       return;
@@ -57,7 +59,7 @@ export default function LoginPage() {
     setFormLoading(true);
 
     try {
-      await login(formData.email, formData.password, formData.rememberMe);
+      await login(formData.username, formData.password, formData.rememberMe);
 
       toast({
         title: "Welcome back!",
@@ -75,9 +77,13 @@ export default function LoginPage() {
     } catch (error: any) {
       console.error("Login error:", error);
       
-      let errorMessage = "Invalid email or password. Please try again.";
+      let errorMessage = "Invalid username/email or password. Please try again.";
       
-      if (error?.response?.data?.error) {
+      if (error?.response?.status === 401) {
+        errorMessage = "Invalid username/email or password. Please try again.";
+      } else if (error?.response?.status === 403) {
+        errorMessage = "Your account is banned or blocked. Please contact support.";
+      } else if (error?.response?.data?.error) {
         errorMessage = error.response.data.error;
       } else if (error?.message) {
         errorMessage = error.message;
@@ -131,15 +137,15 @@ export default function LoginPage() {
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
                 Email or Username
               </label>
               <Input
-                id="email"
-                name="email"
+                id="username"
+                name="username"
                 type="text"
                 required
-                value={formData.email}
+                value={formData.username}
                 onChange={handleChange}
                 placeholder="Enter your email or username"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#001633] focus:border-transparent"
@@ -176,12 +182,13 @@ export default function LoginPage() {
                   Remember me
                 </label>
               </div>
-              <Link
-                href="/auth/forgot-password"
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
                 className="text-sm text-[#001633] hover:underline"
               >
                 Forgot password?
-              </Link>
+              </button>
             </div>
 
             <Button
@@ -254,6 +261,12 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+      />
     </div>
   );
 }

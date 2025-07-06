@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle, X, Star, Crown, TrendingUp, Zap } from "lucide-react";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/components/auth/auth-context";
@@ -14,10 +14,51 @@ import { SectionHeading } from "@/components/ui/section-heading";
 type SubscriptionType = "monthly" | "quarterly" | "yearly";
 type PlanType = "basic" | "premium";
 
+const wealthPlans = [
+  {
+    id: 1,
+    planName: "Basic",
+    href: "/services/basic",
+    benefits: [
+      { text: "Get 10-15 Quality Stocks", checked: true },
+      { text: "Get 5 Short Term/Swing Trades", checked: true },
+      { text: "Timely Alert For Entry And Exit", checked: true },
+      { text: "Real Time Market Updates", checked: true },
+      { text: "2 Model Portfolios", checked: false },
+      { text: "IPO Recommendations", checked: false },
+      { text: "Call Support", checked: false },
+      { text: "Free Live Webinar", checked: false },
+    ],
+  },
+  {
+    id: 2,
+    planName: "Premium",
+    href: "/services/premium",
+    benefits: [
+      { text: "Get 20-25 Quality Stocks", checked: true },
+      {
+        text: "Get 10 Short Term/Swing Trades",
+        checked: true,
+        desc: "(Dependant On Market Conditions)",
+      },
+      { text: "Timely Alert For Entry And Exit", checked: true },
+      { text: "Real Time Market Updates", checked: true },
+      {
+        text: "2 Model Portfolios",
+        checked: true,
+        desc: "(SIP Portfolio, Multibagger Portfolio)",
+      },
+      { text: "IPO Recommendations", checked: true },
+      { text: "Call Support", checked: true },
+      { text: "Free Live Webinar", checked: true },
+    ],
+  },
+];
+
 export default function PricingSection() {
   const [bundles, setBundles] = useState<Bundle[]>([]);
   const [loading, setLoading] = useState(true);
-  const [planType, setPlanType] = useState<PlanType>("basic");
+  const [selected, setSelected] = useState<"M" | "A">("M");
   const [checkoutModal, setCheckoutModal] = useState<{
     isOpen: boolean;
     type: "single" | "cart";
@@ -30,67 +71,18 @@ export default function PricingSection() {
     pricingType: "monthly",
   });
 
-  // Basic plan pricing - Start with default and update if real bundle found
-  // const [basicPlanBundle, setBasicPlanBundle] = useState<Bundle>();
-  //   {
-  //   _id: "basic-plan-id", // Dummy ID for basic plan
-  //   name: "RangaOne Wealth Basic",
-  //   description:
-  //     "Essential investment guidance with quality stock recommendations for beginners",
-  //   portfolios: [], // No portfolios for basic plan
-  //   discountPercentage: 0,
-  //   monthlyPrice: 300,
-  //   quarterlyPrice: 1100, // ~8% discount
-  //   yearlyPrice: 3000, // ~17% discount
-  //   createdAt: new Date().toISOString(),
-  //   updatedAt: new Date().toISOString(),
-  //   category: "basic",
-  // }
-
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
 
-  const basicPlanFeatures = [
-    "10-12 Quality Stock Recommendations",
-    "5 Short Term/Swing Trades per month",
-    "Timely Entry & Exit Alerts",
-    "Real Time Market Updates",
-    "Email & SMS Notifications",
-    "Basic Customer Support",
-    "Market Analysis Reports",
-  ];
-
-  const basicPlanExcludedFeatures = [
-    "Premium Model Portfolios",
-    "IPO Recommendations",
-    "Direct Call Support",
-    "Live Webinars & Sessions",
-    "Advanced Analytics",
-  ];
-
   useEffect(() => {
-    loadBundles(); // Load bundles for both basic and premium plans
+    loadBundles();
   }, []);
 
   const loadBundles = async () => {
     try {
       setLoading(true);
       const bundlesData = await bundleService.getAll();
-      console.log(bundlesData);
       setBundles(bundlesData);
-
-      // Check if there's a real basic plan bundle in the backend
-      // const realBasicPlan = bundlesData.find(
-      //   (bundle) => bundle.category === "basic"
-      // );
-
-      // if (realBasicPlan) {
-      //   console.log("Found real basic plan bundle:", realBasicPlan);
-      //   // Update the basic plan bundle with real data
-      //   setBasicPlanBundle(realBasicPlan);
-      // } else {
-      //   console.log("No real basic plan found, using dummy bundle");
-      // }
     } catch (error) {
       console.error("Failed to load bundles:", error);
       toast({
@@ -103,122 +95,7 @@ export default function PricingSection() {
     }
   };
 
-  // const getBunderPrice = (bundle: Bundle) => {
-  //   switch (subscriptionType) {
-  //     case "monthly":
-  //       return basicPlanBundle.monthlyPrice;
-  //     case "quarterly":
-  //       return basicPlanBundle.quarterlyPrice;
-  //     case "yearly":
-  //       return basicPlanBundle.yearlyPrice;
-  //     default:
-  //       return basicPlanBundle.monthlyPrice;
-  //   }
-  // };
-
-  // const getBundlePrice = (bundle: Bundle) => {
-  //   switch (subscriptionType) {
-  //     case "monthly":
-  //       return bundle.monthlyPrice;
-  //     case "quarterly":
-  //       return bundle.quarterlyPrice;
-  //     case "yearly":
-  //       return bundle.yearlyPrice;
-  //     default:
-  //       return bundle.monthlyPrice;
-  //   }
-  // };
-
-  // const getIndividualPortfolioPrice = (portfolio: any) => {
-  //   const fee = portfolio.subscriptionFee?.find(
-  //     (f: any) => f.type === subscriptionType
-  //   );
-  //   return fee?.price || 0;
-  // };
-
-  // const calculateBundleSavings = (bundle: Bundle) => {
-  //   const bundlePrice = getBundlePrice(bundle);
-  //   const individualTotal = bundle.portfolios.reduce((total, portfolio) => {
-  //     return total + getIndividualPortfolioPrice(portfolio);
-  //   }, 0);
-
-  //   const savings = individualTotal - bundlePrice;
-  //   const savingsPercentage =
-  //     individualTotal > 0 ? Math.round((savings / individualTotal) * 100) : 0;
-
-  //   return { savings, savingsPercentage, individualTotal };
-  // };
-
-  // const getSubscriptionLabel = () => {
-  //   switch (subscriptionType) {
-  //     case "monthly":
-  //       return "per month";
-  //     case "quarterly":
-  //       return "per quarter";
-  //     case "yearly":
-  //       return "per year";
-  //     default:
-  //       return "per month";
-  //   }
-  // };
-
-  // const getSavingsFromBasic = () => {
-  //   const basicMonthly = basicPlanBundle.monthlyPrice;
-  //   const currentPrice = getBasicPrice();
-
-  //   switch (subscriptionType) {
-  //     case "quarterly":
-  //       const quarterlySavings = basicMonthly * 3 - currentPrice;
-  //       return {
-  //         amount: quarterlySavings,
-  //         percentage: Math.round((quarterlySavings / (basicMonthly * 3)) * 100),
-  //       };
-  //     case "yearly":
-  //       const yearlySavings = basicMonthly * 12 - currentPrice;
-  //       return {
-  //         amount: yearlySavings,
-  //         percentage: Math.round((yearlySavings / (basicMonthly * 12)) * 100),
-  //       };
-  //     default:
-  //       return { amount: 0, percentage: 0 };
-  //   }
-  // };
-
-  // const handleBasicPlanPurchase = () => {
-  //   if (!isAuthenticated) {
-  //     toast({
-  //       title: "Authentication Required",
-  //       description: "Please log in to purchase a subscription plan.",
-  //       variant: "destructive",
-  //     });
-  //     return;
-  //   }
-
-  //   // Check if we have a real basic plan bundle (not the dummy one)
-  //   if (basicPlanBundle._id === "basic-plan-id") {
-  //     // Still using dummy bundle - show coming soon message
-  //     toast({
-  //       title: "Basic Plan Coming Soon",
-  //       description:
-  //         "Basic plan payment integration is being set up. Please contact support for assistance.",
-  //       variant: "destructive",
-  //     });
-  //     return;
-  //   }
-
-  //   // Use real basic plan bundle
-  //   setCheckoutModal({
-  //     isOpen: true,
-  //     type: "single",
-  //     bundle: basicPlanBundle,
-  //     isBasicPlan: false, // Real bundle, not basic plan dummy
-  //   });
-  // };
-
-  const handleBundlePurchase = (
-    bundle: Bundle,
-    pricingType: SubscriptionType
-  ) => {
+  const handleBundlePurchase = (bundle: Bundle, pricingType: SubscriptionType) => {
     if (!isAuthenticated) {
       toast({
         title: "Authentication Required",
@@ -245,308 +122,204 @@ export default function PricingSection() {
     "font-bold rounded-lg py-3 w-28 hover:bg-slate-100 transition-colors relative";
 
   return (
-    <>
-      <section className="py-24 bg-white" id="pricing">
-        <div className="container mx-auto px-4">
-          <SectionHeading
-            title="Choose Your Plan"
-            subtitle="Select the perfect plan for your investment journey"
-          />
-
-          <div className="flex items-center justify-center gap-3 mb-12">
+    <section className="w-full text-black bg-white px-4 lg:px-8 py-12 lg:py-24 relative overflow-hidden" id="pricing">
+      <div className="mb-12 lg:mb-24 relative z-10">
+        <h3 className="font-semibold text-5xl lg:text-7xl text-center mb-6 font-times">
+          RANGAONE WEALTH
+        </h3>
+        <p className="text-center mx-auto max-w-5xl mb-8 font-bold text-lg">
+          Welcome to Rangaone Wealth – your way to smarter investing and bigger gains! 
+          Stay ahead and make every move impactful—join now and start building unstoppable wealth! 🚀
+        </p>
+        <div className="flex items-center justify-center gap-3">
+          <button
+            onClick={() => setSelected("M")}
+            className={selected === "M" ? BASIC_SELECTED_STYLES : DESELECTED_STYLES}
+          >
+            Basic
+            {selected === "M" && <BackgroundShift />}
+          </button>
+          <div className="relative">
             <button
-              onClick={() => setPlanType("basic")}
-              className={
-                planType === "basic" ? BASIC_SELECTED_STYLES : DESELECTED_STYLES
-              }
+              onClick={() => setSelected("A")}
+              className={selected === "A" ? PREMIUM_SELECTED_STYLES : DESELECTED_STYLES}
             >
-              Basic
-              {planType === "basic" && <BackgroundShift />}
+              Premium
+              {selected === "A" && <BackgroundShift />}
             </button>
-            <div className="relative">
-              <button
-                onClick={() => setPlanType("premium")}
-                className={
-                  planType === "premium"
-                    ? PREMIUM_SELECTED_STYLES
-                    : DESELECTED_STYLES
-                }
-              >
-                Premium
-                {planType === "premium" && <BackgroundShift />}
-              </button>
-              <CTAArrow />
-            </div>
-          </div>
-
-          {/* Plan Type Toggle */}
-          {/* <div className="flex justify-center mb-8">
-            <div className="flex items-center bg-gray-100 rounded-full p-1">
-              <button
-                onClick={() => setPlanType("basic")}
-                className={`px-8 py-3 rounded-full text-sm font-medium transition-all ${
-                  planType === "basic"
-                    ? "bg-[#1e3a8a] text-white shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                <Star className="w-4 h-4 inline mr-2" />
-                Basic
-              </button>
-              <button
-                onClick={() => setPlanType("premium")}
-                className={`px-8 py-3 rounded-full text-sm font-medium transition-all ${
-                  planType === "premium"
-                    ? "bg-[#ffc107] text-gray-900 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                <Crown className="w-4 h-4 inline mr-2" />
-                Premium
-              </button>
-            </div>
-          </div> */}
-
-          <div className="flex flex-col lg:flex-row gap-8 lg:gap-10 mx-auto relative z-10 container overflow-x-auto p-8">
-            {bundles
-              .filter((bundle) => bundle.category === planType)
-              .map((bundle) =>
-                // create a loop for each price type
-                ["monthlyPrice", "quarterlyPrice"]
-                  .filter(
-                    (priceType) =>
-                      bundle[priceType as keyof Bundle] !== undefined
-                  )
-                  .map((priceType) => (
-                    <AnimatePresence mode="wait">
-                      <div
-                        className={`w-full p-6 border-[3px] rounded-xl transition-transform duration-300 ease-in-out hover:scale-105 ${
-                          // selected === "M"
-                          // ? "bg-[linear-gradient(295.3deg,_#131859_11.58%,_rgba(24,101,123,0.8)_108.02%)] text-white border-slate-300 shadow-[0px_4px_21.5px_8px_#00A6E8]"
-                          "bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)] text-[#333333] border-[#333333] shadow-[0px_4px_21.5px_8px_#AD9000]"
-                        }`}
-                      >
-                        <p className="text-2xl font-bold mb-2">
-                          {priceType === "quarterlyPrice"
-                            ? "Yearly"
-                            : "Monthly"}
-                        </p>
-                        <div className="overflow-hidden ">
-                          <motion.p
-                            key={bundle._id + priceType}
-                            initial={{ y: -50, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            exit={{ y: 50, opacity: 0 }}
-                            transition={{ ease: "linear", duration: 0.25 }}
-                            className="text-6xl font-bold"
-                          >
-                            <span>
-                              &#8377;
-                              {bundle[priceType as keyof Bundle] as number}
-                            </span>
-                            <span className="font-normal text-xl">/month</span>
-                          </motion.p>
-                        </div>
-
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-lg">
-                            {(() => {
-                              if (priceType !== "quarterlyPrice")
-                                return "(Flexible, but higher cost)";
-
-                              const savings =
-                                (bundle.monthlyPrice * 12 -
-                                  bundle.quarterlyPrice * 12) /
-                                (bundle.monthlyPrice * 0.12);
-
-                              return `(save ${Math.round(savings)}%)`;
-                            })()}
-                          </span>
-                        </div>
-
-                        <div
-                          className={`flex items-center gap-2 mb-2 ${
-                            priceType === "quarterlyPrice" ? "" : "invisible"
-                          }`}
-                        >
-                          <span className="text-lg">
-                            Annual, Billed Monthly
-                          </span>
-                        </div>
-                        <motion.button
-                          whileHover={{ scale: 1.015 }}
-                          whileTap={{ scale: 0.985 }}
-                          onClick={() =>
-                            handleBundlePurchase(
-                              bundle,
-                              priceType === "monthlyPrice"
-                                ? "monthly"
-                                : "quarterly"
-                            )
-                          }
-                          className={`w-full py-4  font-semibold rounded-lg uppercase ${
-                            // selected === "M"
-                            //   ? "bg-white text-black"
-                            //   :
-                            "bg-[#333333] text-[#D4AF37]"
-                          }`}
-                        >
-                          Buy Now
-                        </motion.button>
-                      </div>
-                    </AnimatePresence>
-                  ))
-              )}
-          </div>
-
-          {/* Subscription Type Toggle */}
-          {/* <div className="flex justify-center mb-12">
-            <div className="flex items-center bg-gray-50 rounded-full p-1 border">
-            <button
-                onClick={() => setSubscriptionType("monthly")}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
-                  subscriptionType === "monthly"
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                Monthly
-              </button>
-              <button
-                onClick={() => setSubscriptionType("quarterly")}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
-                  subscriptionType === "quarterly"
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                Quarterly
-                <span className="ml-2 bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">
-                  Save 11%
-                </span>
-              </button>
-              <button
-                onClick={() => setSubscriptionType("yearly")}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
-                  subscriptionType === "yearly"
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                Yearly
-                <span className="ml-2 bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">
-                  Save 17%
-                </span>
-              </button>
-            </div>
-          </div> */}
-
-          {/* Basic Plan View */}
-          {/* {planType === "basic" && (
-            <div className="max-w-md mx-auto">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-                className="bg-gradient-to-br from-[#1e3a8a] to-[#3b82f6] rounded-xl overflow-hidden shadow-xl border border-gray-200 relative"
-              >
-                <div className="p-8">
-                  <div className="text-center mb-6">
-                    <div className="flex items-center justify-center gap-2 mb-4">
-                      <Star className="h-6 w-6 text-white" />
-                      <h3 className="text-2xl font-bold text-white">
-                        {basicPlanBundle.name}
-                      </h3>
-                    </div>
-
-                    <div className="flex items-baseline justify-center mb-4">
-                      <span className="text-5xl font-bold text-white">
-                        ₹{getBasicPrice()}
-                      </span>
-                      <span className="text-lg text-white ml-2">
-                        {getSubscriptionLabel()}
-                      </span>
-                    </div>
-
-                    {subscriptionType !== "monthly" && (
-                      <div className="mb-6">
-                        <span className="bg-green-500 text-white text-sm px-4 py-2 rounded-full">
-                          Save ₹{getSavingsFromBasic().amount} (
-                          {getSavingsFromBasic().percentage}% off)
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-4 mb-8">
-                    <h4 className="text-white font-semibold text-center">
-                      What's Included:
-                    </h4>
-                    {basicPlanFeatures.map((feature, i) => (
-                      <div key={i} className="flex items-start">
-                        <CheckCircle className="h-5 w-5 text-white mr-3 flex-shrink-0 mt-0.5" />
-                        <span className="text-white text-sm">{feature}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="space-y-4 mb-8 opacity-60">
-                    <h4 className="text-gray-200 font-semibold text-center">
-                      Not Included:
-                    </h4>
-                    {basicPlanExcludedFeatures.map((feature, i) => (
-                      <div key={i} className="flex items-start">
-                        <X className="h-5 w-5 text-gray-300 mr-3 flex-shrink-0 mt-0.5" />
-                        <span className="text-gray-300 text-sm line-through">
-                          {feature}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <Button
-                    onClick={handleBasicPlanPurchase}
-                    className="w-full bg-white text-[#1e3a8a] font-bold py-4 rounded-lg hover:bg-gray-100 transition-colors text-lg"
-                  >
-                    Buy Now - ₹{getBasicPrice()}
-                  </Button>
-                </div>
-              </motion.div>
-            </div>
-          )} */}
-
-          {/* Premium Bundles View */}
-
-          {/* Additional Info */}
-          <div className="mt-16 text-center">
-            <p className="text-gray-600 max-w-2xl mx-auto mb-4">
-              {planType === "basic"
-                ? "Perfect for individual investors starting their journey with quality stock recommendations."
-                : "Premium bundles offer the best value with multiple portfolios and exclusive features."}
-            </p>
-            <p className="text-sm text-gray-500">
-              All plans include email support, mobile app access, and regular
-              market updates.
-            </p>
+            <CTAArrow />
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* Checkout Modal */}
+      <div className="flex flex-col lg:flex-row gap-8 lg:gap-10 mx-auto relative z-10 container max-w-3xl">
+        {bundles
+          .filter((bundle) => bundle.category === (selected === "M" ? "basic" : "premium"))
+          .map((bundle) =>
+            ["monthlyPrice", "quarterlyPrice"]
+              .filter((priceType) => bundle[priceType as keyof Bundle] !== undefined)
+              .map((priceType) => (
+                <AnimatePresence mode="wait" key={`${bundle._id}-${priceType}`}>
+                  <div
+                    className={`w-full p-6 border-[3px] rounded-xl transition-transform duration-300 ease-in-out hover:scale-105 ${
+                      selected === "M"
+                        ? "bg-[linear-gradient(295.3deg,_#131859_11.58%,_rgba(24,101,123,0.8)_108.02%)] text-white border-slate-300 shadow-[0px_4px_21.5px_8px_#00A6E8]"
+                        : "bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)] text-[#333333] border-[#333333] shadow-[0px_4px_21.5px_8px_#AD9000]"
+                    }`}
+                  >
+                    <p className="text-2xl font-bold mb-2">
+                      {priceType === "quarterlyPrice" ? "Yearly" : "Monthly"}
+                    </p>
+                    <div className="overflow-hidden">
+                      <motion.p
+                        key={bundle._id + priceType}
+                        initial={{ y: -50, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: 50, opacity: 0 }}
+                        transition={{ ease: "linear", duration: 0.25 }}
+                        className="text-6xl font-bold"
+                      >
+                        <span>&#8377;{bundle[priceType as keyof Bundle] as number}</span>
+                        <span className="font-normal text-xl">/month</span>
+                      </motion.p>
+                    </div>
+
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg">
+                        {priceType === "quarterlyPrice"
+                          ? `(Save ${Math.round(
+                              ((bundle.monthlyPrice * 12 - bundle.quarterlyPrice * 12) /
+                                (bundle.monthlyPrice * 0.12))
+                            )}%)`
+                          : "(Flexible, but higher cost)"}
+                      </span>
+                    </div>
+
+                    <div className={`flex items-center gap-2 mb-2 ${priceType === "quarterlyPrice" ? "" : "invisible"}`}>
+                      <span className="text-lg">Annual, Billed Monthly</span>
+                    </div>
+
+                    <motion.button
+                      whileHover={{ scale: 1.015 }}
+                      whileTap={{ scale: 0.985 }}
+                      onClick={() =>
+                        handleBundlePurchase(bundle, priceType === "monthlyPrice" ? "monthly" : "quarterly")
+                      }
+                      className={`w-full py-4 font-semibold rounded-lg uppercase ${
+                        selected === "M" ? "bg-white text-black" : "bg-[#333333] text-[#D4AF37]"
+                      }`}
+                    >
+                      Buy Now
+                    </motion.button>
+                  </div>
+                </AnimatePresence>
+              ))
+          )}
+      </div>
+
+      {/* Points Section */}
+      <div className="container mx-auto max-w-5xl px-4 mt-16">
+        <div className="text-center mb-8 md:mb-12">
+          <h1 className="font-times font-bold text-3xl md:text-4xl lg:text-5xl leading-tight text-center uppercase mb-3">
+            <span className="bg-gradient-to-r from-[#131859] via-[#2563eb] to-[#131859] bg-clip-text text-transparent">
+              Which one to choose
+            </span>
+            <span className="block text-2xl md:text-3xl lg:text-4xl text-[#131859]">?</span>
+          </h1>
+          <div className="w-20 h-0.5 bg-gradient-to-r from-[#131859] to-[#7DCEFF] mx-auto rounded-full"></div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto">
+          {wealthPlans.map((plan) => (
+            <motion.div
+              key={plan.id}
+              whileHover={{ y: -4, scale: 1.01 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className={`relative rounded-xl p-6 border-2 shadow-lg overflow-hidden h-full flex flex-col ${
+                plan.planName === "Premium"
+                  ? "bg-gradient-to-br from-gray-900 via-gray-800 to-black border-yellow-400/30 shadow-yellow-400/10"
+                  : "bg-gradient-to-br from-white via-blue-50/30 to-white border-blue-200/50 shadow-blue-500/10"
+              }`}
+            >
+              {plan.planName === "Premium" && (
+                <div className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-3 py-1 rounded-full text-xs font-bold shadow-md transform rotate-12">
+                  POPULAR
+                </div>
+              )}
+
+              <div className="relative z-10 text-center mb-6">
+                <h2 className={`text-xl md:text-2xl font-bold mb-2 font-times ${
+                  plan.planName === "Premium" ? "text-yellow-400" : "text-[#131859]"
+                }`}>
+                  {plan.planName}
+                </h2>
+                <div className={`w-12 h-0.5 mx-auto rounded-full ${
+                  plan.planName === "Premium"
+                    ? "bg-gradient-to-r from-yellow-400 to-yellow-500"
+                    : "bg-gradient-to-r from-blue-500 to-blue-600"
+                }`}></div>
+              </div>
+
+              <div className="flex-grow relative z-10 mb-6">
+                <div className="space-y-0.5">
+                  {plan.benefits.map((benefit, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <div className="flex items-start space-x-3 py-1.5">
+                        <div className="flex-shrink-0 mt-0.5">
+                          {benefit.checked ? (
+                            <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                              plan.planName === "Premium"
+                                ? "bg-gradient-to-r from-yellow-400 to-yellow-500 shadow-md shadow-yellow-400/20"
+                                : "bg-gradient-to-r from-green-400 to-green-600 shadow-md shadow-green-400/20"
+                            }`}>
+                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                              </svg>
+                            </div>
+                          ) : (
+                            <div className="w-5 h-5 rounded-full flex items-center justify-center bg-gradient-to-r from-red-400 to-red-500 shadow-md shadow-red-400/20">
+                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                        <span className={`text-sm md:text-base font-medium leading-relaxed ${
+                          plan.planName === "Premium"
+                            ? benefit.checked ? "text-gray-100" : "text-gray-400"
+                            : benefit.checked ? "text-gray-700" : "text-gray-400"
+                        }`}>
+                          {benefit.text}
+                          {benefit.desc && (
+                            <span className="block text-xs text-gray-500 mt-1">{benefit.desc}</span>
+                          )}
+                        </span>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      <TopLeftCircle />
+      <BottomRightCircle />
+
       <CheckoutModal
         isOpen={checkoutModal.isOpen}
-        onClose={() =>
-          setCheckoutModal({
-            isOpen: false,
-            type: "single",
-            pricingType: "monthly",
-          })
-        }
+        onClose={() => setCheckoutModal({ isOpen: false, type: "single", pricingType: "monthly" })}
         type={checkoutModal.type}
         bundle={checkoutModal.bundle}
         subscriptionType={checkoutModal.pricingType}
       />
-    </>
+    </section>
   );
 }
 
@@ -592,3 +365,25 @@ const CTAArrow = () => (
     </span>
   </div>
 );
+
+const TopLeftCircle = () => {
+  return (
+    <motion.div
+      initial={{ rotate: "0deg" }}
+      animate={{ rotate: "360deg" }}
+      transition={{ duration: 100, ease: "linear", repeat: Infinity }}
+      className="w-[450px] h-[450px] rounded-full border-2 border-slate-500 border-dotted absolute z-0 -left-[250px] -top-[200px]"
+    />
+  );
+};
+
+const BottomRightCircle = () => {
+  return (
+    <motion.div
+      initial={{ rotate: "0deg" }}
+      animate={{ rotate: "-360deg" }}
+      transition={{ duration: 100, ease: "linear", repeat: Infinity }}
+      className="w-[450px] h-[450px] rounded-full border-2 border-slate-500 border-dotted absolute z-0 -right-[250px] -bottom-[200px]"
+    />
+  );
+};

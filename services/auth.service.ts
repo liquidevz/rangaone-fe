@@ -66,12 +66,24 @@ export const authService = {
   },
 
   login: async (payload: LoginPayload): Promise<LoginResponse> => {
-    return await post<LoginResponse>("/auth/login", payload, {
-      headers: {
-        accept: "application/json",
-        "Content-Type": "application/json",
-      },
-    });
+    try {
+      const response = await post<LoginResponse>("/auth/login", payload, {
+        headers: {
+          accept: "application/json",
+          "Content-Type": "application/json",
+        },
+      });
+
+      return response;
+    } catch (error: any) {
+      // Handle specific error cases
+      if (error?.response?.status === 401) {
+        throw new Error("Invalid username/email or password");
+      } else if (error?.response?.status === 403) {
+        throw new Error("Your account is banned or blocked");
+      }
+      throw error;
+    }
   },
 
   logout: async (): Promise<void> => {

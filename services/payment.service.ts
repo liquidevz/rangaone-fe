@@ -110,17 +110,45 @@ export const paymentService = {
     payload: VerifyPaymentPayload
   ): Promise<VerifyPaymentResponse> => {
     const token = authService.getAccessToken();
-    return await post<VerifyPaymentResponse>(
-      "/api/subscriptions/verify",
-      payload,
-      {
-        headers: {
-          accept: "application/json",
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+    
+    console.log("Verifying payment with payload:", {
+      orderId: payload.orderId,
+      paymentId: payload.paymentId,
+      signatureLength: payload.signature?.length || 0
+    });
+
+    try {
+      const response = await post<VerifyPaymentResponse>(
+        "/api/subscriptions/verify",
+        payload,
+        {
+          headers: {
+            accept: "application/json",
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log("Verification response:", response);
+
+      // If response doesn't have success field, consider it an error
+      if (typeof response.success === 'undefined') {
+        throw new Error("Invalid verification response format");
       }
-    );
+
+      return response;
+    } catch (error: any) {
+      console.error("Payment verification request failed:", error);
+      
+      // Extract error message from response if available
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
+      
+      return {
+        success: false,
+        message: `Verification failed: ${errorMessage}`
+      };
+    }
   },
 
   // Get payment history

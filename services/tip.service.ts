@@ -32,7 +32,7 @@ export interface Tip {
 export const tipsService = {
   // Fetch all tips
   getAll: async (): Promise<Tip[]> => {
-    const response = await axiosApi.get<Tip[]>("/api/tips", {
+    const response = await axiosApi.get<Tip[]>("/api/user/tips", {
       headers: {
         accept: "application/json",
       },
@@ -42,7 +42,7 @@ export const tipsService = {
 
   // Fetch tip by ID
   getById: async (id: string): Promise<Tip> => {
-    const response = await axiosApi.get<Tip>(`/api/tips/${id}`, {
+    const response = await axiosApi.get<Tip>(`/api/user/tips/${id}`, {
       headers: {
         accept: "application/json",
       },

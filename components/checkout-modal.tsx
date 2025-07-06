@@ -257,66 +257,48 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const handlePaymentSuccess = async (response: any) => {
     try {
-      console.log("Verifying payment:", {
-        orderId: response.razorpay_order_id,
-        paymentId: response.razorpay_payment_id,
-        hasSignature: !!response.razorpay_signature,
-      });
+      console.log("Verifying payment with response:", response);
+      setPaymentStep("processing");
 
-      // Verify payment with backend
-      await paymentService.verifyPayment({
-        orderId: response.razorpay_order_id,
-        paymentId: response.razorpay_payment_id,
-        signature: response.razorpay_signature,
-      });
-
-      setPaymentStep("success");
-
-      // Success message based on purchase type
-      let successMessage = "Your subscription has been activated successfully.";
-
-      if (type === "single") {
-        if (bundle && !isBasicPlan) {
-          successMessage = `Bundle subscription activated! You now have access to all ${bundle.portfolios.length} portfolios.`;
-        } else if (portfolio) {
-          successMessage = `${portfolio.name} subscription activated! You now have access to this portfolio.`;
-        }
-      } else if (type === "cart") {
-        successMessage =
-          "All portfolio subscriptions have been activated successfully.";
+      // Make sure we have all required fields
+      if (!response.razorpay_payment_id || !response.razorpay_order_id || !response.razorpay_signature) {
+        throw new Error("Missing required payment verification fields");
       }
 
-      toast({
-        title: "Payment Successful!",
-        description: successMessage,
+      const verificationResponse = await paymentService.verifyPayment({
+        orderId: response.razorpay_order_id,
+        paymentId: response.razorpay_payment_id,
+        signature: response.razorpay_signature
       });
 
-      // Force refresh subscription data to reflect the new purchase
-      console.log("Refreshing subscription data after successful payment...");
-      try {
+      console.log("Payment verification response:", verificationResponse);
+
+      if (verificationResponse.success) {
+        // Force refresh subscription data
         await subscriptionService.forceRefresh();
-        console.log("Subscription data refreshed successfully");
-      } catch (refreshError) {
-        console.error("Failed to refresh subscription data:", refreshError);
-      }
+        
+        setPaymentStep("success");
+        toast({
+          title: "Payment Successful",
+          description: "Your subscription has been activated",
+        });
 
-      // Refresh cart if it was a cart checkout
-      if (type === "cart") {
-        await refreshCart(); // Use cart context refresh
+        // Close modal after 2 seconds
+        setTimeout(() => {
+          onClose();
+          resetModal();
+        }, 2000);
+      } else {
+        throw new Error(verificationResponse.message || "Payment verification failed");
       }
-
-      // Trigger a page refresh after a short delay to ensure all data is updated
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
     } catch (error: any) {
       console.error("Payment verification failed:", error);
       setPaymentStep("error");
+      
+      // Show specific error message
       toast({
         title: "Payment Verification Failed",
-        description:
-          error.message ||
-          "Payment completed but verification failed. Please contact support.",
+        description: error.message || "Please contact support if payment was deducted",
         variant: "destructive",
       });
     }

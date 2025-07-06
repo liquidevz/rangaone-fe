@@ -10,7 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Tip } from "@/lib/types";
+import { Tip } from "@/services/tip.service";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Info, TrendingUp } from "lucide-react";
 import Link from "next/link";
@@ -263,93 +263,20 @@ export default function WealthRecommendationPage({
               </h3>
             </CardHeader>
             <CardContent className="p-6">
-              {/* <ul className="space-y-4">
-                <motion.li
-                  className="flex items-start"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.5 }}
-                >
-                  <div className="bg-green-100 p-1.5 rounded-full mr-3 mt-0.5">
-                    <Target className="h-4 w-4 text-green-600" />
+              {/* Why Buy This Section Content */}
+              <div className="space-y-4">
+                {stockData?.content?.map((item, index) => (
+                  <div key={index} className="flex items-start">
+                    <div className="bg-green-100 p-1.5 rounded-full mr-3 mt-0.5">
+                      <TrendingUp className="h-4 w-4 text-green-600" />
+                    </div>
+                    <div>
+                      <span className="font-medium">{item.key}</span>
+                      <p className="text-gray-600 mt-0.5">{item.value}</p>
+                    </div>
                   </div>
-                  <div>
-                    <span className="font-medium">Discounted Valuation</span>
-                    <p className="text-gray-600 mt-0.5">
-                      Technically trading at a Discounted price (39%).
-                    </p>
-                  </div>
-                </motion.li>
-                <motion.li
-                  className="flex items-start"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.6 }}
-                >
-                  <div className="bg-green-100 p-1.5 rounded-full mr-3 mt-0.5">
-                    <BarChart4 className="h-4 w-4 text-green-600" />
-                  </div>
-                  <div>
-                    <span className="font-medium">Attractive P/E Ratio</span>
-                    <p className="text-gray-600 mt-0.5">
-                      Low Price to Equity ratio of 15.9 (Very Attractive).
-                    </p>
-                  </div>
-                </motion.li>
-                <motion.li
-                  className="flex items-start"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.7 }}
-                >
-                  <div className="bg-green-100 p-1.5 rounded-full mr-3 mt-0.5">
-                    <TrendingUp className="h-4 w-4 text-green-600" />
-                  </div>
-                  <div>
-                    <span className="font-medium">Strong Growth</span>
-                    <p className="text-gray-600 mt-0.5">
-                      Showing Good Sales & Profit growth of 48% & 27%
-                      respectively.
-                    </p>
-                  </div>
-                </motion.li>
-                <motion.li
-                  className="flex items-start"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.8 }}
-                >
-                  <div className="bg-green-100 p-1.5 rounded-full mr-3 mt-0.5">
-                    <TrendingUp className="h-4 w-4 text-green-600" />
-                  </div>
-                  <div>
-                    <span className="font-medium">Institutional Interest</span>
-                    <p className="text-gray-600 mt-0.5">
-                      DIIs have increased their stake from 9% to 14%.
-                    </p>
-                  </div>
-                </motion.li>
-                <motion.li
-                  className="flex items-start"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.9 }}
-                >
-                  <div className="bg-green-100 p-1.5 rounded-full mr-3 mt-0.5">
-                    <TrendingUp className="h-4 w-4 text-green-600" />
-                  </div>
-                  <div>
-                    <span className="font-medium">Business Expansion</span>
-                    <p className="text-gray-600 mt-0.5">
-                      The company is expanding their assisted business through
-                      different channels and products and entering into wealth
-                      management.
-                    </p>
-                  </div>
-                </motion.li>
-              </ul> */}
-
-              {stockData?.content || ""}
+                ))}
+              </div>
               <div className="mt-6 border-t pt-6 flex justify-center">
                 <Button
                   className="bg-green-600 hover:bg-green-700 text-white"

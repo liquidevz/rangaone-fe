@@ -62,6 +62,8 @@ export interface Portfolio {
   totalInvestment?: number;
   currentValue?: number;
   isPurchased?: boolean;
+  cagr?: number;
+  returns?: number;
 }
 
 export interface TipDownloadLink {

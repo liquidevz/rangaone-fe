@@ -4,6 +4,7 @@
 import { authService, UserProfile } from "@/services/auth.service";
 import { useRouter } from "next/navigation";
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { setRedirectHandler } from "@/lib/axios";
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -33,6 +34,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+
+  // Set up redirect handler for axios
+  useEffect(() => {
+    setRedirectHandler((path) => {
+      router.replace(path);
+    });
+  }, [router]);
 
   // Initialize authentication state
   useEffect(() => {
@@ -102,10 +110,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Fetch user profile
       const userProfile = await authService.getCurrentUser();
       
+      // Update state atomically to avoid race conditions
       setUser(userProfile);
       setIsAuthenticated(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login failed:", error);
+      
+      // Clear any existing tokens on login failure
+      authService.clearTokens();
+      setUser(null);
+      setIsAuthenticated(false);
+      
       throw error;
     } finally {
       setIsLoading(false);
@@ -119,13 +134,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Call logout API and clear tokens
       await authService.logout();
       
+      // Clear state
       setUser(null);
       setIsAuthenticated(false);
       
       // Redirect to home page
-      router.push("/");
+      router.replace("/");
     } catch (error) {
       console.error("Logout failed:", error);
+      
+      // Still clear state even if API call fails
+      setUser(null);
+      setIsAuthenticated(false);
+      router.replace("/");
     } finally {
       setIsLoading(false);
     }

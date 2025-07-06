@@ -8,6 +8,13 @@ import axios, {
 //apply base url for axios
 const API_URL: string = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
+// Custom redirect handler that can be set by the app
+let redirectHandler: ((path: string) => void) | null = null;
+
+export const setRedirectHandler = (handler: (path: string) => void) => {
+  redirectHandler = handler;
+};
+
 const axiosApi: AxiosInstance = axios.create({
   baseURL: API_URL,
 });
@@ -50,14 +57,36 @@ axiosApi.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor to handle 401 errors and token refresh
-axiosApi.interceptors.response.use(
-  (response: AxiosResponse) => response,
-  async (error: AxiosError) => {
-    const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+interface ApiErrorResponse {
+  message?: string;
+  error?: string;
+}
 
+// Response interceptor to handle errors and token refresh
+axiosApi.interceptors.response.use(
+  (response: AxiosResponse) => {
+    // Log successful responses for debugging
+    console.log(`[${response.config.method?.toUpperCase()}] ${response.config.url}:`, {
+      status: response.status,
+      statusText: response.statusText
+    });
+    return response;
+  },
+  async (error: AxiosError<ApiErrorResponse>) => {
+    const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+    
+    // Log error details
+    console.error(`API Error [${originalRequest?.method?.toUpperCase()}] ${originalRequest?.url}:`, {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      error: error.message
+    });
+
+    // Handle 401 Unauthorized
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
+      console.log("Attempting token refresh...");
 
       const refreshToken = getRefreshToken();
       if (refreshToken) {
@@ -68,6 +97,7 @@ axiosApi.interceptors.response.use(
           });
 
           const { accessToken, refreshToken: newRefreshToken } = response.data;
+          console.log("Token refresh successful");
 
           // Store new tokens
           if (typeof window !== "undefined") {
@@ -87,25 +117,40 @@ axiosApi.interceptors.response.use(
           }
           return axiosApi(originalRequest);
         } catch (refreshError) {
-          // Refresh failed, clear tokens and redirect to login
+          console.error("Token refresh failed:", refreshError);
+          // Clear tokens and redirect to login
           if (typeof window !== "undefined") {
             localStorage.removeItem("accessToken");
             localStorage.removeItem("refreshToken");
             sessionStorage.removeItem("accessToken");
             sessionStorage.removeItem("refreshToken");
-            window.location.href = "/login";
+            
+            if (redirectHandler) {
+              redirectHandler("/login");
+            } else {
+              window.location.href = "/login";
+            }
           }
           return Promise.reject(refreshError);
         }
-      } else {
-        // No refresh token, redirect to login
-        if (typeof window !== "undefined") {
-          window.location.href = "/login";
-        }
       }
     }
+    
+    // Enhance error object with more details
+    const enhancedError = new Error(
+      error.response?.data?.message || 
+      error.response?.data?.error || 
+      error.message || 
+      'An unknown error occurred'
+    );
+    
+    Object.assign(enhancedError, {
+      status: error.response?.status,
+      data: error.response?.data,
+      originalError: error
+    });
 
-    return Promise.reject(error);
+    return Promise.reject(enhancedError);
   }
 );
 

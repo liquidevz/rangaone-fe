@@ -53,24 +53,27 @@ const publicApi = axios.create({
 });
 
 export const userPortfolioService = {
-  // Fetch all portfolios (requires authentication)
+  // Fetch all portfolios (works for both authenticated and non-authenticated users)
   getAll: async (): Promise<UserPortfolio[]> => {
     try {
       const authToken = typeof window !== "undefined" 
         ? localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken")
         : null;
 
-      if (!authToken) {
-        return [];
+      // If authenticated, use auth token
+      if (authToken) {
+        const response = await axios.get<UserPortfolio[]>("/api/user/portfolios", {
+          baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "",
+          headers: {
+            accept: "application/json",
+            Authorization: `Bearer ${authToken}`,
+          },
+        });
+        return response.data;
       }
-
-      const response = await axios.get<UserPortfolio[]>("/api/user/portfolios", {
-        baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "",
-        headers: {
-          accept: "application/json",
-          Authorization: `Bearer ${authToken}`,
-        },
-      });
+      
+      // If not authenticated, use public API endpoint
+      const response = await publicApi.get<UserPortfolio[]>("/api/user/portfolios");
       return response.data;
     } catch (error: any) {
       console.error("Failed to fetch portfolios:", error);
