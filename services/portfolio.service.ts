@@ -111,15 +111,51 @@ export const portfolioService = {
         throw new Error("Authentication required");
       }
 
-      const response = await axiosApi.get<Portfolio>(`/api/user/portfolios/${id}`, {
+      console.log(`🔍 Fetching portfolio ${id} from /api/user/portfolios/${id}`);
+      const response = await axiosApi.get(`/api/user/portfolios/${id}`, {
         headers: {
           accept: "application/json",
           Authorization: `Bearer ${token}`,
         },
       });
-      return response.data;
-    } catch (error) {
-      console.error(`Failed to fetch portfolio ${id}:`, error);
+      
+      console.log("📦 Raw API response:", response);
+      console.log("📊 Response data:", response.data);
+      
+      // Handle different response structures
+      let portfolioData = response.data;
+      
+      // If the response has a 'data' property, use that
+      if (response.data?.data) {
+        portfolioData = response.data.data;
+        console.log("📋 Using response.data.data:", portfolioData);
+      }
+      // If the response has a 'portfolio' property, use that  
+      else if (response.data?.portfolio) {
+        portfolioData = response.data.portfolio;
+        console.log("📋 Using response.data.portfolio:", portfolioData);
+      }
+      
+      // Validate that we have the required fields
+      if (!portfolioData?.name) {
+        console.warn("⚠️ Portfolio data missing name field, raw response:", response.data);
+      }
+      
+      if (!portfolioData?.holdings || !Array.isArray(portfolioData.holdings)) {
+        console.warn("⚠️ Portfolio data missing or invalid holdings array:", portfolioData?.holdings);
+      } else {
+        console.log("✅ Holdings found:", portfolioData.holdings.length, "items");
+      }
+      
+      return portfolioData;
+    } catch (error: any) {
+      console.error(`❌ Failed to fetch portfolio ${id}:`, error);
+      
+      if (error.response) {
+        console.error("📡 Error response status:", error.response.status);
+        console.error("📡 Error response data:", error.response.data);
+      }
+      
       throw error;
     }
   },

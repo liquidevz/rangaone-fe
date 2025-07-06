@@ -190,7 +190,7 @@ export default function ModelPortfoliosPage() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-6xl mx-auto p-4">
+      <div className="max-w-6xl mx-auto p-2 sm:p-4">
         <PageHeader 
           title="Model Portfolios" 
           subtitle="Discover our expertly crafted investment strategies" 
@@ -200,72 +200,80 @@ export default function ModelPortfoliosPage() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {portfolios.map((portfolio) => (
               <Card key={portfolio._id} className="overflow-hidden">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-6">
-                    <div className="flex items-center space-x-4">
-                      <div className="bg-blue-100 p-3 rounded-lg">
-                        <FileText className="h-6 w-6 text-blue-600" />
+                <CardContent className="p-4 sm:p-6">
+                  {/* Mobile-responsive header section */}
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4 sm:mb-6 space-y-4 sm:space-y-0">
+                    <div className="flex items-start space-x-3 sm:space-x-4">
+                      <div className="bg-blue-100 p-2 sm:p-3 rounded-lg flex-shrink-0">
+                        <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                       </div>
-                      <div>
-                        <h3 className="text-xl font-semibold">{portfolio.name}</h3>
-                        <p className="text-sm text-gray-600">{renderDescription(portfolio.description)}</p>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-lg sm:text-xl font-semibold mb-1 leading-tight">{portfolio.name}</h3>
+                        <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">{renderDescription(portfolio.description)}</p>
                       </div>
                     </div>
-                    <div className="flex space-x-2">
+                    
+                    {/* Responsive button layout */}
+                    <div className="flex flex-col sm:flex-row gap-2 sm:space-x-2 w-full sm:w-auto">
                       <Button
                         variant="outline"
-                        className="flex items-center space-x-2"
+                        size="sm"
+                        className="flex items-center justify-center space-x-2 w-full sm:w-auto"
                         onClick={() => handleMethodologyClick(portfolio._id)}
                       >
                         <FileText className="h-4 w-4" />
-                        <span>Methodology</span>
+                        <span className="text-sm">Methodology</span>
                       </Button>
                       <Button
                         variant="outline"
-                        className="flex items-center space-x-2"
+                        size="sm"
+                        className="flex items-center justify-center space-x-2 w-full sm:w-auto"
                         onClick={() => handleViewDetails(portfolio._id)}
                       >
                         <Eye className="h-4 w-4" />
-                        <span>View Details</span>
+                        <span className="text-sm">View Details</span>
                       </Button>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-4 gap-4 mb-4">
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <p className="text-sm text-gray-600">Monthly Gains</p>
-                      <p className={`text-xl font-semibold ${safeNumber(portfolio.monthlyGains) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {/* Mobile-responsive metrics grid */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                    <div className="p-3 sm:p-4 bg-gray-50 rounded-lg">
+                      <p className="text-xs sm:text-sm text-gray-600 mb-1">Monthly Gains</p>
+                      <p className={`text-lg sm:text-xl font-semibold ${safeNumber(portfolio.monthlyGains) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {safeString(portfolio.monthlyGains)}%
                       </p>
                     </div>
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <p className="text-sm text-gray-600">1 Year Gains</p>
-                      <p className={`text-xl font-semibold ${safeNumber(portfolio.oneYearGains) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <div className="p-3 sm:p-4 bg-gray-50 rounded-lg">
+                      <p className="text-xs sm:text-sm text-gray-600 mb-1">1 Year Gains</p>
+                      <p className={`text-lg sm:text-xl font-semibold ${safeNumber(portfolio.oneYearGains) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {safeString(portfolio.oneYearGains)}%
                       </p>
                     </div>
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <p className="text-sm text-gray-600">CAGR Since Inception</p>
-                      <p className={`text-xl font-semibold ${safeNumber(portfolio.cagr) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <div className="p-3 sm:p-4 bg-gray-50 rounded-lg">
+                      <p className="text-xs sm:text-sm text-gray-600 mb-1">CAGR Since Inception</p>
+                      <p className={`text-lg sm:text-xl font-semibold ${safeNumber(portfolio.cagr) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {safeString(portfolio.cagr)}%
                       </p>
                     </div>
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <p className="text-sm text-gray-600">Min. Investment Stocks</p>
-                      <p className="text-xl font-semibold">₹{safeString(portfolio.minInvestment)}</p>
+                    <div className="p-3 sm:p-4 bg-gray-50 rounded-lg">
+                      <p className="text-xs sm:text-sm text-gray-600 mb-1">Min. Investment Stocks</p>
+                      <p className="text-lg sm:text-xl font-semibold">₹{safeString(portfolio.minInvestment)}</p>
                     </div>
                   </div>
 
+                  {/* Reports button */}
                   <Button
                     variant="outline"
-                    className="flex items-center space-x-2"
+                    size="sm"
+                    className="flex items-center justify-center space-x-2 w-full sm:w-auto"
                     onClick={() => console.log('View reports for:', portfolio._id)}
                   >
                     <ClipboardList className="h-4 w-4" />
-                    <span>Reports</span>
+                    <span className="text-sm">Reports</span>
                   </Button>
                 </CardContent>
               </Card>
