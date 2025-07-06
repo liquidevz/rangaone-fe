@@ -451,7 +451,7 @@ export default function RangaoneWealth() {
               {recommendation.category || "basic"}
             </div>
             
-            <div className="bg-green-500 text-white px-2 py-1.5 rounded-lg text-center min-w-[70px]">
+            <div className="absolute top-3 right-3 bg-green-500 text-white px-2 py-1.5 rounded-lg text-center min-w-[70px]">
               <div className="text-xs font-semibold">Target</div>
               <div className="text-lg font-bold">{targetPercentage.toFixed(0)}%</div>
               <div className="text-xs opacity-90">upto</div>
