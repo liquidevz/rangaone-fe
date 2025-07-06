@@ -7,22 +7,27 @@ export interface TipDownloadLink {
 
 export interface Tip {
   _id: string;
-  portfolio: string;
+  portfolio: string | {
+    name: string;
+    description: string;
+    _id: string;
+    [key: string]: any;
+  };
   title: string;
   stockId: string;
   category?: 'basic' | 'premium';
-  content: { key: string; value: string; }[];
+  content: string | { key: string; value: string; }[];
   description: string;
   status: string;
   action?: string;
   buyRange: string;
   targetPrice: string;
-  targetPercentage?: number;
+  targetPercentage?: string; // API returns string like "20%"
   addMoreAt: string;
   tipUrl: string;
   exitPrice?: string;
   exitStatus?: string;
-  exitStatusPercentage?: number;
+  exitStatusPercentage?: string; // API returns string like "25%"
   horizon: string;
   downloadLinks: TipDownloadLink[];
   createdAt: string;

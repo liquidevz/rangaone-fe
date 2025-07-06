@@ -136,21 +136,8 @@ axiosApi.interceptors.response.use(
       }
     }
     
-    // Enhance error object with more details
-    const enhancedError = new Error(
-      error.response?.data?.message || 
-      error.response?.data?.error || 
-      error.message || 
-      'An unknown error occurred'
-    );
-    
-    Object.assign(enhancedError, {
-      status: error.response?.status,
-      data: error.response?.data,
-      originalError: error
-    });
-
-    return Promise.reject(enhancedError);
+    // Return the original error to avoid any issues with error construction
+    return Promise.reject(error);
   }
 );
 

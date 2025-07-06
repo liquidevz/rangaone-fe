@@ -97,16 +97,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        {/* Logo */}
-        <div className="h-16 flex items-center gap-2 px-4 border-b border-gray-100">
-          <div className="h-8 w-8 rounded-full bg-[#1e1b4b] flex items-center justify-center">
-            <span className="text-white font-bold text-lg">R</span>
-          </div>
-          <div className="font-semibold text-[#1e1b4b]">
-            <div>RANGAONE</div>
-            <div>FINWALA</div>
-          </div>
-        </div>
+
 
         {/* Navigation */}
         <nav className="p-2 space-y-1 overflow-y-auto h-[calc(100vh-4rem-1px)]">

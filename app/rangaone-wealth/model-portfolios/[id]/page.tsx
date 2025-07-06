@@ -1366,13 +1366,16 @@ export default function PortfolioDetailsPage() {
                 {/* Latest Research Reports Section */}
         <div className="mt-8">
           <div className="bg-white rounded-lg shadow-sm border p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-blue-600">
-                Latest Research Reports for {safeString((portfolio as any)?.name || 'Portfolio')}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 space-y-3 sm:space-y-0">
+              <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-600 leading-tight">
+                <span className="block sm:inline">Latest Research Reports</span>
+                <span className="block sm:inline text-base sm:text-lg lg:text-xl text-gray-700 font-medium mt-1 sm:mt-0 sm:ml-2">
+                  for {safeString((portfolio as any)?.name || 'Portfolio')}
+                </span>
               </h2>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600">Filter By:</span>
-                <select className="border border-gray-300 rounded px-3 py-1 text-sm">
+              <div className="flex items-center space-x-2 flex-shrink-0">
+                <span className="text-xs sm:text-sm text-gray-600">Filter By:</span>
+                <select className="border border-gray-300 rounded px-2 sm:px-3 py-1 text-xs sm:text-sm">
                   <option>All</option>
                   <option>PDF</option>
                   <option>Research</option>

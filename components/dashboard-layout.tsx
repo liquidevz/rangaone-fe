@@ -135,6 +135,17 @@ export default function DashboardLayout({
             )}
           </button>
 
+                  {/* Logo */}
+        <div className="h-14 flex items-center gap-2 px-4 border-b border-gray-100">
+          <div className="h-8 w-8 rounded-full bg-[#1e1b4b] flex items-center justify-center">
+            <span className="text-white font-bold text-lg">R</span>
+          </div>
+          <div className="font-semibold text-[#1e1b4b] px-2 ">
+            <div>RANGAONE</div>
+            <div>FINWALA</div>
+          </div>
+        </div>
+
           {/* Search */}
           <div className="flex flex-1 items-center gap-4">
             <form className="hidden flex-1 md:block">
