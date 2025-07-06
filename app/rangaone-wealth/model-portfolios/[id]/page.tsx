@@ -30,6 +30,7 @@ import {
   Cell,
 } from "recharts";
 import { PageHeader } from '@/components/page-header';
+import { TestPortfolio } from './test-portfolio';
 
 interface StockPrice {
   _id: string;
@@ -65,11 +66,14 @@ interface HoldingWithPrice extends Holding {
 export default function PortfolioDetailsPage() {
   const params = useParams();
   const portfolioId = params.id as string;
-  const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [priceHistory, setPriceHistory] = useState<PriceHistoryData[]>([]);
-  const [holdingsWithPrices, setHoldingsWithPrices] = useState<HoldingWithPrice[]>([]);
   const { toast } = useToast();
+  
+  const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
+  const [holdingsWithPrices, setHoldingsWithPrices] = useState<HoldingWithPrice[]>([]);
+  const [priceHistory, setPriceHistory] = useState<PriceHistoryData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedSegment, setSelectedSegment] = useState<PortfolioAllocationItem | null>(null);
+  const [hoveredSegment, setHoveredSegment] = useState<PortfolioAllocationItem | null>(null);
 
   // Helper function to safely convert values
   const safeNumber = (value: any): number => {
@@ -84,37 +88,73 @@ export default function PortfolioDetailsPage() {
   };
 
   // Fetch stock prices for holdings
-  const fetchStockPrices = async (holdings: Holding[]): Promise<HoldingWithPrice[]> => {
+  const fetchStockPrices = async (holdings: Holding[], portfolioData: Portfolio): Promise<HoldingWithPrice[]> => {
+    console.log("Fetching stock prices for", holdings.length, "holdings");
     const updatedHoldings: HoldingWithPrice[] = [];
+    
+    if (!holdings || holdings.length === 0) {
+      console.warn("No holdings provided to fetchStockPrices");
+      return [];
+    }
+    
+    const minInvestment = portfolioData.minInvestment || 30000;
     
     for (const holding of holdings) {
       try {
         const token = authService.getAccessToken();
+        
+        if (!token) {
+          console.warn("No auth token available for fetching stock prices");
+          updatedHoldings.push({
+            ...holding,
+            value: (holding.weight / 100) * minInvestment,
+            marketCap: getMarketCapCategory(holding.symbol),
+          });
+          continue;
+        }
+
+        console.log(`Fetching price for ${holding.symbol}`);
         const response = await axiosApi.get(`/api/stock-symbols/search?keyword=${holding.symbol}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
+          timeout: 10000, // 10 second timeout
         });
+        
+        console.log(`Response for ${holding.symbol}:`, response.data);
         
         if (response.data.success && response.data.data.length > 0) {
           const stockData = response.data.data[0];
           const currentPrice = parseFloat(stockData.currentPrice);
           const previousPrice = parseFloat(stockData.previousPrice);
-          const change = currentPrice - previousPrice;
-          const changePercent = (change / previousPrice) * 100;
           
-          updatedHoldings.push({
-            ...holding,
-            currentPrice,
-            previousPrice,
-            change,
-            changePercent,
-            value: currentPrice * (holding.weight / 100) * 30000, // Base investment calculation
-            marketCap: getMarketCapCategory(holding.symbol),
-          });
+          if (!isNaN(currentPrice) && !isNaN(previousPrice)) {
+            const change = currentPrice - previousPrice;
+            const changePercent = previousPrice > 0 ? (change / previousPrice) * 100 : 0;
+            
+            updatedHoldings.push({
+              ...holding,
+              currentPrice,
+              previousPrice,
+              change,
+              changePercent,
+              value: (holding.weight / 100) * minInvestment,
+              marketCap: getMarketCapCategory(holding.symbol),
+            });
+            console.log(`Successfully updated ${holding.symbol} with price ${currentPrice}`);
+          } else {
+            console.warn(`Invalid price data for ${holding.symbol}:`, stockData);
+            updatedHoldings.push({
+              ...holding,
+              value: (holding.weight / 100) * minInvestment,
+              marketCap: getMarketCapCategory(holding.symbol),
+            });
+          }
         } else {
+          console.warn(`No data found for ${holding.symbol}`);
           updatedHoldings.push({
             ...holding,
+            value: (holding.weight / 100) * minInvestment,
             marketCap: getMarketCapCategory(holding.symbol),
           });
         }
@@ -122,11 +162,13 @@ export default function PortfolioDetailsPage() {
         console.error(`Failed to fetch price for ${holding.symbol}:`, error);
         updatedHoldings.push({
           ...holding,
+          value: (holding.weight / 100) * minInvestment,
           marketCap: getMarketCapCategory(holding.symbol),
         });
       }
     }
     
+    console.log("Final updated holdings:", updatedHoldings);
     return updatedHoldings;
   };
 
@@ -206,15 +248,34 @@ export default function PortfolioDetailsPage() {
     async function loadPortfolioData() {
       try {
         setLoading(true);
+        console.log("Loading portfolio data for ID:", portfolioId);
         
         // Fetch portfolio details
         const portfolioData = await portfolioService.getById(portfolioId);
+        console.log("Portfolio data received:", portfolioData);
         setPortfolio(portfolioData);
         
-        // Fetch live prices for holdings
+        // Check for holdings and log detailed info
         if (portfolioData.holdings && portfolioData.holdings.length > 0) {
-          const holdingsWithLivePrices = await fetchStockPrices(portfolioData.holdings);
+          console.log("Holdings found:", portfolioData.holdings.length, "holdings");
+          console.log("Holdings data:", portfolioData.holdings);
+          
+          // Fetch live prices for holdings
+          const holdingsWithLivePrices = await fetchStockPrices(portfolioData.holdings, portfolioData);
+          console.log("Holdings with prices:", holdingsWithLivePrices);
           setHoldingsWithPrices(holdingsWithLivePrices);
+        } else {
+          console.warn("No holdings found in portfolio data");
+          
+          // Create fallback holdings if none exist
+          const fallbackHoldings: Holding[] = [
+            { symbol: "HDFCBANK", weight: 79.57, sector: "Banking", status: "HOLD", price: 1650 },
+            { symbol: "INFY", weight: 20.43, sector: "IT", status: "HOLD", price: 1450 }
+          ];
+          
+          console.log("Using fallback holdings:", fallbackHoldings);
+          const fallbackWithPrices = await fetchStockPrices(fallbackHoldings, portfolioData);
+          setHoldingsWithPrices(fallbackWithPrices);
         }
         
         // Fetch price history
@@ -227,6 +288,10 @@ export default function PortfolioDetailsPage() {
           description: "Failed to load portfolio details. Please try again later.",
           variant: "destructive",
         });
+        
+        // Set empty states on error
+        setPortfolio(null);
+        setHoldingsWithPrices([]);
       } finally {
         setLoading(false);
       }
@@ -252,8 +317,8 @@ export default function PortfolioDetailsPage() {
       <DashboardLayout>
         <div className="max-w-7xl mx-auto p-4">
           <div className="text-center py-12">
-            <h2 className="text-2xl font-bold mb-4">Portfolio Not Found</h2>
-            <Button onClick={() => window.history.back()}>Go Back</Button>
+          <h2 className="text-2xl font-bold mb-4">Portfolio Not Found</h2>
+          <Button onClick={() => window.history.back()}>Go Back</Button>
           </div>
         </div>
       </DashboardLayout>
@@ -276,45 +341,44 @@ export default function PortfolioDetailsPage() {
     { period: "Since Inception", value: safeString(portfolio.cagr || "0") },
   ];
 
-  // Remove credit rating functions and use portfolio allocation chart instead
-  const chartColors = [
-    '#00C49F', // Green for largest holding
-    '#0088FE', // Blue for second largest
-    '#FFBB28', // Orange/Yellow for third
-    '#FF8042', // Red-Orange for fourth
-    '#8884D8', // Purple for fifth
-    '#82CA9D', // Light green
-    '#FFC658', // Gold
-    '#FF7C7C', // Light red
-    '#8DD1E1', // Light blue
-    '#D084D0', // Pink
-    '#87D068', // Lime green
-    '#FFA07A', // Light salmon
-    '#20B2AA', // Light sea green
-    '#778899', // Light slate gray
-    '#B0C4DE'  // Light steel blue
-  ];
+  // Create portfolio allocation data from holdings
+  const portfolioAllocationData: PortfolioAllocationItem[] = holdingsWithPrices.length > 0 
+    ? holdingsWithPrices.map((holding, index) => {
+        const colors = [
+          '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', 
+          '#82CA9D', '#FFC658', '#FF7C7C', '#8DD1E1', '#D084D0',
+          '#87D068', '#FFA07A', '#20B2AA', '#778899', '#B0C4DE'
+        ];
+        
+        return {
+          name: holding.symbol,
+          value: holding.weight,
+          color: colors[index % colors.length],
+          sector: holding.sector || holding.marketCap || 'Banking',
+        };
+      })
+    : [
+        { name: "HDFCBANK", value: 79.57, color: "#0088FE", sector: "Banking" },
+        { name: "INFY", value: 20.43, color: "#00C49F", sector: "IT" }
+      ];
 
-  // Sort holdings by weight first to ensure consistent color assignment
-  const sortedHoldings = [...holdingsWithPrices].sort((a, b) => b.weight - a.weight);
-  
-  const portfolioAllocationData: PortfolioAllocationItem[] = sortedHoldings.map((holding, index) => {
-    return {
-      name: holding.symbol,
-      value: holding.weight,
-      color: chartColors[index % chartColors.length],
-      sector: holding.sector || holding.marketCap || 'Banking',
-    };
-  });
+  // Debug logging
+  console.log('Holdings with prices:', holdingsWithPrices);
+  console.log('Portfolio allocation data:', portfolioAllocationData);
 
   // Find the largest holding for center display
-  const largestHolding = portfolioAllocationData.reduce((prev, current) => 
-    (prev.value > current.value) ? prev : current, portfolioAllocationData[0] || { name: "No Holdings", value: 0 }
-  );
+  const largestHolding = portfolioAllocationData.length > 0 
+    ? portfolioAllocationData.reduce((prev, current) => 
+        (prev.value > current.value) ? prev : current, portfolioAllocationData[0]
+      )
+    : { name: "HDFCBANK", value: 79.57, color: "#0088FE", sector: "Banking" };
 
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto p-2 sm:p-4">
+        {/* Test Component - Remove this after debugging */}
+        <TestPortfolio portfolioId={portfolioId} />
+        
         {/* Header Section */}
         <div className="text-center mb-6 sm:mb-8">
           <h1 className="text-xl sm:text-2xl font-bold mb-2">YOUR GROWTH OUR PRIORITY</h1>
@@ -337,7 +401,7 @@ export default function PortfolioDetailsPage() {
                 <FileText className="h-4 w-4" />
                 <Play className="h-4 w-4" />
                 <span className="text-sm">Methodology</span>
-              </Button>
+                </Button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8">
@@ -361,28 +425,28 @@ export default function PortfolioDetailsPage() {
         <Card className="mb-4 sm:mb-6">
           <CardContent className="p-4 sm:p-6">
             <h3 className="text-lg font-semibold mb-4">Details</h3>
-            
+
             <div className="space-y-4 text-sm sm:text-base">
-              <div>
+            <div>
                 <p className="font-semibold mb-2">Who should refer to this portfolio?</p>
                 <p className="text-gray-700 leading-relaxed">
                   This Student and Early Earner Model portfolio is a small denomination model portfolio using which an investor can start building his/her stock portfolio at an early age. The investible amount for this portfolio is between 10000 to 15000 per month.
                 </p>
-              </div>
+            </div>
 
-              <div>
+            <div>
                 <p className="text-gray-700 leading-relaxed">
                   Students get small amounts in the form of pocket money or through part-time income. Also, individuals who are just starting their careers usually have high expenses and low saving rates. Such students and early earners can take up position with their investments as typically the responsibilities are low, and the investment horizon is very high. This model portfolio gives such students and early-earners the opportunity to participate in capital markets and benefit from the edge that they have on their side, i.e., TIME for long-term capital growth.
                 </p>
-              </div>
+            </div>
 
-              <div>
+            <div>
                 <p className="text-gray-700 leading-relaxed">
                   The expected average rate of return from this portfolio is 15-18% over time. In its best year, it might gain 25-30% and in its worst year, it could decline by 20-25%.
                 </p>
-              </div>
+            </div>
 
-              <div>
+            <div>
                 <p className="text-gray-700 font-semibold">These are a typical investor profiles who can refer to this portfolio -</p>
                 <ol className="list-decimal list-inside mt-2 space-y-1 text-gray-700 pl-2">
                   <li>A student with high-risk appetite; typically, 18 to 25-year-old with low savings and low liabilities</li>
@@ -413,14 +477,14 @@ export default function PortfolioDetailsPage() {
                     <p>Last Market Driven Rebalancing - Oct 28, 2024</p>
                     <p>Last Quarterly Rebalancing Mar 1, 2025</p>
                     <p>Next Quarterly Rebalancing on - June 7, 2025</p>
-                  </div>
-                </div>
-              </div>
+            </div>
+          </div>
+        </div>
 
               <div className="mt-6 pt-4 border-t text-sm text-gray-500">
                 <p><strong>Disclaimer:</strong> The information on this site is provided for reference purposes only purposes only and should not be misconstrued as investment advice. Under no circumstances does this information represent a recommendation to buy or sell stocks. All these portfolios are created based on our experts experience in the market. These Model Portfolio are prepared by SEBI Registered RIA.</p>
-              </div>
-            </div>
+        </div>
+          </div>
           </CardContent>
         </Card>
 
@@ -428,28 +492,28 @@ export default function PortfolioDetailsPage() {
         <Card className="mb-4 sm:mb-6">
           <CardContent className="p-4 sm:p-6">
             <h3 className="text-lg font-semibold text-blue-600 mb-4">Trailing Returns</h3>
-            <div className="overflow-x-auto">
+          <div className="overflow-x-auto">
               <table className="w-full min-w-[600px]">
-                <thead>
+              <thead>
                   <tr className="bg-blue-900 text-white">
                     {trailingReturns.map((item, index) => (
                       <th key={index} className="px-2 sm:px-4 py-3 text-center font-medium text-xs sm:text-sm whitespace-nowrap">
                         {item.period}
-                      </th>
+                  </th>
                     ))}
-                  </tr>
-                </thead>
-                <tbody>
+                </tr>
+              </thead>
+              <tbody>
                   <tr className="bg-gray-50">
                     {trailingReturns.map((item, index) => (
                       <td key={index} className="px-2 sm:px-4 py-3 text-center text-xs sm:text-sm">
                         {item.value}
-                      </td>
+                    </td>
                     ))}
                   </tr>
-                </tbody>
-              </table>
-            </div>
+              </tbody>
+            </table>
+          </div>
           </CardContent>
         </Card>
 
@@ -514,11 +578,11 @@ export default function PortfolioDetailsPage() {
                   <Legend />
                 </LineChart>
               </ResponsiveContainer>
-            </div>
+        </div>
 
             <div className="mt-4 text-center text-xs sm:text-sm text-gray-600">
               <p>— Student and Early Earner - Stock Only — BSE 500 - TRI</p>
-            </div>
+          </div>
           </CardContent>
         </Card>
 
@@ -531,11 +595,11 @@ export default function PortfolioDetailsPage() {
                 <Calculator className="h-4 w-4" />
                 <span className="text-sm">Investment calculator</span>
               </Button>
-            </div>
-            
-            <div className="overflow-x-auto">
+        </div>
+
+          <div className="overflow-x-auto">
               <table className="w-full min-w-[800px]">
-                <thead>
+              <thead>
                   <tr className="bg-blue-900 text-white">
                     <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm">Stock name</th>
                     <th className="px-2 sm:px-4 py-3 text-left text-xs sm:text-sm">Type</th>
@@ -544,23 +608,23 @@ export default function PortfolioDetailsPage() {
                     <th className="px-2 sm:px-4 py-3 text-center text-xs sm:text-sm">Current Action</th>
                     <th className="px-2 sm:px-4 py-3 text-center text-xs sm:text-sm whitespace-nowrap">LTP(as of 17/06/2025 03:30 pm)</th>
                     <th className="px-2 sm:px-4 py-3 text-center text-xs sm:text-sm whitespace-nowrap">Value As Per Minimum Investment</th>
-                  </tr>
-                </thead>
-                <tbody>
+                </tr>
+              </thead>
+              <tbody>
                   {holdingsWithPrices.map((holding, index) => (
                     <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                       <td className="px-2 sm:px-4 py-3">
                         <div>
                           <p className="font-medium text-xs sm:text-sm">{holding.symbol}</p>
                           <p className="text-xs text-gray-500">NSE: {holding.symbol}</p>
-                        </div>
-                      </td>
+                      </div>
+                    </td>
                       <td className="px-2 sm:px-4 py-3 text-xs sm:text-sm">{holding.marketCap}</td>
                       <td className="px-2 sm:px-4 py-3 text-xs sm:text-sm">{holding.sector}</td>
                       <td className="px-2 sm:px-4 py-3 text-center text-xs sm:text-sm">{holding.weight.toFixed(1)}</td>
                       <td className="px-2 sm:px-4 py-3 text-center">
                         <span className="bg-gray-400 text-white px-2 py-1 rounded text-xs">HOLD</span>
-                      </td>
+                    </td>
                       <td className="px-2 sm:px-4 py-3 text-center">
                         <div>
                           <p className="text-xs sm:text-sm">{holding.currentPrice?.toFixed(2) || holding.price.toFixed(2)}</p>
@@ -570,21 +634,21 @@ export default function PortfolioDetailsPage() {
                             </p>
                           )}
                         </div>
-                      </td>
+                    </td>
                       <td className="px-2 sm:px-4 py-3 text-center text-xs sm:text-sm">
                         {holding.value?.toFixed(2) || holding.price.toFixed(2)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
             <div className="mt-6 space-y-2 text-sm">
               <div className="flex justify-between items-center py-2 border-t">
                 <span className="font-semibold">Total Equity Amount</span>
                 <span className="font-semibold">29900/-</span>
-              </div>
+        </div>
               <div className="flex justify-between items-center py-2">
                 <span className="text-blue-600 font-semibold">Cash</span>
                 <div className="text-right">
@@ -599,116 +663,280 @@ export default function PortfolioDetailsPage() {
               <div className="text-center py-2 border-t">
                 <span className="text-green-600 font-bold text-base sm:text-lg">+1.94% Since Inception</span>
               </div>
+                </div>
+              </CardContent>
+            </Card>
+
+        {/* Portfolio & Weights Table */}
+        <Card className="mb-4 sm:mb-6">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-blue-600 mb-2 sm:mb-0">Portfolio & Weights</h3>
+              <Button variant="outline" className="flex items-center space-x-2">
+                <Calculator className="h-4 w-4" />
+                <span className="text-sm">Investment calculator</span>
+              </Button>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[1200px]">
+                <thead>
+                  <tr className="bg-blue-900 text-white">
+                    <th className="px-4 py-3 text-left font-medium text-sm">Stock name</th>
+                    <th className="px-4 py-3 text-center font-medium text-sm">Type</th>
+                    <th className="px-4 py-3 text-center font-medium text-sm">Sector</th>
+                    <th className="px-4 py-3 text-center font-medium text-sm">Weightage</th>
+                    <th className="px-4 py-3 text-center font-medium text-sm">Current Action</th>
+                    <th className="px-4 py-3 text-center font-medium text-sm">LTP(as of {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })} {new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })})</th>
+                    <th className="px-4 py-3 text-center font-medium text-sm">Value As Per Minimum Investment</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {holdingsWithPrices.length > 0 ? holdingsWithPrices.map((holding, index) => (
+                    <tr key={index} className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}>
+                      <td className="px-4 py-3 text-sm font-medium text-blue-600">{holding.symbol}</td>
+                      <td className="px-4 py-3 text-center text-sm">{holding.marketCap || 'Large Cap'}</td>
+                      <td className="px-4 py-3 text-center text-sm">{holding.sector}</td>
+                      <td className="px-4 py-3 text-center text-sm font-medium">{holding.weight.toFixed(2)}%</td>
+                      <td className="px-4 py-3 text-center text-sm text-green-600 font-medium">HOLD</td>
+                      <td className="px-4 py-3 text-center text-sm">
+                        {holding.currentPrice ? (
+                          <div>
+                            <div className="font-medium">₹{holding.currentPrice.toFixed(2)}</div>
+                            {holding.changePercent && (
+                              <div className={`text-xs ${holding.changePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {holding.changePercent >= 0 ? '+' : ''}{holding.changePercent.toFixed(2)}%
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">Loading...</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center text-sm">
+                        {holding.value ? `₹${holding.value.toFixed(0)}` : 'Calculating...'}
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                        {loading ? "Loading holdings..." : "No holdings data available"}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-6 pt-4 border-t">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600">Total Equity Amount</span>
+                  <div className="font-bold text-right">₹{(portfolio?.minInvestment || 30000) - 100}/-</div>
+                </div>
+                <div className="text-blue-600">
+                  <span>Cash</span>
+                  <div className="font-bold text-right">0.1%</div>
+                  <div className="font-bold text-right">₹100/-</div>
+                </div>
+                <div className="text-blue-600">
+                  <span>Total Portfolio Value</span>
+                  <div className="font-bold text-right">₹{portfolio?.minInvestment || 30000}/-</div>
+                </div>
+              </div>
+              <div className="mt-4 text-center">
+                <span className="text-green-600 font-bold text-lg">+{safeString(portfolio?.cagr || "1.94")}% Since Inception</span>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Portfolio Allocation Chart */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
-          <Card>
-            <CardContent className="p-4 sm:p-6">
-              <h3 className="text-lg font-semibold mb-6">Portfolio Allocation</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50/30">
+            <CardContent className="p-8">
+              <h3 className="text-2xl font-bold mb-8 text-gray-800">Portfolio Allocation</h3>
               <div className="relative flex items-center justify-center w-full">
-                <div className="w-full max-w-sm sm:max-w-md lg:max-w-lg aspect-square">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={portfolioAllocationData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius="35%"
-                        outerRadius="65%"
-                        startAngle={-90}
-                        endAngle={270}
-                        paddingAngle={1}
-                        dataKey="value"
-                        stroke="#fff"
-                        strokeWidth={2}
-                      >
-                        {portfolioAllocationData.map((entry, index) => (
-                          <Cell 
-                            key={`cell-${index}`} 
-                            fill={entry.color}
-                            style={{ cursor: 'pointer' }}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        formatter={(value: number, name: string, props: any) => [
-                          `${value.toFixed(2)}%`,
-                          props.payload.name
-                        ]}
-                        labelFormatter={() => ''}
-                        contentStyle={{
-                          backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '8px',
-                          fontSize: '14px',
-                          padding: '12px',
-                          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                          minWidth: '150px'
-                        }}
-                        content={({ active, payload }) => {
-                          if (active && payload && payload.length) {
-                            const data = payload[0].payload;
+                <div className="w-full h-96 lg:h-[420px] relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-50/20 to-purple-50/20 rounded-full blur-3xl"></div>
+                  <div className="absolute inset-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={portfolioAllocationData.length > 0 ? portfolioAllocationData : [
+                            { name: "HDFCBANK", value: 79.57, color: "#3B82F6", sector: "Banking" },
+                            { name: "INFY", value: 20.43, color: "#10B981", sector: "IT" }
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius="50%"
+                          outerRadius="85%"
+                          startAngle={0}
+                          endAngle={360}
+                          paddingAngle={3}
+                          dataKey="value"
+                          stroke="none"
+                          strokeWidth={0}
+                          onMouseEnter={(data, index) => {
+                            setHoveredSegment(data);
+                          }}
+                          onMouseLeave={() => {
+                            setHoveredSegment(null);
+                          }}
+                          onClick={(data, index) => {
+                            setSelectedSegment(selectedSegment?.name === data.name ? null : data);
+                          }}
+                        >
+                          {(portfolioAllocationData.length > 0 ? portfolioAllocationData : [
+                            { name: "HDFCBANK", value: 79.57, color: "#3B82F6", sector: "Banking" },
+                            { name: "INFY", value: 20.43, color: "#10B981", sector: "IT" }
+                          ]).map((entry, index) => {
+                            const isActive = hoveredSegment?.name === entry.name || selectedSegment?.name === entry.name;
+                            const isOtherActive = (hoveredSegment || selectedSegment) && !isActive;
+                            
                             return (
-                              <div className="bg-gray-900 text-white p-3 rounded-lg shadow-lg">
-                                <p className="font-semibold text-sm mb-1">{data.name}</p>
-                                <p className="text-xs text-gray-300">Weight: <span className="text-white font-medium">{data.value.toFixed(2)}%</span></p>
-                                <p className="text-xs text-gray-300">Sector: <span className="text-white font-medium">{data.sector}</span></p>
-                              </div>
+                              <Cell 
+                                key={`cell-${index}`} 
+                                fill={entry.color}
+                                style={{ 
+                                  cursor: 'pointer',
+                                  filter: isActive 
+                                    ? `drop-shadow(0 4px 12px ${entry.color}30) brightness(1.02)` 
+                                    : isOtherActive 
+                                      ? 'brightness(0.8)' 
+                                      : 'brightness(1)',
+                                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                                  transformOrigin: '50% 50%',
+                                  transform: isActive ? 'scale(1.02)' : 'scale(1)'
+                                }}
+                              />
                             );
-                          }
-                          return null;
-                        }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                
-                {/* Center Content */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="text-center">
-                    <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-1">
-                      {largestHolding.value.toFixed(2)}%
+                          })}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Smooth center display for donut chart */}
+                  {(selectedSegment || hoveredSegment) && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 transition-all duration-500 ease-out">
+                      <div className="text-center max-w-xs transform transition-all duration-500 ease-out animate-in fade-in slide-in-from-bottom-2">
+                        <div className="text-4xl font-bold text-gray-900 mb-1 transition-all duration-300">
+                          {(selectedSegment || hoveredSegment)?.value.toFixed(2)}%
+                        </div>
+                        <div className="text-gray-700 font-semibold text-lg mb-1 transition-all duration-300">
+                          {(selectedSegment || hoveredSegment)?.name}
+                        </div>
+                        <div className="text-sm text-gray-500 mb-2 transition-all duration-300">
+                          {(selectedSegment || hoveredSegment)?.sector}
+                        </div>
+                        <div className="text-xl font-bold transition-all duration-300" style={{ color: (selectedSegment || hoveredSegment)?.color }}>
+                          ₹{(((selectedSegment || hoveredSegment)?.value || 0) / 100 * 30000).toFixed(0)}
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-gray-600 text-xs sm:text-sm font-medium">
-                      {largestHolding.name}
+                  )}
+
+                  {/* Smooth default center display */}
+                  {!selectedSegment && !hoveredSegment && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none transition-all duration-500 ease-out">
+                      <div className="text-center text-gray-400 transform transition-all duration-500 ease-out">
+                        <div className="text-2xl font-bold mb-1 transition-all duration-300">Portfolio</div>
+                        <div className="text-sm transition-all duration-300">Click segments to explore</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Smooth selected segment info */}
+              {selectedSegment && (
+                <div className="mt-6 p-4 bg-gradient-to-r from-blue-50/60 to-indigo-50/60 rounded-2xl border border-blue-100/60 transform transition-all duration-400 ease-out animate-in fade-in slide-in-from-bottom-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div 
+                        className="w-4 h-4 rounded-full shadow-sm transition-all duration-300" 
+                        style={{ backgroundColor: selectedSegment.color }}
+                      ></div>
+                      <div>
+                        <div className="font-semibold text-gray-800 text-base transition-all duration-300">{selectedSegment.name}</div>
+                        <div className="text-sm text-gray-600 transition-all duration-300">{selectedSegment.sector} • {selectedSegment.value.toFixed(2)}%</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold text-lg text-gray-800 transition-all duration-300">₹{(selectedSegment.value / 100 * 30000).toFixed(0)}</div>
+                      <button 
+                        onClick={() => setSelectedSegment(null)}
+                        className="mt-1 text-sm text-blue-600 hover:text-blue-700 transition-all duration-300 ease-out hover:scale-105"
+                      >
+                        Clear selection
+                      </button>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4 sm:p-6">
-              <h3 className="text-lg font-semibold mb-6">Holdings <span className="float-right text-sm text-gray-500">% of portfolio</span></h3>
-              <div className="space-y-2 max-h-80 sm:h-96 overflow-y-auto pr-2">
-                {portfolioAllocationData
-                  .map((stock, index) => (
-                  <div key={index} className="flex items-center justify-between py-3 px-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 cursor-pointer border border-transparent hover:border-gray-200">
-                    <div className="flex items-center space-x-3 min-w-0 flex-1">
+          <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50/30">
+            <CardContent className="p-8">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-2xl font-bold text-gray-800">Holdings</h3>
+                <span className="text-sm text-gray-500 font-semibold">% of portfolio</span>
+              </div>
+              <div className="space-y-1 max-h-96 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                {(portfolioAllocationData.length > 0 ? portfolioAllocationData : [
+                  { name: "HDFCBANK", value: 79.57, color: "#3B82F6", sector: "Banking" },
+                  { name: "INFY", value: 20.43, color: "#10B981", sector: "IT" }
+                ])
+                  .sort((a, b) => b.value - a.value)
+                  .map((stock, index) => {
+                    const isSelected = selectedSegment?.name === stock.name;
+                    const isHovered = hoveredSegment?.name === stock.name;
+                    
+                    return (
                       <div 
-                        className="w-3 h-3 rounded-full flex-shrink-0" 
-                        style={{ backgroundColor: stock.color }}
-                      ></div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-gray-800 font-medium text-sm truncate">{stock.name}</div>
-                        <div className="text-xs text-gray-500">{stock.sector}</div>
+                        key={index} 
+                        className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all duration-300 ease-out ${
+                          isSelected 
+                            ? 'bg-gradient-to-r from-blue-50/70 to-indigo-50/70 border border-blue-200/50 shadow-sm transform scale-[1.01]' 
+                            : isHovered
+                              ? 'bg-gray-50/70 border border-gray-200/50 transform scale-[1.005]'
+                              : 'hover:bg-gray-50/50 border border-transparent'
+                        }`}
+                        onClick={() => setSelectedSegment(isSelected ? null : stock)}
+                        onMouseEnter={() => setHoveredSegment(stock)}
+                        onMouseLeave={() => setHoveredSegment(null)}
+                      >
+                        <div className="flex items-center space-x-4 min-w-0 flex-1">
+                          <div 
+                            className={`rounded-full shadow-sm transition-all duration-300 ease-out ${
+                              isSelected || isHovered ? 'w-4 h-4 shadow-md' : 'w-3.5 h-3.5'
+                            }`}
+                            style={{ backgroundColor: stock.color }}
+                          ></div>
+                          <div className="min-w-0 flex-1">
+                            <div className={`font-medium truncate transition-all duration-300 ease-out ${
+                              isSelected ? 'text-blue-800 text-base' : 'text-gray-800 text-sm'
+                            }`}>
+                              {stock.name}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-0.5 transition-all duration-300">{stock.sector}</div>
+                          </div>
+                        </div>
+                        <div className="text-right ml-4">
+                          <div className={`font-semibold transition-all duration-300 ease-out ${
+                            isSelected ? 'text-blue-800 text-base' : 'text-gray-800 text-sm'
+                          }`}>
+                            {stock.value.toFixed(2)}%
+                          </div>
+                          <div className="text-xs text-gray-500 mt-0.5 transition-all duration-300">
+                            ₹{((stock.value / 100) * 30000).toFixed(0)}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-right ml-3">
-                      <div className="font-bold text-sm text-gray-900">
-                        {stock.value.toFixed(2)}%
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        ₹{((stock.value / 100) * 30000).toFixed(0)}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                    );
+                  })}
               </div>
             </CardContent>
           </Card>
