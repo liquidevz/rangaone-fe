@@ -252,7 +252,7 @@ export default function DashboardLayout({
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
         {/* Main content */}
-        <main className="flex-1 overflow-x-hidden p-4">{children}</main>
+        <main className="flex-1 overflow-x-hidden px-1 sm:px-2 py-2 sm:py-3">{children}</main>
       </div>
     </div>
   );

@@ -459,25 +459,37 @@ export default function PortfolioDetailsPage() {
     { period: "Since Inception", value: safeString((portfolio as any)?.CAGRSinceInception || "15.2") },
   ];
 
-  // Create portfolio allocation data from holdings
+  // Create portfolio allocation data from holdings with consistent colors
   const portfolioAllocationData: PortfolioAllocationItem[] = holdingsWithPrices.length > 0 
-    ? holdingsWithPrices.map((holding, index) => {
-        const colors = [
-          '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', 
-          '#82CA9D', '#FFC658', '#FF7C7C', '#8DD1E1', '#D084D0',
-          '#87D068', '#FFA07A', '#20B2AA', '#778899', '#B0C4DE'
-        ];
-        
-        return {
-          name: holding.symbol,
-          value: holding.weight,
-          color: colors[index % colors.length],
-          sector: holding.sector || holding.marketCap || 'Banking',
-        };
-      })
+    ? holdingsWithPrices
+        .sort((a, b) => b.weight - a.weight) // Sort by weight descending first
+        .map((holding, index) => {
+          // Define specific colors for known stocks to ensure consistency
+          const getColorForStock = (symbol: string, index: number) => {
+            const stockColorMap: { [key: string]: string } = {
+              'HDFCBANK': '#3B82F6',     // Blue
+              'IDFCFIRSTB': '#10B981',   // Green
+              'INFY': '#F59E0B',         // Orange
+              'TCS': '#EF4444',          // Red
+              'RELIANCE': '#8B5CF6',     // Purple
+            };
+            
+            return stockColorMap[symbol] || [
+              '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6366F1',
+              '#14B8A6', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'
+            ][index % 10];
+          };
+          
+          return {
+            name: holding.symbol,
+            value: holding.weight,
+            color: getColorForStock(holding.symbol, index),
+            sector: holding.sector || holding.marketCap || 'Banking',
+          };
+        })
     : [
-        { name: "HDFCBANK", value: 79.57, color: "#0088FE", sector: "Banking" },
-        { name: "INFY", value: 20.43, color: "#00C49F", sector: "IT" }
+        { name: "HDFCBANK", value: 79.57, color: "#3B82F6", sector: "Banking" },
+        { name: "IDFCFIRSTB", value: 20.43, color: "#10B981", sector: "Banking" }
       ];
 
   // Debug logging
@@ -874,13 +886,26 @@ export default function PortfolioDetailsPage() {
                   {holdingsWithPrices.length > 0 ? holdingsWithPrices.map((holding, index) => (
                     <React.Fragment key={index}>
                       <tr 
-                        className={`cursor-pointer ${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-blue-50`}
+                        className={`cursor-pointer transition-all duration-200 ${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-blue-50 hover:shadow-sm relative group ${index < 2 ? 'animate-pulse-subtle' : ''}`}
                         onClick={() => setExpandedRow(expandedRow === index ? null : index)}
+                        title="Click to expand for more details"
                       >
-                        <td className="px-2 py-2">
-                          <div>
-                            <div className="font-medium text-blue-600 leading-tight">{holding.symbol}</div>
-                            <div className="text-gray-500 text-xs leading-tight">NSE : {holding.symbol}</div>
+                        <td className="px-2 py-2 relative">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-medium text-blue-600 leading-tight">{holding.symbol}</div>
+                              <div className="text-gray-500 text-xs leading-tight">NSE : {holding.symbol}</div>
+                            </div>
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              <svg 
+                                className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${expandedRow === index ? 'rotate-180' : ''}`} 
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </div>
                       </div>
                     </td>
                         <td className="px-2 py-2 text-center">
@@ -1052,51 +1077,99 @@ export default function PortfolioDetailsPage() {
             </table>
           </div>
 
-                        <div className="mt-6 pt-4 border-t">
-              {/* Mobile Layout */}
-              <div className="block md:hidden space-y-4">
-                <div className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded-lg">
-                  <span className="text-gray-700 font-medium">Total Holdings Value</span>
-                  <span className="font-bold text-lg">₹{safeNumber((portfolio as any)?.holdingsValue || totalValue || ((portfolio as any)?.minInvestment || 30000) - ((portfolio as any)?.cashBalance || 100)).toLocaleString()}/-</span>
+                        <div className="mt-3 pt-3 border-t border-gray-100">
+              {/* Ultra-Modern Dashboard Layout */}
+              <div className="bg-gradient-to-br from-white via-gray-50/30 to-blue-50/20 rounded-xl border border-gray-200/60 p-4 shadow-sm backdrop-blur-sm">
+                {/* Header with Performance Badge */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Portfolio Summary</span>
+                  </div>
+                  <div className="flex items-center space-x-1 bg-green-100 px-2 py-1 rounded-full">
+                    <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                    <span className="text-xs font-bold text-green-700">+{safeString((portfolio as any)?.CAGRSinceInception || "15.2")}%</span>
+          </div>
         </div>
 
-                <div className="flex justify-between items-center py-2 px-3 bg-blue-50 rounded-lg">
-                  <div>
-                    <span className="text-blue-700 font-medium">Cash Balance</span>
-                    <div className="text-blue-600 text-sm">{(((portfolio as any)?.cashBalance || 100) / ((portfolio as any)?.minInvestment || 30000) * 100).toFixed(1)}%</div>
+                {/* Main Metrics Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {/* Holdings Value */}
+                  <div className="group relative overflow-hidden bg-white/70 backdrop-blur-sm rounded-lg border border-gray-200/50 p-3 hover:shadow-md transition-all duration-300">
+                    <div className="absolute inset-0 bg-gradient-to-br from-slate-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="relative">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center space-x-1.5">
+                          <div className="w-4 h-4 bg-slate-600 rounded-sm flex items-center justify-center">
+                            <div className="w-2 h-2 bg-white rounded-sm"></div>
                 </div>
-                  <span className="text-blue-600 font-bold text-lg">₹{safeNumber((portfolio as any)?.cashBalance || 100).toLocaleString()}/-</span>
-                </div>
-                
-                <div className="flex justify-between items-center py-2 px-3 bg-blue-50 rounded-lg">
-                  <span className="text-blue-700 font-medium">Total Portfolio Value</span>
-                  <span className="text-blue-600 font-bold text-lg">₹{safeNumber((portfolio as any)?.currentValue || (portfolio as any)?.minInvestment || 30000).toLocaleString()}/-</span>
-                </div>
-                
-                <div className="text-center py-3 bg-green-50 rounded-lg">
-                  <span className="text-green-600 font-bold text-xl">+{safeString((portfolio as any)?.CAGRSinceInception || "15.2")}% Since Inception</span>
-                </div>
-              </div>
+                          <span className="text-xs font-medium text-slate-700">Holdings</span>
+                        </div>
+                        <div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div>
+                      </div>
+                      <div className="text-base font-bold text-slate-900 leading-none">
+                        ₹{(safeNumber((portfolio as any)?.holdingsValue || totalValue || ((portfolio as any)?.minInvestment || 30000) - ((portfolio as any)?.cashBalance || 100)) / 1000).toFixed(0)}K
+                      </div>
+                      <div className="text-xs text-slate-500 mt-0.5">Total Value</div>
+                    </div>
+                  </div>
 
-              {/* Desktop Layout */}
-              <div className="hidden md:block">
-                <div className="grid grid-cols-3 gap-6 text-sm">
-                  <div className="text-center">
-                    <span className="text-gray-600 block mb-2">Total Holdings Value</span>
-                    <div className="font-bold text-lg">₹{safeNumber((portfolio as any)?.holdingsValue || totalValue || ((portfolio as any)?.minInvestment || 30000) - ((portfolio as any)?.cashBalance || 100)).toLocaleString()}/-</div>
+                  {/* Cash Balance */}
+                  <div className="group relative overflow-hidden bg-white/70 backdrop-blur-sm rounded-lg border border-gray-200/50 p-3 hover:shadow-md transition-all duration-300">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="relative">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center space-x-1.5">
+                          <div className="w-4 h-4 bg-blue-600 rounded-sm flex items-center justify-center">
+                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                          </div>
+                          <span className="text-xs font-medium text-blue-700">Cash</span>
+                        </div>
+                        <div className="text-xs font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">
+                          {(((portfolio as any)?.cashBalance || 100) / ((portfolio as any)?.minInvestment || 30000) * 100).toFixed(1)}%
+                        </div>
+                      </div>
+                      <div className="text-base font-bold text-blue-900 leading-none">
+                        ₹{(safeNumber((portfolio as any)?.cashBalance || 100) / 1000).toFixed(1)}K
+                      </div>
+                      <div className="text-xs text-blue-600 mt-0.5">Available</div>
+                    </div>
                   </div>
-                  <div className="text-blue-600 text-center">
-                    <span className="block mb-2">Cash Balance</span>
-                    <div className="font-bold text-lg">{(((portfolio as any)?.cashBalance || 100) / ((portfolio as any)?.minInvestment || 30000) * 100).toFixed(1)}%</div>
-                    <div className="font-bold text-lg">₹{safeNumber((portfolio as any)?.cashBalance || 100).toLocaleString()}/-</div>
-                  </div>
-                  <div className="text-blue-600 text-center">
-                    <span className="block mb-2">Total Portfolio Value</span>
-                    <div className="font-bold text-lg">₹{safeNumber((portfolio as any)?.currentValue || (portfolio as any)?.minInvestment || 30000).toLocaleString()}/-</div>
+
+                  {/* Total Portfolio */}
+                  <div className="group relative overflow-hidden bg-white/70 backdrop-blur-sm rounded-lg border border-gray-200/50 p-3 hover:shadow-md transition-all duration-300">
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="relative">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center space-x-1.5">
+                          <div className="w-4 h-4 bg-indigo-600 rounded-sm flex items-center justify-center">
+                            <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                            </svg>
+                          </div>
+                          <span className="text-xs font-medium text-indigo-700">Portfolio</span>
+                        </div>
+                        <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full"></div>
+                      </div>
+                      <div className="text-base font-bold text-indigo-900 leading-none">
+                        ₹{(safeNumber((portfolio as any)?.currentValue || (portfolio as any)?.minInvestment || 30000) / 1000).toFixed(0)}K
+                      </div>
+                      <div className="text-xs text-indigo-600 mt-0.5">Total Value</div>
+                    </div>
                   </div>
                 </div>
-                <div className="mt-6 text-center">
-                  <span className="text-green-600 font-bold text-xl">+{safeString((portfolio as any)?.CAGRSinceInception || "15.2")}% Since Inception</span>
+
+                {/* Performance Footer */}
+                <div className="mt-3 pt-3 border-t border-gray-100/60">
+                  <div className="flex items-center justify-center space-x-2 text-center">
+                    <div className="flex items-center space-x-1">
+                      <div className="w-1 h-1 bg-green-500 rounded-full"></div>
+                      <span className="text-xs text-gray-600">Since Inception:</span>
+                    </div>
+                    <span className="text-sm font-bold text-green-700">+{safeString((portfolio as any)?.CAGRSinceInception || "15.2")}% CAGR</span>
+                  </div>
                 </div>
               </div>
                 </div>
@@ -1104,142 +1177,136 @@ export default function PortfolioDetailsPage() {
             </Card>
 
         {/* Portfolio Allocation Chart */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
-          <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50/30">
-            <CardContent className="p-4 sm:p-6 lg:p-8">
-              <h3 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 lg:mb-8 text-gray-800">Portfolio Allocation</h3>
-              <div className="relative flex items-center justify-center w-full">
-                <div className="w-full h-64 sm:h-80 lg:h-96 xl:h-[420px] relative">
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-50/20 to-purple-50/20 rounded-full blur-3xl"></div>
-                  <div className="absolute inset-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={portfolioAllocationData.length > 0 ? portfolioAllocationData : [
-                            { name: "HDFCBANK", value: 79.57, color: "#3B82F6", sector: "Banking" },
-                            { name: "INFY", value: 20.43, color: "#10B981", sector: "IT" }
-                          ]}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius="45%"
-                          outerRadius="85%"
-                          startAngle={0}
-                          endAngle={360}
-                          paddingAngle={3}
-                          dataKey="value"
-                          stroke="none"
-                          strokeWidth={0}
-                          onMouseEnter={(data, index) => {
-                            setHoveredSegment(data);
-                          }}
-                          onMouseLeave={() => {
-                            setHoveredSegment(null);
-                          }}
-                          onClick={(data, index) => {
-                            setSelectedSegment(selectedSegment?.name === data.name ? null : data);
-                          }}
-                        >
-                          {(portfolioAllocationData.length > 0 ? portfolioAllocationData : [
-                            { name: "HDFCBANK", value: 79.57, color: "#3B82F6", sector: "Banking" },
-                            { name: "INFY", value: 20.43, color: "#10B981", sector: "IT" }
-                          ]).map((entry, index) => {
-                            const isActive = hoveredSegment?.name === entry.name || selectedSegment?.name === entry.name;
-                            const isOtherActive = (hoveredSegment || selectedSegment) && !isActive;
-                            
-                            return (
-                              <Cell 
-                                key={`cell-${index}`} 
-                                fill={entry.color}
-                                style={{ 
-                                  cursor: 'pointer',
-                                  filter: isActive 
-                                    ? `drop-shadow(0 4px 12px ${entry.color}30) brightness(1.02)` 
-                                    : isOtherActive 
-                                      ? 'brightness(0.8)' 
-                                      : 'brightness(1)',
-                                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                                  transformOrigin: '50% 50%',
-                                  transform: isActive ? 'scale(1.02)' : 'scale(1)'
-                                }}
-                              />
-                            );
-                          })}
-                        </Pie>
-                      </PieChart>
-                    </ResponsiveContainer>
-        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+          {/* Chart Card - Compact */}
+          <Card className="shadow-sm border border-gray-200">
+            <CardContent className="p-4">
+              <h3 className="text-lg font-bold mb-3 text-gray-800">Portfolio Allocation</h3>
+                            <div className="relative flex items-center justify-center">
+                <div className="w-full h-56 sm:h-64 lg:h-72 relative">
+                  <ResponsiveContainer width="100%" height="100%">
+                  <PieChart width={400} height={400}>
+  <Pie
+    data={portfolioAllocationData.length > 0 ? portfolioAllocationData : [
+      { name: "HDFCBANK", value: 79.57, color: "#3B82F6", sector: "Banking" },
+      { name: "IDFCFIRSTB", value: 20.43, color: "#10B981", sector: "Banking" }
+    ]}
+    cx="50%"
+    cy="50%"
+    innerRadius="60%"
+    outerRadius="80%"
+    paddingAngle={2}
+    dataKey="value"
+    stroke="none"
+    // Update state on hover, passing the full data object
+    onMouseEnter={(data) => setHoveredSegment(data)}
+    // Clear state when the mouse leaves the chart
+    onMouseLeave={() => setHoveredSegment(null)}
+  >
+    {(portfolioAllocationData.length > 0 ? portfolioAllocationData : [
+      { name: "HDFCBANK", value: 79.57, color: "#3B82F6", sector: "Banking" },
+      { name: "IDFCFIRSTB", value: 20.43, color: "#10B981", sector: "Banking" }
+    ]).map((entry, index) => {
+      // Check if the current segment is the one being hovered over
+      const isActive = hoveredSegment?.name === entry.name;
+      // Check if another segment is hovered, to fade this one out
+      const isFaded = hoveredSegment && !isActive;
 
-                  {/* Mobile-responsive center display for donut chart */}
-                  {(selectedSegment || hoveredSegment) && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 transition-all duration-500 ease-out">
-                      <div className="text-center max-w-[140px] sm:max-w-[160px] lg:max-w-xs transform transition-all duration-500 ease-out animate-in fade-in slide-in-from-bottom-2 px-2">
-                        <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-1 transition-all duration-300">
-                          {(selectedSegment || hoveredSegment)?.value.toFixed(2)}%
+      return (
+        <Cell
+          key={`cell-${index}`}
+          fill={entry.color}
+          style={{
+            cursor: 'pointer',
+            // A more fluid and responsive transition
+            transition: 'all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)',
+            transformOrigin: 'center',
+            // Scale the active segment to make it appear thicker and more prominent
+            transform: isActive ? 'scale(1.12)' : 'scale(1)',
+            // Apply a soft, colored shadow to the active segment and fade out others
+            filter: isActive
+              ? `drop-shadow(0 8px 20px ${entry.color}60) brightness(1.1)`
+              : isFaded
+                ? 'saturate(0.7) brightness(0.85)'
+                : 'none',
+            // Fade out non-active segments when something is hovered
+            opacity: isFaded ? 0.5 : 1,
+          }}
+        />
+      );
+    })}
+  </Pie>
+</PieChart>
+                  </ResponsiveContainer>
+
+                  {/* Center Display */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="text-center max-w-32">
+                      {(selectedSegment || hoveredSegment) ? (
+                        <div className="transition-all duration-300 transform scale-105">
+                          <div className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
+                            {(selectedSegment || hoveredSegment)?.value.toFixed(1)}%
             </div>
-                        <div className="text-gray-700 font-semibold text-xs sm:text-sm lg:text-base mb-1 transition-all duration-300 truncate">
-                          {(selectedSegment || hoveredSegment)?.name}
-            </div>
-                        <div className="text-xs text-gray-500 mb-1 transition-all duration-300">
-                          {(selectedSegment || hoveredSegment)?.sector}
-          </div>
-                        <div className="text-xs sm:text-sm lg:text-base font-bold transition-all duration-300" style={{ color: (selectedSegment || hoveredSegment)?.color }}>
-                          ₹{(((selectedSegment || hoveredSegment)?.value || 0) / 100 * 30000).toFixed(0)}
+                          <div className="text-sm font-semibold text-gray-700 truncate leading-tight">
+                            {(selectedSegment || hoveredSegment)?.name}
+                          </div>
+                          <div className="text-xs text-gray-500 uppercase tracking-wide mt-1">
+                            {(selectedSegment || hoveredSegment)?.sector}
+                          </div>
+                          <div className="text-xs font-medium text-gray-600 mt-1">
+                            ₹{(((selectedSegment || hoveredSegment)?.value || 0) / 100 * 30000).toFixed(0)}
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="text-gray-400">
+                          <div className="text-base font-semibold mb-1">Portfolio</div>
+                          <div className="text-xs">Hover to explore</div>
+                        </div>
+                      )}
                     </div>
-                  )}
-
-                  {/* Mobile-responsive default center display */}
-                  {!selectedSegment && !hoveredSegment && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none transition-all duration-500 ease-out">
-                      <div className="text-center text-gray-400 transform transition-all duration-500 ease-out px-2 max-w-[140px] sm:max-w-[160px] lg:max-w-xs">
-                        <div className="text-base sm:text-lg lg:text-xl font-bold mb-1 transition-all duration-300">Portfolio</div>
-                        <div className="text-xs transition-all duration-300">Click segments to explore</div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {/* Smooth selected segment info */}
-              {selectedSegment && (
-                <div className="mt-6 p-4 bg-gradient-to-r from-blue-50/60 to-indigo-50/60 rounded-2xl border border-blue-100/60 transform transition-all duration-400 ease-out animate-in fade-in slide-in-from-bottom-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div 
-                        className="w-4 h-4 rounded-full shadow-sm transition-all duration-300" 
-                        style={{ backgroundColor: selectedSegment.color }}
-                    ></div>
-                      <div>
-                        <div className="font-semibold text-gray-800 text-base transition-all duration-300">{selectedSegment.name}</div>
-                        <div className="text-sm text-gray-600 transition-all duration-300">{selectedSegment.sector} • {selectedSegment.value.toFixed(2)}%</div>
                   </div>
-                </div>
-                    <div className="text-right">
-                      <div className="font-semibold text-lg text-gray-800 transition-all duration-300">₹{(selectedSegment.value / 100 * 30000).toFixed(0)}</div>
-                      <button 
-                        onClick={() => setSelectedSegment(null)}
-                        className="mt-1 text-sm text-blue-600 hover:text-blue-700 transition-all duration-300 ease-out hover:scale-105"
-                      >
-                        Clear selection
-                      </button>
-            </div>
             </div>
           </div>
-              )}
+
+              {/* Compact Legend */}
+              <div className="mt-3 space-y-2">
+                {(portfolioAllocationData.length > 0 ? portfolioAllocationData : [
+                  { name: "HDFCBANK", value: 79.57, color: "#3B82F6", sector: "Banking" },
+                  { name: "IDFCFIRSTB", value: 20.43, color: "#10B981", sector: "Banking" }
+                ]).slice(0, 3).map((stock, index) => (
+                  <div key={index} className="flex items-center justify-between text-xs">
+                    <div className="flex items-center space-x-2">
+                      <div 
+                        className="w-2 h-2 rounded-full" 
+                        style={{ backgroundColor: stock.color }}
+                    ></div>
+                      <span className="text-gray-700 font-medium">{stock.name}</span>
+                      <span className="text-gray-500">{stock.sector}</span>
+                  </div>
+                    <span className="font-semibold text-gray-800">{stock.value.toFixed(1)}%</span>
+                </div>
+              ))}
+                {portfolioAllocationData.length > 3 && (
+                  <div className="text-xs text-gray-500 text-center">
+                    +{portfolioAllocationData.length - 3} more holdings
+            </div>
+                )}
+            </div>
             </CardContent>
           </Card>
 
-          <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50/30">
-            <CardContent className="p-4 sm:p-6 lg:p-8">
-              <div className="flex items-center justify-between mb-4 sm:mb-6 lg:mb-8">
-                <h3 className="text-xl sm:text-2xl font-bold text-gray-800">Holdings</h3>
-                <span className="text-xs sm:text-sm text-gray-500 font-semibold">% of portfolio</span>
+          {/* Holdings Card - Compact */}
+          <Card className="shadow-sm border border-gray-200">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-bold text-gray-800">Holdings</h3>
+                <span className="text-xs text-gray-500 font-medium">% of portfolio</span>
           </div>
-              <div className="space-y-1 max-h-64 sm:max-h-80 lg:max-h-96 overflow-y-auto pr-1 sm:pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+              
+              <div className="space-y-2 max-h-64 overflow-y-auto">
                 {(portfolioAllocationData.length > 0 ? portfolioAllocationData : [
                   { name: "HDFCBANK", value: 79.57, color: "#3B82F6", sector: "Banking" },
-                  { name: "INFY", value: 20.43, color: "#10B981", sector: "IT" }
+                  { name: "IDFCFIRSTB", value: 20.43, color: "#10B981", sector: "Banking" }
                 ])
                   .sort((a, b) => b.value - a.value)
                   .map((stock, index) => {
@@ -1249,46 +1316,48 @@ export default function PortfolioDetailsPage() {
                     return (
                 <div
                   key={index}
-                        className={`flex items-center justify-between p-2 sm:p-3 lg:p-4 rounded-lg sm:rounded-xl cursor-pointer transition-all duration-300 ease-out ${
+                        className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all duration-200 ${
                           isSelected 
-                            ? 'bg-gradient-to-r from-blue-50/70 to-indigo-50/70 border border-blue-200/50 shadow-sm transform scale-[1.01]' 
+                            ? 'bg-blue-50 border border-blue-200' 
                             : isHovered
-                              ? 'bg-gray-50/70 border border-gray-200/50 transform scale-[1.005]'
-                              : 'hover:bg-gray-50/50 border border-transparent'
+                              ? 'bg-gray-50 border border-gray-200'
+                              : 'hover:bg-gray-50 border border-transparent'
                         }`}
                         onClick={() => setSelectedSegment(isSelected ? null : stock)}
                         onMouseEnter={() => setHoveredSegment(stock)}
                         onMouseLeave={() => setHoveredSegment(null)}
                       >
-                        <div className="flex items-center space-x-2 sm:space-x-3 lg:space-x-4 min-w-0 flex-1">
+                        <div className="flex items-center space-x-2 min-w-0 flex-1">
                           <div 
-                            className={`rounded-full shadow-sm transition-all duration-300 ease-out ${
-                              isSelected || isHovered ? 'w-3 h-3 sm:w-4 sm:h-4 shadow-md' : 'w-2.5 h-2.5 sm:w-3.5 sm:h-3.5'
-                            }`}
+                            className="w-3 h-3 rounded-full flex-shrink-0" 
                             style={{ backgroundColor: stock.color }}
                           ></div>
                           <div className="min-w-0 flex-1">
-                            <div className={`font-medium truncate transition-all duration-300 ease-out ${
-                              isSelected ? 'text-blue-800 text-xs sm:text-sm lg:text-base' : 'text-gray-800 text-xs sm:text-sm'
-                            }`}>
+                            <div className="text-sm font-medium text-gray-800 truncate">
                               {stock.name}
                             </div>
-                            <div className="text-xs text-gray-500 mt-0.5 transition-all duration-300 hidden sm:block">{stock.sector}</div>
+                            <div className="text-xs text-gray-500">{stock.sector}</div>
                           </div>
                         </div>
-                        <div className="text-right ml-2 sm:ml-4">
-                          <div className={`font-semibold transition-all duration-300 ease-out ${
-                            isSelected ? 'text-blue-800 text-xs sm:text-sm lg:text-base' : 'text-gray-800 text-xs sm:text-sm'
-                          }`}>
-                            {stock.value.toFixed(2)}%
+                        <div className="text-right flex-shrink-0 ml-2">
+                          <div className="text-sm font-semibold text-gray-800">
+                            {stock.value.toFixed(1)}%
                           </div>
-                          <div className="text-xs text-gray-500 mt-0.5 transition-all duration-300">
+                          <div className="text-xs text-gray-500">
                             ₹{((stock.value / 100) * 30000).toFixed(0)}
                           </div>
                         </div>
                       </div>
                     );
                   })}
+              </div>
+              
+              {/* Summary Footer */}
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <div className="flex justify-between text-xs text-gray-600">
+                  <span>Total Holdings: {portfolioAllocationData.length || 2}</span>
+                  <span>Total Allocation: 100%</span>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -1364,3 +1433,4 @@ export default function PortfolioDetailsPage() {
     </DashboardLayout>
   );
 }
+

@@ -36,9 +36,22 @@ export default function ModelPortfoliosPage() {
     if (!desc) return 'No description available';
     if (typeof desc === 'string') return desc;
     if (Array.isArray(desc)) {
+      // Look for "home card" key specifically
+      const homeCardDesc = desc.find((item: any) => item.key === "home card");
+      if (homeCardDesc && homeCardDesc.value) {
+        // Strip HTML tags and return clean text
+        const textContent = homeCardDesc.value.replace(/<[^>]*>/g, '');
+        return textContent.length > 150 ? textContent.substring(0, 150) + '...' : textContent;
+      }
+      
+      // Fallback to original logic if no "home card" found
       return desc.map((item: any) => {
         if (typeof item === 'string') return item;
-        if (item?.value) return item.value;
+        if (item?.value) {
+          // Strip HTML tags from any value
+          const textContent = String(item.value).replace(/<[^>]*>/g, '');
+          return textContent;
+        }
         if (item?.key) return item.key;
         return String(item);
       }).filter(Boolean).join(', ');
@@ -194,7 +207,7 @@ export default function ModelPortfoliosPage() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-6xl mx-auto p-2 sm:p-4">
+      <div className="max-w-6xl mx-auto">
         <PageHeader 
           title="Model Portfolios" 
           subtitle="Discover our expertly crafted investment strategies" 
@@ -207,9 +220,9 @@ export default function ModelPortfoliosPage() {
           <div className="space-y-4 sm:space-y-6">
             {portfolios.map((portfolio) => (
               <Card key={portfolio._id} className="overflow-hidden">
-                <CardContent className="p-4 sm:p-6">
+                <CardContent className="p-3 sm:p-4">
                   {/* Mobile-responsive header section */}
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4 sm:mb-6 space-y-4 sm:space-y-0">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3 sm:mb-4 space-y-3 sm:space-y-0">
                     <div className="flex items-start space-x-3 sm:space-x-4">
                       <div className="bg-blue-100 p-2 sm:p-3 rounded-lg flex-shrink-0">
                         <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
@@ -220,12 +233,12 @@ export default function ModelPortfoliosPage() {
                       </div>
                     </div>
                     
-                    {/* Responsive button layout */}
-                    <div className="flex flex-col sm:flex-row gap-2 sm:space-x-2 w-full sm:w-auto">
+                    {/* Side by side button layout */}
+                    <div className="flex flex-row gap-2 w-full sm:w-auto">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex items-center justify-center space-x-2 w-full sm:w-auto"
+                        className="flex items-center justify-center space-x-2 flex-1 sm:flex-none sm:w-auto"
                         onClick={() => handleMethodologyClick(portfolio._id)}
                       >
                         <FileText className="h-4 w-4" />
@@ -234,7 +247,7 @@ export default function ModelPortfoliosPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex items-center justify-center space-x-2 w-full sm:w-auto"
+                        className="flex items-center justify-center space-x-2 flex-1 sm:flex-none sm:w-auto"
                         onClick={() => handleViewDetails(portfolio._id)}
                       >
                         <Eye className="h-4 w-4" />
@@ -244,7 +257,7 @@ export default function ModelPortfoliosPage() {
                   </div>
 
                   {/* Mobile-responsive metrics grid */}
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-3 sm:mb-4">
                     <div className="p-3 sm:p-4 bg-gray-50 rounded-lg">
                       <p className="text-xs sm:text-sm text-gray-600 mb-1">Monthly Gains</p>
                       <p className={`text-lg sm:text-xl font-semibold ${safeNumber(portfolio.monthlyGains) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
