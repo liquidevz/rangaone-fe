@@ -3,9 +3,13 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { Check, ChevronRight, Star } from "lucide-react"
+import { Check, ChevronRight, Star, ShoppingCart } from "lucide-react"
 import { motion } from "framer-motion"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
+import { useAuth } from "@/components/auth/auth-context"
+import { useCart } from "@/components/cart/cart-context"
+import { useToast } from "@/components/ui/use-toast"
+import { bundleService, Bundle } from "@/services/bundle.service"
 
 // Animation variants
 const fadeIn = {
@@ -36,10 +40,51 @@ const ScrollToTop = () => {
 }
 
 export default function PremiumSubscriptionPage() {
+  const [premiumBundle, setPremiumBundle] = useState<Bundle | null>(null)
+  const [loading, setLoading] = useState(true)
+  
+  const { isAuthenticated } = useAuth()
+  const { addBundleToCart, hasBundle } = useCart()
+  const { toast } = useToast()
+
   // Ensure scroll to top on page load
   useEffect(() => {
     window.scrollTo(0, 0)
+    loadPremiumBundle()
   }, [])
+
+  const loadPremiumBundle = async () => {
+    try {
+      const bundles = await bundleService.getAll()
+      const premium = bundles.find(bundle => bundle.category === "premium")
+      setPremiumBundle(premium || null)
+    } catch (error) {
+      console.error("Failed to load premium bundle:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAddToCart = async (subscriptionType: "monthly" | "quarterly" = "monthly") => {
+    if (!premiumBundle) return
+    
+    // Remove authentication check - allow all users to add to cart
+    try {
+      await addBundleToCart(premiumBundle._id, subscriptionType)
+      toast({
+        title: "Added to Cart",
+        description: `Premium subscription (${subscriptionType}) has been added to your cart.`,
+      })
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add to cart.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const isInCart = premiumBundle ? hasBundle(premiumBundle._id) : false
 
   return (
     <main className="min-h-screen bg-[#1a1a1a] overflow-x-hidden">
@@ -85,15 +130,32 @@ export default function PremiumSubscriptionPage() {
               <p className="text-[#1e4e45] mb-8 italic">
                 Here's what makes <span className="font-semibold">Rangaone Wealth Premium</span> truly special:
               </p>
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Link
-                  href="/#pricing"
-                  className="bg-[#1e4e45] hover:bg-[#183a33] text-white font-bold py-4 px-10 rounded-full transition-all inline-flex items-center shadow-lg hover:shadow-[#1e4e45]/30"
+              <div className="flex flex-col sm:flex-row gap-4">
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Link
+                    href="/#pricing"
+                    className="bg-[#1e4e45] hover:bg-[#183a33] text-white font-bold py-4 px-10 rounded-full transition-all inline-flex items-center shadow-lg hover:shadow-[#1e4e45]/30"
+                  >
+                    <span>BUY NOW</span>
+                    <ChevronRight className="ml-2 h-5 w-5" />
+                  </Link>
+                </motion.div>
+
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleAddToCart("monthly")}
+                  disabled={isInCart || loading}
+                  className={`font-bold py-4 px-10 rounded-full transition-all inline-flex items-center shadow-lg border-2 ${
+                    isInCart
+                      ? "bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed"
+                      : "bg-transparent border-[#1e4e45] text-[#1e4e45] hover:bg-[#1e4e45] hover:text-white"
+                  }`}
                 >
-                  <span>BUY NOW</span>
-                  <ChevronRight className="ml-2 h-5 w-5" />
-                </Link>
-              </motion.div>
+                  <ShoppingCart className="mr-2 h-5 w-5" />
+                  <span>{isInCart ? "In Cart" : "Add to Cart"}</span>
+                </motion.button>
+              </div>
             </motion.div>
 
             <motion.div
@@ -641,15 +703,32 @@ export default function PremiumSubscriptionPage() {
               This isn't just a service—it's a game-changer. Are you ready for elite guidance, confidence, and an
               unbeatable edge?
             </p>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link
-                href="/#pricing"
-                className="bg-[#1a1a1a] text-white hover:bg-gray-800 font-bold py-4 px-10 rounded-full transition-all inline-flex items-center shadow-lg"
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Link
+                  href="/#pricing"
+                  className="bg-[#1a1a1a] text-white hover:bg-gray-800 font-bold py-4 px-10 rounded-full transition-all inline-flex items-center shadow-lg"
+                >
+                  <span>Subscribe Now</span>
+                  <ChevronRight className="ml-2 h-5 w-5" />
+                </Link>
+              </motion.div>
+
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleAddToCart("monthly")}
+                disabled={isInCart || loading}
+                className={`font-bold py-4 px-10 rounded-full transition-all inline-flex items-center shadow-lg border-2 ${
+                  isInCart
+                    ? "bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed"
+                    : "bg-transparent border-[#1a1a1a] text-[#1a1a1a] hover:bg-[#1a1a1a] hover:text-white"
+                }`}
               >
-                <span>Subscribe Now</span>
-                <ChevronRight className="ml-2 h-5 w-5" />
-              </Link>
-            </motion.div>
+                <ShoppingCart className="mr-2 h-5 w-5" />
+                <span>{isInCart ? "In Cart" : "Add to Cart"}</span>
+              </motion.button>
+            </div>
           </motion.div>
         </div>
       </section>

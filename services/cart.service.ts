@@ -22,6 +22,23 @@ export interface CartItem {
   addedAt: string;
 }
 
+// New bundle cart item interface
+export interface BundleCartItem {
+  _id: string;
+  bundle: {
+    _id: string;
+    name: string;
+    description: string;
+    category: string;
+    monthlyPrice: number;
+    quarterlyPrice: number;
+    yearlyPrice: number;
+    discountPercentage: number;
+  };
+  quantity: number;
+  addedAt: string;
+}
+
 export interface Cart {
   _id: string;
   user: string;
@@ -30,8 +47,24 @@ export interface Cart {
   updatedAt: string;
 }
 
+// Enhanced cart interface for mixed items (portfolios + bundles)
+export interface EnhancedCart {
+  _id: string;
+  user: string;
+  portfolioItems: CartItem[];
+  bundleItems: BundleCartItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AddToCartPayload {
   portfolioId: string;
+  quantity?: number;
+}
+
+// New bundle cart payload
+export interface AddBundleToCartPayload {
+  bundleId: string;
   quantity?: number;
 }
 
@@ -52,9 +85,31 @@ export const cartService = {
     });
   },
 
-  // Add item to cart (or update quantity if it exists)
+  // Add portfolio to cart (or update quantity if it exists)
   addToCart: async (payload: AddToCartPayload): Promise<Cart> => {
     const token = authService.getAccessToken();
+    return await post<Cart>("/api/user/cart", payload, {
+      headers: {
+        accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Add subscription bundle to cart - treating bundles as special portfolios
+  addBundleToCart: async (bundleId: string, subscriptionType: "monthly" | "quarterly" | "yearly" = "monthly"): Promise<Cart> => {
+    const token = authService.getAccessToken();
+    
+    // For bundles, we'll use a special payload format that the backend can handle
+    // If your backend has a separate endpoint for bundles, modify this accordingly
+    const payload = {
+      portfolioId: bundleId, // Using portfolioId field but with bundle ID
+      quantity: 1,
+      itemType: "bundle", // Adding type indicator
+      subscriptionType
+    };
+
     return await post<Cart>("/api/user/cart", payload, {
       headers: {
         accept: "application/json",
@@ -177,6 +232,48 @@ export const cartService = {
       const price = fee?.price || 0;
       return total + (price * item.quantity);
     }, 0);
+  },
+
+  // Calculate bundle cart total for a specific subscription type  
+  calculateBundleTotal: (bundleItems: BundleCartItem[], subscriptionType: "monthly" | "quarterly" | "yearly"): number => {
+    return bundleItems.reduce((total, item) => {
+      let price = 0;
+      switch (subscriptionType) {
+        case "yearly":
+          price = item.bundle.yearlyPrice;
+          break;
+        case "quarterly":
+          price = item.bundle.quarterlyPrice;
+          break;
+        default:
+          price = item.bundle.monthlyPrice;
+          break;
+      }
+      return total + (price * item.quantity);
+    }, 0);
+  },
+
+  // Utility to identify if an item is a bundle or portfolio
+  isBundle: (item: any): boolean => {
+    // Check if the item has bundle-specific properties
+    return item.portfolio && (
+      item.portfolio.category === "basic" || 
+      item.portfolio.category === "premium" ||
+      item.portfolio.name?.toLowerCase().includes("subscription") ||
+      item.portfolio.name?.toLowerCase().includes("bundle")
+    );
+  },
+
+  // Utility to get bundle pricing
+  getBundlePrice: (bundle: any, subscriptionType: "monthly" | "quarterly" | "yearly"): number => {
+    switch (subscriptionType) {
+      case "yearly":
+        return bundle.yearlyPrice || 0;
+      case "quarterly":
+        return bundle.quarterlyPrice || 0;
+      default:
+        return bundle.monthlyPrice || 0;
+    }
   },
 
   // Validate cart items (check if portfolios still exist and are valid)

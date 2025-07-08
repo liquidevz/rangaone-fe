@@ -153,20 +153,18 @@ export const RoundedDrawerNav = ({
 
           {/* Authentication & Cart Section */}
           <div className="flex items-center gap-4">
-            {/* Cart Icon */}
-            {isAuthenticated && (
-              <button
-                onClick={handleCartClick}
-                className={`relative ${buttonBg} ${buttonText} p-2 rounded-full transition-all hover:scale-105`}
-              >
-                <FiShoppingCart className="w-5 h-5" />
-                {cartItemCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-medium">
-                    {cartItemCount}
-                  </span>
-                )}
-              </button>
-            )}
+            {/* Cart Icon - Show for all users */}
+            <button
+              onClick={handleCartClick}
+              className={`relative ${buttonBg} ${buttonText} p-2 rounded-full transition-all hover:scale-105`}
+            >
+              <FiShoppingCart className="w-5 h-5" />
+              {cartItemCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-medium">
+                  {cartItemCount}
+                </span>
+              )}
+            </button>
 
             {!isLoading && (
               <>

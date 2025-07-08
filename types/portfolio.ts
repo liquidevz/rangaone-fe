@@ -42,12 +42,54 @@ export interface CartItem {
   addedAt: string;
 }
 
+// New bundle cart item interface
+export interface BundleCartItem {
+  _id: string;
+  bundle: {
+    _id: string;
+    name: string;
+    description: string;
+    category: string;
+    monthlyPrice: number;
+    quarterlyPrice: number;
+    yearlyPrice: number;
+    discountPercentage: number;
+  };
+  quantity: number;
+  addedAt: string;
+}
+
 export interface Cart {
   _id: string;
   user: string;
   items: CartItem[];
   createdAt: string;
   updatedAt: string;
+}
+
+// Enhanced cart interface for mixed items (portfolios + bundles)
+export interface EnhancedCart {
+  _id: string;
+  user: string;
+  portfolioItems: CartItem[];
+  bundleItems: BundleCartItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Bundle type for cart operations
+export interface Bundle {
+  _id: string;
+  name: string;
+  description: string;
+  category: string;
+  monthlyPrice: number;
+  quarterlyPrice: number;
+  yearlyPrice: number;
+  discountPercentage: number;
+  portfolios?: UserPortfolio[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // Helper functions for portfolio data

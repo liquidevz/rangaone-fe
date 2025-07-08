@@ -3,9 +3,13 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { Check, ChevronRight } from "lucide-react"
+import { Check, ChevronRight, ShoppingCart } from "lucide-react"
 import { motion } from "framer-motion"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
+import { useAuth } from "@/components/auth/auth-context"
+import { useCart } from "@/components/cart/cart-context"
+import { useToast } from "@/components/ui/use-toast"
+import { bundleService, Bundle } from "@/services/bundle.service"
 
 // Animation variants
 const fadeIn = {
@@ -36,10 +40,51 @@ const ScrollToTop = () => {
 }
 
 export default function BasicSubscriptionPage() {
+  const [basicBundle, setBasicBundle] = useState<Bundle | null>(null)
+  const [loading, setLoading] = useState(true)
+  
+  const { isAuthenticated } = useAuth()
+  const { addBundleToCart, hasBundle } = useCart()
+  const { toast } = useToast()
+
   // Ensure scroll to top on page load
   useEffect(() => {
     window.scrollTo(0, 0)
+    loadBasicBundle()
   }, [])
+
+  const loadBasicBundle = async () => {
+    try {
+      const bundles = await bundleService.getAll()
+      const basic = bundles.find(bundle => bundle.category === "basic")
+      setBasicBundle(basic || null)
+    } catch (error) {
+      console.error("Failed to load basic bundle:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAddToCart = async (subscriptionType: "monthly" | "quarterly" = "monthly") => {
+    if (!basicBundle) return
+    
+    // Remove authentication check - allow all users to add to cart
+    try {
+      await addBundleToCart(basicBundle._id, subscriptionType)
+      toast({
+        title: "Added to Cart",
+        description: `Basic subscription (${subscriptionType}) has been added to your cart.`,
+      })
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add to cart.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const isInCart = basicBundle ? hasBundle(basicBundle._id) : false
 
   return (
     <main className="min-h-screen bg-white overflow-x-hidden">
@@ -86,15 +131,32 @@ export default function BasicSubscriptionPage() {
               <p className="text-blue-200 mb-8 italic">
                 Here's what makes <span className="font-semibold">Rangaone Wealth Basic</span> truly special:
               </p>
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Link
-                  href="/#pricing"
-                  className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-10 rounded-full transition-all inline-flex items-center shadow-lg hover:shadow-blue-500/30"
+              <div className="flex flex-col sm:flex-row gap-4">
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Link
+                    href="/#pricing"
+                    className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-10 rounded-full transition-all inline-flex items-center shadow-lg hover:shadow-blue-500/30"
+                  >
+                    <span>BUY NOW</span>
+                    <ChevronRight className="ml-2 h-5 w-5" />
+                  </Link>
+                </motion.div>
+
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleAddToCart("monthly")}
+                  disabled={isInCart || loading}
+                  className={`font-bold py-4 px-10 rounded-full transition-all inline-flex items-center shadow-lg border-2 ${
+                    isInCart
+                      ? "bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed"
+                      : "bg-transparent border-white text-white hover:bg-white hover:text-blue-600"
+                  }`}
                 >
-                  <span>BUY NOW</span>
-                  <ChevronRight className="ml-2 h-5 w-5" />
-                </Link>
-              </motion.div>
+                  <ShoppingCart className="mr-2 h-5 w-5" />
+                  <span>{isInCart ? "In Cart" : "Add to Cart"}</span>
+                </motion.button>
+              </div>
             </motion.div>
 
             <motion.div
@@ -458,15 +520,32 @@ export default function BasicSubscriptionPage() {
             <p className="text-blue-200 mb-8">
               Serious about building wealth? Start here. Subscribe to Rangaone Wealth Basic today!
             </p>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link
-                href="/#pricing"
-                className="bg-white text-blue-700 hover:bg-blue-50 font-bold py-4 px-10 rounded-full transition-all inline-flex items-center shadow-lg"
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Link
+                  href="/#pricing"
+                  className="bg-white text-blue-700 hover:bg-blue-50 font-bold py-4 px-10 rounded-full transition-all inline-flex items-center shadow-lg"
+                >
+                  <span>Subscribe Now</span>
+                  <ChevronRight className="ml-2 h-5 w-5" />
+                </Link>
+              </motion.div>
+
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleAddToCart("monthly")}
+                disabled={isInCart || loading}
+                className={`font-bold py-4 px-10 rounded-full transition-all inline-flex items-center shadow-lg border-2 ${
+                  isInCart
+                    ? "bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed"
+                    : "bg-transparent border-white text-white hover:bg-white hover:text-blue-700"
+                }`}
               >
-                <span>Subscribe Now</span>
-                <ChevronRight className="ml-2 h-5 w-5" />
-              </Link>
-            </motion.div>
+                <ShoppingCart className="mr-2 h-5 w-5" />
+                <span>{isInCart ? "In Cart" : "Add to Cart"}</span>
+              </motion.button>
+            </div>
           </motion.div>
         </div>
       </section>

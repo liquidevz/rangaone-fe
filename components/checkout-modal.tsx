@@ -19,6 +19,7 @@ import {
   UserPortfolio,
   userPortfolioService,
 } from "@/services/user-portfolio.service";
+import { AuthPromptModal } from "@/components/auth-prompt-modal";
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -44,8 +45,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [paymentStep, setPaymentStep] = useState<
     "review" | "processing" | "success" | "error"
   >("review");
-  const { user } = useAuth();
-  const { cart, refreshCart } = useCart();
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+  
+  const { user, isAuthenticated } = useAuth();
+  const { cart, refreshCart, cartItemCount, calculateTotal: cartCalculateTotal } = useCart();
   const { toast } = useToast();
 
   // Check if this is the basic plan (will be handled differently)
@@ -58,64 +61,30 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
   }, [isOpen, type, refreshCart]);
 
-  const calculateTotal = () => {
-    if (type === "single") {
-      if (bundle) {
-        switch (subscriptionType) {
-          case "yearly":
-            return bundle.yearlyPrice;
-          case "quarterly":
-            return bundle.quarterlyPrice;
-          default:
-            return bundle.monthlyPrice;
-        }
-      }
-
-      if (portfolio) {
-        return userPortfolioService.getPriceByType(
-          portfolio.subscriptionFee,
-          subscriptionType
-        );
-      }
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setPaymentStep("review");
+      setOrderData(null);
+      setShowAuthPrompt(false);
     }
-
-    if (type === "cart" && cart) {
-      return cart.items.reduce((total, item) => {
-        let price = 0;
-        switch (subscriptionType) {
-          case "yearly":
-            price =
-              item.portfolio.subscriptionFee.find(
-                (fee) => fee.type === "yearly"
-              )?.price || 0;
-            break;
-          case "quarterly":
-            price =
-              item.portfolio.subscriptionFee.find(
-                (fee) => fee.type === "quarterly"
-              )?.price || 0;
-            break;
-          default:
-            price =
-              item.portfolio.subscriptionFee.find(
-                (fee) => fee.type === "monthly"
-              )?.price || 0;
-            break;
-        }
-        return total + price * item.quantity;
-      }, 0);
-    }
-
-    return 0;
-  };
+  }, [isOpen]);
 
   const handleCreateOrder = async () => {
-    if (!user) {
+    // Check authentication for cart checkout
+    if (type === "cart" && !isAuthenticated) {
+      setShowAuthPrompt(true);
+      return;
+    }
+
+    // Check authentication for single item checkout
+    if (type === "single" && !isAuthenticated) {
       toast({
         title: "Authentication Required",
-        description: "Please log in to continue with the purchase",
+        description: "Please log in to complete your purchase.",
         variant: "destructive",
       });
+      onClose();
       return;
     }
 
@@ -322,393 +291,448 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     );
   };
 
+  const calculateTotal = () => {
+    if (type === "single") {
+      if (bundle) {
+        switch (subscriptionType) {
+          case "yearly":
+            return bundle.yearlyPrice;
+          case "quarterly":
+            return bundle.quarterlyPrice;
+          default:
+            return bundle.monthlyPrice;
+        }
+      }
+
+      if (portfolio) {
+        return userPortfolioService.getPriceByType(
+          portfolio.subscriptionFee,
+          subscriptionType
+        );
+      }
+    }
+
+    if (type === "cart" && cart) {
+      return cartCalculateTotal(subscriptionType);
+    }
+
+    return 0;
+  };
+
+  const handleAuthSuccess = () => {
+    setShowAuthPrompt(false);
+    // After successful auth, the cart will be synced automatically
+    // and we can proceed with checkout
+    toast({
+      title: "Authentication Successful",
+      description: "You can now complete your purchase.",
+    });
+  };
+
   if (!isOpen) return null;
 
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-        onClick={(e) => e.target === e.currentTarget && handleClose()}
-      >
+    <>
+      <AnimatePresence>
         <motion.div
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.95, opacity: 0 }}
-          className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={(e) => e.target === e.currentTarget && handleClose()}
         >
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              {type === "cart" ? (
-                <ShoppingCart className="h-5 w-5" />
-              ) : (
-                <CreditCard className="h-5 w-5" />
-              )}
-              {paymentStep === "success" ? "Payment Successful" : "Checkout"}
-            </h2>
-            <button
-              onClick={handleClose}
-              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
-          {/* Content */}
-          <div className="p-6">
-            {paymentStep === "review" && (
-              <div className="space-y-4">
-                <h3 className="font-semibold text-gray-900">Order Summary</h3>
-
-                {/* Debug info - Remove in production */}
-                {process.env.NODE_ENV === "development" && (
-                  <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
-                    Debug: Type: {type}, Subscription: {subscriptionType},
-                    Total: ₹{calculateTotal()}
-                  </div>
-                )}
-
-                {/* Single Portfolio */}
-                {type === "single" && portfolio && (
-                  <div className="bg-gray-50 rounded-lg p-4 border">
-                    <h4 className="font-semibold text-gray-900 mb-2">
-                      {portfolio.name}
-                    </h4>
-
-                    {/* Checkout Description */}
-                    {getCheckoutDescription(portfolio) && (
-                      <p className="text-sm text-gray-600 mb-4">
-                        {getCheckoutDescription(portfolio)}
-                      </p>
-                    )}
-
-                    {/* Key Metrics */}
-                    <div className="grid grid-cols-3 gap-3 mb-4 p-3 bg-white rounded border">
-                      <div className="text-center">
-                        <div className="text-sm font-bold text-green-600">
-                          {portfolio.CAGRSinceInception || "N/A"}%
-                        </div>
-                        <div className="text-xs text-gray-500">CAGR</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-sm font-bold text-blue-600">
-                          {portfolio.oneYearGains || "N/A"}%
-                        </div>
-                        <div className="text-xs text-gray-500">1Y Returns</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-sm font-bold text-purple-600">
-                          {portfolio.monthlyGains || "N/A"}%
-                        </div>
-                        <div className="text-xs text-gray-500">Monthly</div>
-                      </div>
-                    </div>
-
-                    {/* Portfolio Details */}
-                    <div className="space-y-2 mb-4 p-3 bg-white rounded border">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-gray-600">Min Investment:</span>
-                        <span className="font-medium">
-                          ₹{portfolio.minInvestment.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-xs">
-                        <span className="text-gray-600">Time Horizon:</span>
-                        <span className="font-medium">
-                          {portfolio.timeHorizon ||
-                            `${portfolio.durationMonths} months`}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-xs">
-                        <span className="text-gray-600">Rebalancing:</span>
-                        <span className="font-medium">
-                          {portfolio.rebalancing || "Quarterly"}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-center mt-3 pt-3 border-t">
-                      <span className="text-sm text-gray-500">
-                        {subscriptionType === "yearly"
-                          ? "Yearly"
-                          : subscriptionType === "quarterly"
-                          ? "Quarterly"
-                          : "Monthly"}{" "}
-                        Subscription
-                      </span>
-                      <span className="font-bold text-lg text-blue-600">
-                        ₹{calculateTotal()}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Single Bundle */}
-                {type === "single" && bundle && (
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h4 className="font-medium">{bundle.name}</h4>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {bundle.description}
-                    </p>
-
-                    {/* Show bundle portfolios if not basic plan */}
-                    {!isBasicPlan && bundle.portfolios.length > 0 && (
-                      <div className="mt-3 p-3 bg-white rounded border">
-                        <p className="text-sm font-medium text-gray-700 mb-2">
-                          Includes {bundle.portfolios.length} Portfolio
-                          {bundle.portfolios.length > 1 ? "s" : ""}:
-                        </p>
-                        <ul className="text-xs text-gray-600 space-y-1">
-                          {bundle.portfolios
-                            .slice(0, 3)
-                            .map((portfolio, index) => (
-                              <li key={index}>• {portfolio.name}</li>
-                            ))}
-                          {bundle.portfolios.length > 3 && (
-                            <li>
-                              • And {bundle.portfolios.length - 3} more...
-                            </li>
-                          )}
-                        </ul>
-                      </div>
-                    )}
-
-                    <div className="flex justify-between items-center mt-3">
-                      <span className="text-sm text-gray-500">
-                        {subscriptionType === "yearly"
-                          ? "Yearly"
-                          : subscriptionType === "quarterly"
-                          ? "Quarterly"
-                          : "Monthly"}{" "}
-                        Subscription
-                      </span>
-                      <span className="font-bold text-lg">
-                        ₹{calculateTotal()}
-                      </span>
-                    </div>
-
-                    {/* Show bundle discount if applicable */}
-                    {bundle.discountPercentage > 0 && (
-                      <div className="text-sm text-green-600 mt-2 flex items-center">
-                        <Check className="w-4 h-4 mr-1" />
-                        {bundle.discountPercentage}% bundle discount applied
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Cart Items */}
-                {type === "cart" && cart && cart.items.length > 0 && (
-                  <div className="space-y-3">
-                    {cart.items.map((item) => {
-                      let price = 0;
-                      let period = "";
-
-                      switch (subscriptionType) {
-                        case "yearly":
-                          price =
-                            item.portfolio.subscriptionFee.find(
-                              (fee) => fee.type === "yearly"
-                            )?.price || 0;
-                          period = "Yearly";
-                          break;
-                        case "quarterly":
-                          price =
-                            item.portfolio.subscriptionFee.find(
-                              (fee) => fee.type === "quarterly"
-                            )?.price || 0;
-                          period = "Quarterly";
-                          break;
-                        default:
-                          price =
-                            item.portfolio.subscriptionFee.find(
-                              (fee) => fee.type === "monthly"
-                            )?.price || 0;
-                          period = "Monthly";
-                          break;
-                      }
-
-                      const checkoutDesc =
-                        userPortfolioService.getDescriptionByKey(
-                          item.portfolio.description,
-                          "checkout card"
-                        );
-
-                      return (
-                        <div
-                          key={item._id}
-                          className="bg-gray-50 rounded-lg p-4"
-                        >
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <h4 className="font-medium">
-                                {item.portfolio.name}
-                              </h4>
-                              {checkoutDesc && (
-                                <p className="text-xs text-gray-600 mt-1">
-                                  {checkoutDesc}
-                                </p>
-                              )}
-                              <p className="text-sm text-gray-600 mt-1">
-                                Quantity: {item.quantity}
-                              </p>
-                            </div>
-                            <span className="font-bold">
-                              ₹{price * item.quantity}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Show message if cart is empty */}
-                {type === "cart" && (!cart || cart.items.length === 0) && (
-                  <div className="text-center py-8">
-                    <ShoppingCart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-600">Your cart is empty</p>
-                  </div>
-                )}
-
-                {/* Total */}
-                {((type === "cart" && cart && cart.items.length > 0) ||
-                  type === "single") && (
-                  <div className="border-t pt-4">
-                    <div className="flex justify-between items-center text-lg font-bold">
-                      <span>Total Amount</span>
-                      <span className="text-blue-600">₹{calculateTotal()}</span>
-                    </div>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Billed{" "}
-                      {subscriptionType === "yearly"
-                        ? "annually"
-                        : subscriptionType === "quarterly"
-                        ? "per quarter"
-                        : "monthly"}
-                    </p>
-                  </div>
-                )}
-
-                {/* Payment Button */}
-                {((type === "cart" && cart && cart.items.length > 0) ||
-                  type === "single") && (
-                  <Button
-                    onClick={handleCreateOrder}
-                    disabled={loading}
-                    className="w-full bg-[#001633] hover:bg-[#002244] text-white py-3"
-                  >
-                    {loading ? "Processing..." : `Pay ₹${calculateTotal()}`}
-                  </Button>
-                )}
-              </div>
-            )}
-
-            {paymentStep === "processing" && (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                <h3 className="text-lg font-semibold mb-2">
-                  Processing Payment
-                </h3>
-                <p className="text-gray-600">
-                  Please complete the payment in the Razorpay window...
-                </p>
-              </div>
-            )}
-
-            {paymentStep === "success" && (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Check className="h-8 w-8 text-green-600" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2 text-green-800">
-                  Payment Successful!
-                </h3>
-
-                {/* Success message based on purchase type */}
-                {type === "single" && bundle ? (
-                  <div className="text-gray-600 mb-6">
-                    <p className="mb-2">
-                      {bundle._id === "basic-plan-id"
-                        ? "Basic plan activated successfully!"
-                        : "Bundle subscription activated successfully!"}
-                    </p>
-                    {bundle._id === "basic-plan-id" ? (
-                      <p className="text-sm">
-                        You now have access to all basic features and
-                        recommendations.
-                      </p>
-                    ) : (
-                      <p className="text-sm">
-                        You now have access to all {bundle.portfolios.length}{" "}
-                        portfolio{bundle.portfolios.length > 1 ? "s" : ""} in
-                        this bundle.
-                      </p>
-                    )}
-                  </div>
-                ) : type === "single" && portfolio ? (
-                  <div className="text-gray-600 mb-6">
-                    <p className="mb-2">
-                      {portfolio.name} subscription activated!
-                    </p>
-                    <p className="text-sm">
-                      You now have full access to this portfolio's
-                      recommendations and insights.
-                    </p>
-                  </div>
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                {type === "cart" ? (
+                  <ShoppingCart className="h-5 w-5" />
                 ) : (
-                  <p className="text-gray-600 mb-6">
-                    Your subscription has been activated successfully.
-                  </p>
+                  <CreditCard className="h-5 w-5" />
                 )}
+                {paymentStep === "success" ? "Payment Successful" : "Checkout"}
+              </h2>
+              <button
+                onClick={handleClose}
+                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
-                <Button
-                  onClick={handleClose}
-                  className="w-full bg-green-600 hover:bg-green-700"
-                >
-                  Continue to Dashboard
-                </Button>
-              </div>
-            )}
+            {/* Content */}
+            <div className="p-6">
+              {paymentStep === "review" && (
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-gray-900">Order Summary</h3>
 
-            {paymentStep === "error" && (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <AlertCircle className="h-8 w-8 text-red-600" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2 text-red-800">
-                  {isBasicPlan ? "Basic Plan Coming Soon" : "Payment Failed"}
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  {isBasicPlan
-                    ? "Basic plan payment integration is being set up. Please contact our support team for assistance with purchasing the basic plan."
-                    : "Something went wrong with your payment. Please try again."}
-                </p>
-                <div className="space-y-2">
-                  {!isBasicPlan && (
+                  {/* Debug info - Remove in production */}
+                  {process.env.NODE_ENV === "development" && (
+                    <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
+                      Debug: Type: {type}, Subscription: {subscriptionType},
+                      Total: ₹{calculateTotal()}
+                    </div>
+                  )}
+
+                  {/* Single Portfolio */}
+                  {type === "single" && portfolio && (
+                    <div className="bg-gray-50 rounded-lg p-4 border">
+                      <h4 className="font-semibold text-gray-900 mb-2">
+                        {portfolio.name}
+                      </h4>
+
+                      {/* Checkout Description */}
+                      {getCheckoutDescription(portfolio) && (
+                        <div className="mb-4">
+                          <div 
+                            className="checkout-description text-sm text-gray-600"
+                            dangerouslySetInnerHTML={{ __html: getCheckoutDescription(portfolio) }}
+                          />
+                        </div>
+                      )}
+
+                      {/* Key Metrics */}
+                      <div className="grid grid-cols-3 gap-3 mb-4 p-3 bg-white rounded border">
+                        <div className="text-center">
+                          <div className="text-sm font-bold text-green-600">
+                            {portfolio.CAGRSinceInception || "N/A"}%
+                          </div>
+                          <div className="text-xs text-gray-500">CAGR</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-sm font-bold text-blue-600">
+                            {portfolio.oneYearGains || "N/A"}%
+                          </div>
+                          <div className="text-xs text-gray-500">1Y Returns</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-sm font-bold text-purple-600">
+                            {portfolio.monthlyGains || "N/A"}%
+                          </div>
+                          <div className="text-xs text-gray-500">Monthly</div>
+                        </div>
+                      </div>
+
+                      {/* Portfolio Details */}
+                      <div className="space-y-2 mb-4 p-3 bg-white rounded border">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-600">Min Investment:</span>
+                          <span className="font-medium">
+                            ₹{portfolio.minInvestment.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-600">Time Horizon:</span>
+                          <span className="font-medium">
+                            {portfolio.timeHorizon ||
+                              `${portfolio.durationMonths} months`}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-600">Rebalancing:</span>
+                          <span className="font-medium">
+                            {portfolio.rebalancing || "Quarterly"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center mt-3 pt-3 border-t">
+                        <span className="text-sm text-gray-500">
+                          {subscriptionType === "yearly"
+                            ? "Yearly"
+                            : subscriptionType === "quarterly"
+                            ? "Quarterly"
+                            : "Monthly"}{" "}
+                          Subscription
+                        </span>
+                        <span className="font-bold text-lg text-blue-600">
+                          ₹{calculateTotal()}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Single Bundle */}
+                  {type === "single" && bundle && (
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h4 className="font-medium">{bundle.name}</h4>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {bundle.description}
+                      </p>
+
+                      {/* Show bundle portfolios if not basic plan */}
+                      {!isBasicPlan && bundle.portfolios.length > 0 && (
+                        <div className="mt-3 p-3 bg-white rounded border">
+                          <p className="text-sm font-medium text-gray-700 mb-2">
+                            Includes {bundle.portfolios.length} Portfolio
+                            {bundle.portfolios.length > 1 ? "s" : ""}:
+                          </p>
+                          <ul className="text-xs text-gray-600 space-y-1">
+                            {bundle.portfolios
+                              .slice(0, 3)
+                              .map((portfolio, index) => (
+                                <li key={index}>• {portfolio.name}</li>
+                              ))}
+                            {bundle.portfolios.length > 3 && (
+                              <li>
+                                • And {bundle.portfolios.length - 3} more...
+                              </li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-center mt-3">
+                        <span className="text-sm text-gray-500">
+                          {subscriptionType === "yearly"
+                            ? "Yearly"
+                            : subscriptionType === "quarterly"
+                            ? "Quarterly"
+                            : "Monthly"}{" "}
+                          Subscription
+                        </span>
+                        <span className="font-bold text-lg">
+                          ₹{calculateTotal()}
+                        </span>
+                      </div>
+
+                      {/* Show bundle discount if applicable */}
+                      {bundle.discountPercentage > 0 && (
+                        <div className="text-sm text-green-600 mt-2 flex items-center">
+                          <Check className="w-4 h-4 mr-1" />
+                          {bundle.discountPercentage}% bundle discount applied
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Cart Items */}
+                  {type === "cart" && cart && cart.items.length > 0 && (
+                    <div className="space-y-3">
+                      {cart.items.map((item) => {
+                        let price = 0;
+                        let period = "";
+
+                        switch (subscriptionType) {
+                          case "yearly":
+                            price =
+                              item.portfolio.subscriptionFee.find(
+                                (fee) => fee.type === "yearly"
+                              )?.price || 0;
+                            period = "Yearly";
+                            break;
+                          case "quarterly":
+                            price =
+                              item.portfolio.subscriptionFee.find(
+                                (fee) => fee.type === "quarterly"
+                              )?.price || 0;
+                            period = "Quarterly";
+                            break;
+                          default:
+                            price =
+                              item.portfolio.subscriptionFee.find(
+                                (fee) => fee.type === "monthly"
+                              )?.price || 0;
+                            period = "Monthly";
+                            break;
+                        }
+
+                        const checkoutDesc =
+                          userPortfolioService.getDescriptionByKey(
+                            item.portfolio.description,
+                            "checkout card"
+                          );
+
+                        return (
+                          <div
+                            key={item._id}
+                            className="bg-gray-50 rounded-lg p-4"
+                          >
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <h4 className="font-medium">
+                                  {item.portfolio.name}
+                                </h4>
+                                {checkoutDesc && (
+                                  <div className="mt-1">
+                                    <div 
+                                      className="checkout-description text-xs text-gray-600"
+                                      dangerouslySetInnerHTML={{ __html: checkoutDesc }}
+                                    />
+                                  </div>
+                                )}
+                                <p className="text-sm text-gray-600 mt-1">
+                                  Quantity: {item.quantity}
+                                </p>
+                              </div>
+                              <span className="font-bold">
+                                ₹{price * item.quantity}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Show message if cart is empty */}
+                  {type === "cart" && (!cart || cart.items.length === 0) && (
+                    <div className="text-center py-8">
+                      <ShoppingCart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-600">Your cart is empty</p>
+                    </div>
+                  )}
+
+                  {/* Total */}
+                  {((type === "cart" && cart && cart.items.length > 0) ||
+                    type === "single") && (
+                    <div className="border-t pt-4">
+                      <div className="flex justify-between items-center text-lg font-bold">
+                        <span>Total Amount</span>
+                        <span className="text-blue-600">₹{calculateTotal()}</span>
+                      </div>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Billed{" "}
+                        {subscriptionType === "yearly"
+                          ? "annually"
+                          : subscriptionType === "quarterly"
+                          ? "per quarter"
+                          : "monthly"}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Payment Button */}
+                  {((type === "cart" && cart && cart.items.length > 0) ||
+                    type === "single") && (
                     <Button
-                      onClick={() => setPaymentStep("review")}
-                      className="w-full bg-[#001633] hover:bg-[#002244]"
+                      onClick={handleCreateOrder}
+                      disabled={loading}
+                      className="w-full bg-[#001633] hover:bg-[#002244] text-white py-3"
                     >
-                      Try Again
+                      {loading ? "Processing..." : `Pay ₹${calculateTotal()}`}
                     </Button>
                   )}
+                </div>
+              )}
+
+              {paymentStep === "processing" && (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                  <h3 className="text-lg font-semibold mb-2">
+                    Processing Payment
+                  </h3>
+                  <p className="text-gray-600">
+                    Please complete the payment in the Razorpay window...
+                  </p>
+                </div>
+              )}
+
+              {paymentStep === "success" && (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Check className="h-8 w-8 text-green-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2 text-green-800">
+                    Payment Successful!
+                  </h3>
+
+                  {/* Success message based on purchase type */}
+                  {type === "single" && bundle ? (
+                    <div className="text-gray-600 mb-6">
+                      <p className="mb-2">
+                        {bundle._id === "basic-plan-id"
+                          ? "Basic plan activated successfully!"
+                          : "Bundle subscription activated successfully!"}
+                      </p>
+                      {bundle._id === "basic-plan-id" ? (
+                        <p className="text-sm">
+                          You now have access to all basic features and
+                          recommendations.
+                        </p>
+                      ) : (
+                        <p className="text-sm">
+                          You now have access to all {bundle.portfolios.length}{" "}
+                          portfolio{bundle.portfolios.length > 1 ? "s" : ""} in
+                          this bundle.
+                        </p>
+                      )}
+                    </div>
+                  ) : type === "single" && portfolio ? (
+                    <div className="text-gray-600 mb-6">
+                      <p className="mb-2">
+                        {portfolio.name} subscription activated!
+                      </p>
+                      <p className="text-sm">
+                        You now have full access to this portfolio's
+                        recommendations and insights.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-gray-600 mb-6">
+                      Your subscription has been activated successfully.
+                    </p>
+                  )}
+
                   <Button
                     onClick={handleClose}
-                    variant="outline"
-                    className="w-full"
+                    className="w-full bg-green-600 hover:bg-green-700"
                   >
-                    {isBasicPlan ? "Contact Support" : "Cancel"}
+                    Continue to Dashboard
                   </Button>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+
+              {paymentStep === "error" && (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <AlertCircle className="h-8 w-8 text-red-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2 text-red-800">
+                    {isBasicPlan ? "Basic Plan Coming Soon" : "Payment Failed"}
+                  </h3>
+                  <p className="text-gray-600 mb-6">
+                    {isBasicPlan
+                      ? "Basic plan payment integration is being set up. Please contact our support team for assistance with purchasing the basic plan."
+                      : "Something went wrong with your payment. Please try again."}
+                  </p>
+                  <div className="space-y-2">
+                    {!isBasicPlan && (
+                      <Button
+                        onClick={() => setPaymentStep("review")}
+                        className="w-full bg-[#001633] hover:bg-[#002244]"
+                      >
+                        Try Again
+                      </Button>
+                    )}
+                    <Button
+                      onClick={handleClose}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      {isBasicPlan ? "Contact Support" : "Cancel"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
         </motion.div>
-      </motion.div>
-    </AnimatePresence>
+      </AnimatePresence>
+
+      {/* Authentication Prompt Modal */}
+      <AuthPromptModal
+        isOpen={showAuthPrompt}
+        onClose={() => setShowAuthPrompt(false)}
+        cartItemCount={cartItemCount}
+        cartTotal={calculateTotal()}
+        onSuccessfulAuth={handleAuthSuccess}
+      />
+    </>
   );
 };

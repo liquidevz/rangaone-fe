@@ -3,10 +3,11 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check } from "lucide-react";
+import { Check, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/components/auth/auth-context";
+import { useCart } from "@/components/cart/cart-context";
 import { bundleService, Bundle } from "@/services/bundle.service";
 import { CheckoutModal } from "./checkout-modal";
 import { SectionHeading } from "@/components/ui/section-heading";
@@ -72,6 +73,7 @@ export default function PricingSection() {
   });
 
   const { isAuthenticated } = useAuth();
+  const { addBundleToCart, hasBundle } = useCart();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -112,6 +114,23 @@ export default function PricingSection() {
       isBasicPlan: bundle.category === "basic",
       pricingType,
     });
+  };
+
+  const handleAddToCart = async (bundle: Bundle, pricingType: SubscriptionType) => {
+    // Remove authentication check - allow all users to add to cart
+    try {
+      await addBundleToCart(bundle._id, pricingType);
+      toast({
+        title: "Added to Cart",
+        description: `${bundle.name} (${pricingType}) has been added to your cart.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add bundle to cart.",
+        variant: "destructive",
+      });
+    }
   };
 
   const BASIC_SELECTED_STYLES =
@@ -158,62 +177,86 @@ export default function PricingSection() {
           .map((bundle) =>
             ["monthlyPrice", "quarterlyPrice"]
               .filter((priceType) => bundle[priceType as keyof Bundle] !== undefined)
-              .map((priceType) => (
-                <AnimatePresence mode="wait" key={`${bundle._id}-${priceType}`}>
-                  <div
-                    className={`w-full p-6 border-[3px] rounded-xl transition-transform duration-300 ease-in-out hover:scale-105 ${
-                      selected === "M"
-                        ? "bg-[linear-gradient(295.3deg,_#131859_11.58%,_rgba(24,101,123,0.8)_108.02%)] text-white border-slate-300 shadow-[0px_4px_21.5px_8px_#00A6E8]"
-                        : "bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)] text-[#333333] border-[#333333] shadow-[0px_4px_21.5px_8px_#AD9000]"
-                    }`}
-                  >
-                    <p className="text-2xl font-bold mb-2">
-                      {priceType === "quarterlyPrice" ? "Yearly" : "Monthly"}
-                    </p>
-                    <div className="overflow-hidden">
-                      <motion.p
-                        key={bundle._id + priceType}
-                        initial={{ y: -50, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: 50, opacity: 0 }}
-                        transition={{ ease: "linear", duration: 0.25 }}
-                        className="text-6xl font-bold"
-                      >
-                        <span>&#8377;{bundle[priceType as keyof Bundle] as number}</span>
-                        <span className="font-normal text-xl">/month</span>
-                      </motion.p>
-                    </div>
-
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-lg">
-                        {priceType === "quarterlyPrice"
-                          ? `(Save ${Math.round(
-                              ((bundle.monthlyPrice * 12 - bundle.quarterlyPrice * 12) /
-                                (bundle.monthlyPrice * 0.12))
-                            )}%)`
-                          : "(Flexible, but higher cost)"}
-                      </span>
-                    </div>
-
-                    <div className={`flex items-center gap-2 mb-2 ${priceType === "quarterlyPrice" ? "" : "invisible"}`}>
-                      <span className="text-lg">Annual, Billed Monthly</span>
-                    </div>
-
-                    <motion.button
-                      whileHover={{ scale: 1.015 }}
-                      whileTap={{ scale: 0.985 }}
-                      onClick={() =>
-                        handleBundlePurchase(bundle, priceType === "monthlyPrice" ? "monthly" : "quarterly")
-                      }
-                      className={`w-full py-4 font-semibold rounded-lg uppercase ${
-                        selected === "M" ? "bg-white text-black" : "bg-[#333333] text-[#D4AF37]"
+              .map((priceType) => {
+                const subscriptionType = priceType === "monthlyPrice" ? "monthly" : "quarterly";
+                const isInCart = hasBundle(bundle._id);
+                
+                return (
+                  <AnimatePresence mode="wait" key={`${bundle._id}-${priceType}`}>
+                    <div
+                      className={`w-full p-6 border-[3px] rounded-xl transition-transform duration-300 ease-in-out hover:scale-105 ${
+                        selected === "M"
+                          ? "bg-[linear-gradient(295.3deg,_#131859_11.58%,_rgba(24,101,123,0.8)_108.02%)] text-white border-slate-300 shadow-[0px_4px_21.5px_8px_#00A6E8]"
+                          : "bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)] text-[#333333] border-[#333333] shadow-[0px_4px_21.5px_8px_#AD9000]"
                       }`}
                     >
-                      Buy Now
-                    </motion.button>
-                  </div>
-                </AnimatePresence>
-              ))
+                      <p className="text-2xl font-bold mb-2">
+                        {priceType === "quarterlyPrice" ? "Yearly" : "Monthly"}
+                      </p>
+                      <div className="overflow-hidden">
+                        <motion.p
+                          key={bundle._id + priceType}
+                          initial={{ y: -50, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          exit={{ y: 50, opacity: 0 }}
+                          transition={{ ease: "linear", duration: 0.25 }}
+                          className="text-6xl font-bold"
+                        >
+                          <span>&#8377;{bundle[priceType as keyof Bundle] as number}</span>
+                          <span className="font-normal text-xl">/month</span>
+                        </motion.p>
+                      </div>
+
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-lg">
+                          {priceType === "quarterlyPrice"
+                            ? `(Save ${Math.round(
+                                ((bundle.monthlyPrice * 12 - bundle.quarterlyPrice * 12) /
+                                  (bundle.monthlyPrice * 0.12))
+                              )}%)`
+                            : "(Flexible, but higher cost)"}
+                        </span>
+                      </div>
+
+                      <div className={`flex items-center gap-2 mb-4 ${priceType === "quarterlyPrice" ? "" : "invisible"}`}>
+                        <span className="text-lg">Annual, Billed Monthly</span>
+                      </div>
+
+                      {/* Buy Now Button */}
+                      <motion.button
+                        whileHover={{ scale: 1.015 }}
+                        whileTap={{ scale: 0.985 }}
+                        onClick={() => handleBundlePurchase(bundle, subscriptionType)}
+                        className={`w-full py-4 font-semibold rounded-lg uppercase mb-3 ${
+                          selected === "M" ? "bg-white text-black" : "bg-[#333333] text-[#D4AF37]"
+                        }`}
+                      >
+                        Buy Now
+                      </motion.button>
+
+                      {/* Add to Cart Button */}
+                      <motion.button
+                        whileHover={{ scale: 1.015 }}
+                        whileTap={{ scale: 0.985 }}
+                        onClick={() => handleAddToCart(bundle, subscriptionType)}
+                        disabled={isInCart}
+                        className={`w-full py-3 font-semibold rounded-lg uppercase flex items-center justify-center gap-2 border-2 transition-all ${
+                          selected === "M" 
+                            ? isInCart
+                              ? "bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed"
+                              : "bg-transparent border-white text-white hover:bg-white hover:text-black"
+                            : isInCart
+                              ? "bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed"  
+                              : "bg-transparent border-[#333333] text-[#333333] hover:bg-[#333333] hover:text-[#D4AF37]"
+                        }`}
+                      >
+                        <ShoppingCart className="w-4 h-4" />
+                        {isInCart ? "In Cart" : "Add to Cart"}
+                      </motion.button>
+                    </div>
+                  </AnimatePresence>
+                );
+              })
           )}
       </div>
 

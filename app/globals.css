@@ -2,6 +2,62 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Checkout Description Styles for TinyMCE Content */
+.checkout-description {
+  @apply text-sm text-gray-700;
+}
+
+.checkout-description h1,
+.checkout-description h2,
+.checkout-description h3,
+.checkout-description h4,
+.checkout-description h5,
+.checkout-description h6 {
+  @apply font-semibold text-gray-900 mb-2;
+}
+
+.checkout-description h1 { @apply text-lg; }
+.checkout-description h2 { @apply text-base; }
+.checkout-description h3 { @apply text-sm; }
+
+.checkout-description p {
+  @apply mb-2 leading-relaxed;
+}
+
+.checkout-description ul {
+  @apply list-disc list-inside mb-3 space-y-1;
+}
+
+.checkout-description ol {
+  @apply list-decimal list-inside mb-3 space-y-1;
+}
+
+.checkout-description li {
+  @apply text-gray-600 leading-relaxed;
+}
+
+.checkout-description strong,
+.checkout-description b {
+  @apply font-semibold text-gray-900;
+}
+
+.checkout-description em,
+.checkout-description i {
+  @apply italic;
+}
+
+.checkout-description a {
+  @apply text-blue-600 hover:text-blue-800 underline;
+}
+
+.checkout-description blockquote {
+  @apply border-l-4 border-gray-300 pl-4 italic text-gray-600 my-3;
+}
+
+.checkout-description hr {
+  @apply border-gray-300 my-3;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

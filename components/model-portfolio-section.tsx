@@ -99,15 +99,6 @@ export const ModelPortfolioSection = () => {
   };
 
   const handleAddToCart = async (portfolio: UserPortfolio) => {
-    if (!isAuthenticated) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to add items to your cart.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       await addToCart(portfolio._id);
       toast({
@@ -125,11 +116,14 @@ export const ModelPortfolioSection = () => {
 
   const handleBuyNow = (portfolio: UserPortfolio) => {
     if (!isAuthenticated) {
+      handleAddToCart(portfolio);
       toast({
-        title: "Authentication Required",
-        description: "Please log in to purchase portfolios.",
-        variant: "destructive",
+        title: "Redirecting to Cart",
+        description: "You'll be prompted to sign in during checkout.",
       });
+      setTimeout(() => {
+        window.location.href = "/cart";
+      }, 1000);
       return;
     }
 
@@ -231,13 +225,15 @@ export const ModelPortfolioSection = () => {
 
       <section className="bg-[#fefcea] px-3 sm:px-4 py-6 sm:py-8">
         <div className="mx-auto container grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
-          {portfolios.map((portfolio, index) => (
-            <PortfolioCard
-              key={portfolio._id}
-              portfolio={portfolio}
-              onBuyNow={() => handleBuyNow(portfolio)}
-            />
-          ))}
+                        {portfolios.map((portfolio, index) => (
+                <PortfolioCard
+                  key={portfolio._id}
+                  portfolio={portfolio}
+                  colorClass={portfolioColors[index % portfolioColors.length]}
+                  onBuyNow={() => handleBuyNow(portfolio)}
+                  onAddToCart={() => handleAddToCart(portfolio)}
+                />
+              ))}
         </div>
       </section>
 
@@ -315,10 +311,12 @@ export const ModelPortfolioSection = () => {
 
 interface PortfolioCardProps {
   portfolio: UserPortfolio;
+  colorClass: string;
   onBuyNow: () => void;
+  onAddToCart: () => void;
 }
 
-const PortfolioCard = ({ portfolio, onBuyNow }: PortfolioCardProps) => {
+const PortfolioCard = ({ portfolio, colorClass, onBuyNow, onAddToCart }: PortfolioCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
 
   const handleHoverStart = () => setIsHovered(true);
@@ -326,6 +324,7 @@ const PortfolioCard = ({ portfolio, onBuyNow }: PortfolioCardProps) => {
   const handleHover = () => setIsHovered(!isHovered);
 
   const monthlyFee = portfolio.subscriptionFee.find(fee => fee.type === "monthly")?.price || 0;
+  const quarterlyFee = portfolio.subscriptionFee.find(fee => fee.type === "quarterly")?.price || 0;
   const methodologyLink = userPortfolioService.getDescriptionByKey(portfolio.description, "methodology PDF link");
   const homeDescription = userPortfolioService.getDescriptionByKey(portfolio.description, "home card");
   const metrics = userPortfolioService.getPerformanceMetrics(portfolio);
@@ -342,21 +341,21 @@ const PortfolioCard = ({ portfolio, onBuyNow }: PortfolioCardProps) => {
         onMouseLeave={handleHoverEnd}
         onTouchStart={handleHover}
         animate={isHovered ? "hovered" : ""}
-        className="group w-full border-2 border-black bg-emerald-300 rounded-3xl"
+        className={`group w-full border-2 border-black ${colorClass} rounded-3xl`}
       >
         <motion.div
           initial={{ x: 0, y: 0 }}
           variants={{
             hovered: { x: -8, y: -8 },
           }}
-          className="-m-0.5 border-2 border-black bg-emerald-300 rounded-3xl"
+          className={`-m-0.5 border-2 border-black ${colorClass} rounded-3xl`}
         >
           <motion.div
             initial={{ x: 0, y: 0 }}
             variants={{
               hovered: { x: -8, y: -8 },
             }}
-            className="relative -m-0.5 flex flex-col justify-between overflow-hidden border-2 border-black bg-emerald-300 p-3 sm:p-4 lg:p-6 rounded-3xl"
+            className={`relative -m-0.5 flex flex-col justify-between overflow-hidden border-2 border-black ${colorClass} p-3 sm:p-4 lg:p-6 rounded-3xl`}
           >
             {/* Header */}
             <div>
@@ -364,10 +363,10 @@ const PortfolioCard = ({ portfolio, onBuyNow }: PortfolioCardProps) => {
                 <h2 className="text-lg sm:text-xl font-semibold flex-1">{portfolio.name}</h2>
                 <div className="text-right ml-4">
                   <p className="text-base sm:text-lg font-bold whitespace-nowrap">
-                    ₹{monthlyFee} <span className="text-sm font-normal">/ mo</span>
+                    ₹{quarterlyFee || monthlyFee} <span className="text-sm font-normal">/ Qua</span>
                   </p>
                   <p className="text-[10px] sm:text-xs text-gray-600">
-                    Annual, Billed Monthly
+                    Annual, Billed Quarterly
                   </p>
                 </div>
               </div>
@@ -376,35 +375,38 @@ const PortfolioCard = ({ portfolio, onBuyNow }: PortfolioCardProps) => {
               </p>
             </div>
 
-            {/* Stats Grid */}
-            <div className="mt-3 sm:mt-4 grid grid-cols-2 gap-2 sm:gap-3">
-              <div className="bg-white rounded-2xl p-2 text-center">
-                <p className="text-[10px] sm:text-xs text-gray-500">CAGR</p>
-                <p className="text-sm sm:text-base font-semibold text-green-600">{metrics.cagr || "N/A"}</p>
-              </div>
-              <div className="bg-white rounded-2xl p-2 text-center">
-                <p className="text-[10px] sm:text-xs text-gray-500">1Y Returns</p>
-                <p className="text-sm sm:text-base font-semibold text-green-600">{metrics.oneYearGains || "N/A"}</p>
-              </div>
-              <div className="bg-white rounded-2xl p-2 text-center">
-                <p className="text-[10px] sm:text-xs text-gray-500">Min. Investment</p>
-                <p className="text-sm sm:text-base font-semibold">₹{monthlyFee * 12}/-</p>
-              </div>
-              <div className="bg-white rounded-2xl p-2 flex flex-col items-center justify-center">
-                <p className="text-[10px] sm:text-xs text-blue-600 font-medium mb-1">Methodology</p>
-                <div className="flex gap-3">
-                  {methodologyLink && (
-                    <a href={methodologyLink} target="_blank" rel="noopener noreferrer">
-                      <FiBookOpen className="text-black hover:opacity-80 transition-opacity w-4 h-4 sm:w-5 sm:h-5" />
-                    </a>
-                  )}
-                  <FaYoutube className="text-black hover:opacity-80 transition-opacity w-4 h-4 sm:w-5 sm:h-5" />
+            {/* Methodology and Min Investment Section */}
+            <div className="mt-3 sm:mt-4 mb-3 sm:mb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="text-blue-600 font-semibold text-xs sm:text-sm">
+                    Methodology
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {methodologyLink && (
+                      <a href={methodologyLink} target="_blank" rel="noopener noreferrer">
+                        <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gray-800 rounded flex items-center justify-center hover:bg-gray-700 transition-colors">
+                          <FiBookOpen className="text-white w-3 h-3 sm:w-4 sm:h-4" />
+                        </div>
+                      </a>
+                    )}
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-red-600 rounded flex items-center justify-center hover:bg-red-700 transition-colors">
+                      <FaYoutube className="text-white w-3 h-3 sm:w-4 sm:h-4" />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="text-right">
+                  <div className="text-xs text-gray-600">Min. Investment</div>
+                  <div className="text-sm sm:text-base font-bold text-black">
+                    ₹{portfolio.minInvestment?.toLocaleString() || (monthlyFee * 12).toLocaleString()}
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Buy Button */}
-            <div className="mt-3 sm:mt-4">
+            {/* Action Buttons */}
+            <div className="mt-auto space-y-2">
               <button 
                 onClick={onBuyNow}
                 className="w-full border-2 border-black bg-white px-3 py-2 sm:py-2.5 text-center font-medium text-black transition-all duration-300 ease-in-out rounded-2xl hover:bg-gray-50 text-sm sm:text-base"
@@ -413,6 +415,14 @@ const PortfolioCard = ({ portfolio, onBuyNow }: PortfolioCardProps) => {
                   Let's Go
                 </span>{" "}
                 Buy Now
+              </button>
+              
+              <button 
+                onClick={onAddToCart}
+                className="w-full border-2 border-black bg-transparent px-3 py-2 sm:py-2.5 text-center font-medium text-black transition-all duration-300 ease-in-out rounded-2xl hover:bg-black hover:text-white text-sm sm:text-base flex items-center justify-center gap-2"
+              >
+                <ShoppingCart className="w-4 h-4" />
+                Add to Cart
               </button>
             </div>
           </motion.div>
