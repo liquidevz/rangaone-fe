@@ -172,7 +172,7 @@ export default function PortfolioSettings() {
             />
           </svg>
         </div>
-        <Link href="/rangaone-wealth/model-portfolios">
+        <Link href="/model-portfolios">
           <Button className="bg-indigo-900 hover:bg-indigo-800">Browse All Portfolios</Button>
         </Link>
       </div>
@@ -206,7 +206,7 @@ export default function PortfolioSettings() {
                     </div>
                     <div className="flex gap-2">
                       {portfolio.isPurchased ? (
-                        <Link href={`/rangaone-wealth/model-portfolios/${portfolio.id}`}>
+                        <Link href={`/model-portfolios/${portfolio.id}`}>
                           <Button variant="outline" size="sm" className="flex items-center">
                             <Eye className="h-4 w-4 mr-1" />
                             View Details
@@ -218,7 +218,7 @@ export default function PortfolioSettings() {
                           Subscribe to View
                         </Button>
                       )}
-                      <Link href={`/rangaone-wealth/model-portfolios/${portfolio.id}`} target="_blank">
+                      <Link href={`/model-portfolios/${portfolio.id}`} target="_blank">
                         <Button variant="ghost" size="sm" className="flex items-center">
                           <ExternalLink className="h-4 w-4" />
                           <span className="sr-only">Open in new tab</span>

@@ -267,7 +267,7 @@ export default function ExpertRecommendations() {
           )}
           
           <Button asChild variant="outline" size="sm" className="text-blue-600 border-blue-600 hover:bg-blue-50">
-            <Link href={activeTab === "rangaoneWealth" ? "/rangaone-wealth" : "/rangaone-wealth/model-portfolios"}>
+            <Link href={activeTab === "rangaoneWealth" ? "/rangaone-wealth" : "/model-portfolios"}>
               View All
             </Link>
           </Button>
@@ -333,7 +333,7 @@ export default function ExpertRecommendations() {
                     <p className="text-gray-600 mb-4">
                       No model portfolio tips are currently available for your subscription level.
                     </p>
-                    <Link href="/rangaone-wealth/model-portfolios">
+                    <Link href="/model-portfolios">
                       <Button variant="outline">Browse Model Portfolios</Button>
                     </Link>
                   </div>
@@ -344,7 +344,7 @@ export default function ExpertRecommendations() {
                     ))}
                     {modelPortfolioTips.length > 2 && (
                       <div className="text-center pt-2">
-                        <Link href="/rangaone-wealth/model-portfolios" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                        <Link href="/model-portfolios" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
                           View {modelPortfolioTips.length - 2} more tips →
                         </Link>
                       </div>

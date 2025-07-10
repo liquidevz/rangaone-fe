@@ -177,7 +177,7 @@ export default function ModelPortfoliosPage() {
   };
 
   const handleViewDetails = (portfolioId: string) => {
-    router.push(`/rangaone-wealth/model-portfolios/${portfolioId}`);
+    router.push(`/model-portfolios/${portfolioId}`);
   };
 
   const handleMethodologyClick = (portfolioId: string) => {
@@ -186,7 +186,7 @@ export default function ModelPortfoliosPage() {
   };
 
   const handleViewReports = (portfolioId: string) => {
-    router.push(`/rangaone-wealth/model-portfolios/${portfolioId}/reports`);
+    router.push(`/model-portfolios/${portfolioId}/reports`);
   };
 
   if (authLoading) {
