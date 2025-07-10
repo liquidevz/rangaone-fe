@@ -394,11 +394,11 @@ export default function CartPage() {
                               <div className="flex-1 min-w-0">
                                 <h3 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">{item.portfolio.name}</h3>
                                 <div className="flex flex-wrap items-center gap-2 mt-2">
-                                  {isBundle && (
+                                {isBundle && (
                                     <Badge variant="secondary" className="text-xs">
-                                      {(item.portfolio as any).category === "premium" ? "Premium" : "Basic"} Subscription
-                                    </Badge>
-                                  )}
+                                    {(item.portfolio as any).category === "premium" ? "Premium" : "Basic"} Subscription
+                                  </Badge>
+                                )}
                                   <Badge variant="outline" className="text-xs">
                                     <Shield className="w-3 h-3 mr-1" />
                                     Secure

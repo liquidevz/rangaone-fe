@@ -206,7 +206,7 @@ export const RoundedDrawerNav = ({
                           }`}>
                             <div className="flex items-center gap-3">
                               <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-semibold text-sm ${
-                                variant === "premium"
+                              variant === "premium" 
                                   ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white"
                                   : "bg-gradient-to-br from-indigo-500 to-purple-600 text-white"
                               }`}>
@@ -220,13 +220,13 @@ export const RoundedDrawerNav = ({
                                 </p>
                                 <p className={`text-xs truncate ${
                                   variant === "premium" ? "text-gray-500" : "text-slate-600"
-                                }`}>
-                                  {user.email}
+                            }`}>
+                              {user.email}
                                 </p>
                               </div>
                             </div>
-                          </div>
-                          
+                            </div>
+                            
                           {/* Menu Items */}
                           <div className="py-2">
                             <button
@@ -242,7 +242,7 @@ export const RoundedDrawerNav = ({
                                   ? "bg-blue-100/50 text-blue-600 group-hover:bg-blue-200/70 group-hover:scale-110"
                                   : "bg-slate-200/50 text-slate-600 group-hover:bg-slate-300/70 group-hover:scale-110"
                               }`}>
-                                <FiUser className="w-4 h-4" />
+                              <FiUser className="w-4 h-4" />
                               </div>
                               <span>View Dashboard</span>
                             </button>
@@ -260,12 +260,12 @@ export const RoundedDrawerNav = ({
                                   ? "bg-gray-100/50 text-gray-600 group-hover:bg-gray-200/70 group-hover:scale-110"
                                   : "bg-slate-200/50 text-slate-600 group-hover:bg-slate-300/70 group-hover:scale-110"
                               }`}>
-                                <FiSettings className="w-4 h-4" />
+                              <FiSettings className="w-4 h-4" />
                               </div>
                               <span>Settings</span>
                             </button>
                           </div>
-
+                            
                           {/* Logout Section */}
                           <div className={`border-t ${
                             variant === "premium" ? "border-gray-100/80" : "border-white/10"
@@ -275,7 +275,7 @@ export const RoundedDrawerNav = ({
                               className="w-full px-5 py-3 text-left text-sm font-medium transition-all duration-200 flex items-center gap-3 group hover:bg-red-50/80 text-red-600 hover:text-red-700"
                             >
                               <div className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 bg-red-100/50 text-red-500 group-hover:bg-red-200/70 group-hover:scale-110">
-                                <FiLogOut className="w-4 h-4" />
+                              <FiLogOut className="w-4 h-4" />
                               </div>
                               <span>Logout</span>
                             </button>

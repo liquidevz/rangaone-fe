@@ -51,8 +51,8 @@ export default function RangaoneWealth() {
   useEffect(() => {
     async function loadTips() {
       try {
-        console.log("Loading tips...");
-        const data = await tipsService.getAll();
+        console.log("Loading tips from /api/user/tips...");
+        const data = await tipsService.getAll(); // This now only uses /api/user/tips
         console.log("Tips loaded successfully:", data);
         
         // Ensure data is an array

@@ -1,6 +1,7 @@
 import axiosApi from "@/lib/axios";
 import { Portfolio, Holding, DownloadLink } from "@/lib/types";
 import { authService } from "./auth.service";
+import { Tip } from "./tip.service";
 
 export const portfolioService = {
   // Debug portfolio API access
@@ -158,5 +159,18 @@ export const portfolioService = {
       
       throw error;
     }
+  },
+
+  // Fetch tips for a specific portfolio
+  getPortfolioTips: async (portfolioId: string): Promise<Tip[]> => {
+    const response = await axiosApi.get<Tip[]>(
+      `/api/tips/portfolios/${portfolioId}/tips`,
+      {
+        headers: {
+          accept: "application/json",
+        },
+      }
+    );
+    return response.data;
   },
 };
