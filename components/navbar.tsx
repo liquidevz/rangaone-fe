@@ -186,52 +186,98 @@ export const RoundedDrawerNav = ({
                           initial={{ opacity: 0, y: -10, scale: 0.95 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                          transition={{ duration: 0.2 }}
-                          className={`absolute right-0 mt-2 w-48 ${
-                            variant === "premium" ? "bg-white" : "bg-[#001633]"
-                          } rounded-lg shadow-lg border ${
+                          transition={{ duration: 0.2, ease: "easeOut" }}
+                          className={`absolute right-0 mt-3 w-64 ${
                             variant === "premium" 
-                              ? "border-gray-200 text-gray-800" 
-                              : "border-gray-700 text-white"
-                          } overflow-hidden`}
+                              ? "bg-white/95 backdrop-blur-xl border-gray-200/50" 
+                              : "bg-white/95 backdrop-blur-xl border-white/10"
+                          } rounded-2xl shadow-2xl border overflow-hidden z-50`}
+                          style={{
+                            boxShadow: variant === "premium" 
+                              ? "0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05)"
+                              : "0 25px 50px -12px rgba(0, 22, 51, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.1)"
+                          }}
                         >
-                          <div className="py-2">
-                            <div className={`px-4 py-2 text-sm border-b ${
-                              variant === "premium" 
-                                ? "border-gray-200 text-gray-600" 
-                                : "border-gray-700 text-gray-300"
-                            }`}>
-                              {user.email}
+                          {/* User Info Header */}
+                          <div className={`px-5 py-4 border-b ${
+                            variant === "premium" 
+                              ? "border-gray-100/80 bg-gradient-to-br from-gray-50/50 to-white/50" 
+                              : "border-white/10 bg-gradient-to-br from-slate-900/20 to-slate-800/10"
+                          }`}>
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-semibold text-sm ${
+                                variant === "premium"
+                                  ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white"
+                                  : "bg-gradient-to-br from-indigo-500 to-purple-600 text-white"
+                              }`}>
+                                {user.username?.charAt(0)?.toUpperCase() || "U"}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={`font-semibold text-sm truncate ${
+                                  variant === "premium" ? "text-gray-900" : "text-slate-800"
+                                }`}>
+                                  Hi, {user.username}
+                                </p>
+                                <p className={`text-xs truncate ${
+                                  variant === "premium" ? "text-gray-500" : "text-slate-600"
+                                }`}>
+                                  {user.email}
+                                </p>
+                              </div>
                             </div>
-                            
+                          </div>
+                          
+                          {/* Menu Items */}
+                          <div className="py-2">
                             <button
                               onClick={handleDashboard}
-                              className={`w-full px-4 py-2 text-left text-sm hover:${
-                                variant === "premium" ? "bg-gray-100" : "bg-gray-700"
-                              } transition-colors flex items-center gap-2`}
+                              className={`w-full px-5 py-3 text-left text-sm font-medium transition-all duration-200 flex items-center gap-3 group ${
+                                variant === "premium" 
+                                  ? "hover:bg-blue-50/80 text-gray-700 hover:text-blue-700" 
+                                  : "hover:bg-slate-100/80 text-slate-700 hover:text-slate-900"
+                              }`}
                             >
-                              <FiUser className="w-4 h-4" />
-                              View Dashboard
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${
+                                variant === "premium"
+                                  ? "bg-blue-100/50 text-blue-600 group-hover:bg-blue-200/70 group-hover:scale-110"
+                                  : "bg-slate-200/50 text-slate-600 group-hover:bg-slate-300/70 group-hover:scale-110"
+                              }`}>
+                                <FiUser className="w-4 h-4" />
+                              </div>
+                              <span>View Dashboard</span>
                             </button>
                             
                             <button
                               onClick={handleSettings}
-                              className={`w-full px-4 py-2 text-left text-sm hover:${
-                                variant === "premium" ? "bg-gray-100" : "bg-gray-700"
-                              } transition-colors flex items-center gap-2`}
+                              className={`w-full px-5 py-3 text-left text-sm font-medium transition-all duration-200 flex items-center gap-3 group ${
+                                variant === "premium" 
+                                  ? "hover:bg-gray-50/80 text-gray-700 hover:text-gray-900" 
+                                  : "hover:bg-slate-100/80 text-slate-700 hover:text-slate-900"
+                              }`}
                             >
-                              <FiSettings className="w-4 h-4" />
-                              Settings
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${
+                                variant === "premium"
+                                  ? "bg-gray-100/50 text-gray-600 group-hover:bg-gray-200/70 group-hover:scale-110"
+                                  : "bg-slate-200/50 text-slate-600 group-hover:bg-slate-300/70 group-hover:scale-110"
+                              }`}>
+                                <FiSettings className="w-4 h-4" />
+                              </div>
+                              <span>Settings</span>
                             </button>
-                            
+                          </div>
+
+                          {/* Logout Section */}
+                          <div className={`border-t ${
+                            variant === "premium" ? "border-gray-100/80" : "border-white/10"
+                          } pt-2 pb-2`}>
                             <button
                               onClick={handleLogout}
-                              className={`w-full px-4 py-2 text-left text-sm hover:${
-                                variant === "premium" ? "bg-red-50 text-red-600" : "bg-red-900 text-red-400"
-                              } transition-colors flex items-center gap-2`}
+                              className="w-full px-5 py-3 text-left text-sm font-medium transition-all duration-200 flex items-center gap-3 group hover:bg-red-50/80 text-red-600 hover:text-red-700"
                             >
-                              <FiLogOut className="w-4 h-4" />
-                              Logout
+                              <div className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 bg-red-100/50 text-red-500 group-hover:bg-red-200/70 group-hover:scale-110">
+                                <FiLogOut className="w-4 h-4" />
+                              </div>
+                              <span>Logout</span>
                             </button>
                           </div>
                         </motion.div>

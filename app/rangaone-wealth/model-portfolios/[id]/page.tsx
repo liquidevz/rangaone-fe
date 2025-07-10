@@ -8,11 +8,13 @@ import type { Portfolio, Holding } from "@/lib/types";
 import { portfolioService } from "@/services/portfolio.service";
 import axiosApi from "@/lib/axios";
 import { authService } from "@/services/auth.service";
+import { stockPriceService, type StockPriceData } from "@/services/stock-price.service";
 import {
   Download,
   FileText,
   Play,
   Calculator,
+  RefreshCw,
 } from "lucide-react";
 import { useParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
@@ -60,6 +62,7 @@ interface HoldingWithPrice extends Holding {
   changePercent?: number;
   value?: number;
   marketCap?: string;
+  priceData?: StockPriceData;
 }
 
 export default function PortfolioDetailsPage() {
@@ -72,6 +75,7 @@ export default function PortfolioDetailsPage() {
   const [priceHistory, setPriceHistory] = useState<PriceHistoryData[]>([]);
   const [fullPriceHistory, setFullPriceHistory] = useState<PriceHistoryData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshingPrices, setRefreshingPrices] = useState(false);
   const [selectedSegment, setSelectedSegment] = useState<PortfolioAllocationItem | null>(null);
   const [hoveredSegment, setHoveredSegment] = useState<PortfolioAllocationItem | null>(null);
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
@@ -115,98 +119,125 @@ export default function PortfolioDetailsPage() {
     await fetchPriceHistory(portfolioId, period);
   };
 
-  // Fetch stock prices for holdings
+  // Handle manual price refresh
+  const handleRefreshPrices = async () => {
+    if (!portfolio || refreshingPrices) return;
+    
+    setRefreshingPrices(true);
+    console.log("🔄 Manually refreshing stock prices...");
+    
+    try {
+      // Clear cache to force fresh data
+      stockPriceService.clearCache();
+      
+      // Get current holdings
+      const currentHoldings = portfolio.holdings || [];
+      if (currentHoldings.length === 0) {
+        console.warn("No holdings to refresh");
+        toast({
+          title: "No Holdings",
+          description: "No holdings found to refresh prices for.",
+          variant: "default",
+        });
+        return;
+      }
+
+      // Fetch fresh prices
+      const updatedHoldings = await fetchStockPrices(currentHoldings, portfolio);
+      setHoldingsWithPrices(updatedHoldings);
+      
+      const successCount = updatedHoldings.filter(h => h.currentPrice !== undefined).length;
+      
+      toast({
+        title: "Prices Refreshed",
+        description: `Successfully updated ${successCount}/${currentHoldings.length} stock prices.`,
+        variant: "default",
+      });
+      
+      console.log("✅ Price refresh completed");
+      
+    } catch (error) {
+      console.error("❌ Failed to refresh prices:", error);
+      toast({
+        title: "Refresh Failed",
+        description: "Failed to refresh stock prices. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setRefreshingPrices(false);
+    }
+  };
+
+  // Fetch stock prices for holdings using the robust stock price service
   const fetchStockPrices = async (holdings: Holding[], portfolioData: Portfolio): Promise<HoldingWithPrice[]> => {
-    console.log("Fetching stock prices for", holdings.length, "holdings");
-    const updatedHoldings: HoldingWithPrice[] = [];
+    console.log("🔍 Fetching live stock prices for", holdings.length, "holdings");
     
     if (!holdings || holdings.length === 0) {
-      console.warn("No holdings provided to fetchStockPrices");
+      console.warn("⚠️ No holdings provided to fetchStockPrices");
       return [];
     }
     
     const minInvestment = portfolioData.minInvestment || 30000;
     
-    for (const holding of holdings) {
-      try {
-        const token = authService.getAccessToken();
-        
-        if (!token) {
-          console.warn("No auth token available for fetching stock prices");
-          updatedHoldings.push({
-            ...holding,
-            value: (holding.weight / 100) * minInvestment,
-            marketCap: getMarketCapCategory(holding.symbol),
-          });
-          continue;
-        }
+    // Extract symbols for bulk fetching
+    const symbols = holdings.map(holding => holding.symbol).filter(Boolean);
+    
+    if (symbols.length === 0) {
+      console.warn("⚠️ No valid symbols found in holdings");
+      return holdings.map(holding => ({
+        ...holding,
+        value: (holding as any).minimumInvestmentValueStock || (holding.weight / 100) * minInvestment,
+        marketCap: (holding as any).stockCapType || getMarketCapCategory(holding.symbol),
+      }));
+    }
 
-        console.log(`Fetching price for ${holding.symbol}`);
-        const response = await axiosApi.get(`/api/stock-symbols/search?keyword=${holding.symbol}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          timeout: 10000, // 10 second timeout
-        });
-        
-        console.log(`Response for ${holding.symbol}:`, response.data);
-        
-        // Handle different response structures for stock data
-        let stockData = null;
-        if (response.data?.success && response.data?.data?.length > 0) {
-          stockData = response.data.data[0];
-        } else if (response.data?.length > 0) {
-          stockData = response.data[0];
-        } else if (response.data?.symbol) {
-          stockData = response.data;
-        }
-        
-        if (stockData) {
-          const currentPrice = parseFloat(stockData.currentPrice || stockData.price || stockData.ltp || holding.price || '0');
-          const previousPrice = parseFloat(stockData.previousPrice || stockData.prevPrice || stockData.close || currentPrice || '0');
-          
-          if (!isNaN(currentPrice) && !isNaN(previousPrice)) {
-            const change = currentPrice - previousPrice;
-            const changePercent = previousPrice > 0 ? (change / previousPrice) * 100 : 0;
-            
-            updatedHoldings.push({
-              ...holding,
-              currentPrice,
-              previousPrice,
-              change,
-              changePercent,
-              value: (holding as any).minimumInvestmentValueStock || (holding.weight / 100) * minInvestment,
-              marketCap: (holding as any).stockCapType || getMarketCapCategory(holding.symbol),
-            });
-            console.log(`Successfully updated ${holding.symbol} with price ${currentPrice}`);
-          } else {
-            console.warn(`Invalid price data for ${holding.symbol}:`, stockData);
-            updatedHoldings.push({
-              ...holding,
-              value: (holding as any).minimumInvestmentValueStock || (holding.weight / 100) * minInvestment,
-              marketCap: (holding as any).stockCapType || getMarketCapCategory(holding.symbol),
-            });
-          }
-        } else {
-          console.warn(`No data found for ${holding.symbol}`);
-          updatedHoldings.push({
-            ...holding,
-            value: (holding as any).minimumInvestmentValueStock || (holding.weight / 100) * minInvestment,
-            marketCap: (holding as any).stockCapType || getMarketCapCategory(holding.symbol),
-          });
-        }
-      } catch (error) {
-        console.error(`Failed to fetch price for ${holding.symbol}:`, error);
-        updatedHoldings.push({
+    try {
+      // Fetch prices for all symbols using the stock price service
+      console.log("📊 Fetching prices for symbols:", symbols);
+      const priceResults = await stockPriceService.getMultipleStockPrices(symbols);
+      
+      // Map results back to holdings
+      const updatedHoldings: HoldingWithPrice[] = holdings.map(holding => {
+        const priceResponse = priceResults.get(holding.symbol);
+        const baseHolding = {
           ...holding,
           value: (holding as any).minimumInvestmentValueStock || (holding.weight / 100) * minInvestment,
           marketCap: (holding as any).stockCapType || getMarketCapCategory(holding.symbol),
-        });
-      }
+        };
+
+        if (priceResponse?.success && priceResponse.data) {
+          const priceData = priceResponse.data;
+          console.log(`✅ Applied live price for ${holding.symbol}: ₹${priceData.currentPrice}`);
+          
+          return {
+            ...baseHolding,
+            currentPrice: priceData.currentPrice,
+            previousPrice: priceData.previousPrice,
+            change: priceData.change,
+            changePercent: priceData.changePercent,
+            priceData,
+          };
+        } else {
+          console.warn(`⚠️ Failed to get price for ${holding.symbol}:`, priceResponse?.error || "No data");
+          return baseHolding;
+        }
+      });
+
+      const successCount = updatedHoldings.filter(h => h.currentPrice !== undefined).length;
+      console.log(`📈 Stock price fetch completed. Success: ${successCount}/${holdings.length}`);
+      
+      return updatedHoldings;
+
+    } catch (error) {
+      console.error("❌ Failed to fetch stock prices:", error);
+      
+      // Return holdings with fallback data if bulk fetch fails
+      return holdings.map(holding => ({
+        ...holding,
+        value: (holding as any).minimumInvestmentValueStock || (holding.weight / 100) * minInvestment,
+        marketCap: (holding as any).stockCapType || getMarketCapCategory(holding.symbol),
+      }));
     }
-    
-    console.log("Final updated holdings:", updatedHoldings);
-    return updatedHoldings;
   };
 
   // Helper function to determine market cap category
@@ -505,39 +536,28 @@ export default function PortfolioDetailsPage() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-7xl mx-auto p-2 sm:p-4">
-        {/* Header Section */}
-        <div className="text-center mb-6 sm:mb-8">
-          <h1 className="text-xl sm:text-2xl font-bold mb-2">YOUR GROWTH OUR PRIORITY</h1>
-        </div>
+      <div className="max-w-7xl mx-auto">
+        <PageHeader 
+          title={safeString(portfolio.name)} 
+          subtitle={(() => {
+            // Handle description array with "home card" key for header description
+            if (Array.isArray(portfolio.description)) {
+              const homeCardDesc = portfolio.description.find((item: any) => item.key === "home card");
+              if (homeCardDesc && homeCardDesc.value) {
+                // Strip HTML tags for header display and truncate
+                const textContent = homeCardDesc.value.replace(/<[^>]*>/g, '');
+                return textContent.length > 100 ? textContent.substring(0, 100) + '...' : textContent;
+              }
+            }
+            // Fallback to string description
+            return safeString(portfolio.description);
+          })()} 
+        />
 
         {/* Portfolio Info Card */}
         <Card className="mb-4 sm:mb-6">
           <CardContent className="p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 space-y-4 sm:space-y-0">
-              <div className="flex items-center space-x-3 sm:space-x-4">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-green-600 font-bold text-lg sm:text-xl">📊</span>
-              </div>
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-lg sm:text-xl font-bold truncate">{safeString(portfolio.name)}</h2>
-                  <div className="text-gray-600 text-sm sm:text-base line-clamp-2">
-                    {(() => {
-                      // Handle description array with "home card" key for header description
-                      if (Array.isArray(portfolio.description)) {
-                        const homeCardDesc = portfolio.description.find((item: any) => item.key === "home card");
-                        if (homeCardDesc && homeCardDesc.value) {
-                          // Strip HTML tags for header display and truncate
-                          const textContent = homeCardDesc.value.replace(/<[^>]*>/g, '');
-                          return textContent.length > 100 ? textContent.substring(0, 100) + '...' : textContent;
-                        }
-                      }
-                      // Fallback to string description
-                      return safeString(portfolio.description);
-                    })()}
-                  </div>
-                </div>
-              </div>
               {/* Action Buttons Section */}
               <div className="flex flex-row gap-3 mb-6">
                 <Button
@@ -878,7 +898,19 @@ export default function PortfolioDetailsPage() {
                       </div>
                   </th>
                     <th className="px-2 py-2 text-center font-medium">
-                      Last Traded Price ({new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric' })} {new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase()})
+                      <div className="flex items-center justify-center space-x-2">
+                        <span>Last Traded Price ({new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric' })} {new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase()})</span>
+                        <button
+                          onClick={handleRefreshPrices}
+                          disabled={refreshingPrices}
+                          className={`ml-2 p-1 rounded-full hover:bg-white/20 transition-all duration-200 ${
+                            refreshingPrices ? 'animate-spin' : 'hover:scale-110'
+                          }`}
+                          title={refreshingPrices ? "Refreshing prices..." : "Refresh live prices"}
+                        >
+                          <RefreshCw className={`h-3 w-3 text-white ${refreshingPrices ? 'animate-spin' : ''}`} />
+                        </button>
+                      </div>
                   </th>
                 </tr>
               </thead>
@@ -1009,11 +1041,23 @@ export default function PortfolioDetailsPage() {
                     </th>
                     <th className="px-1 sm:px-2 py-2 text-center font-medium">Action</th>
                     <th className="px-1 sm:px-2 py-2 text-center font-medium">
-                      <div className="flex items-center justify-center">
-                        Last Traded Price ({new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric' })} {new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase()})
-                        <svg className="w-3 h-3 ml-1" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
+                      <div className="flex items-center justify-center space-x-2">
+                        <div className="flex items-center">
+                          <span>Last Traded Price ({new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric' })} {new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase()})</span>
+                          <svg className="w-3 h-3 ml-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <button
+                          onClick={handleRefreshPrices}
+                          disabled={refreshingPrices}
+                          className={`p-1 rounded-full hover:bg-white/20 transition-all duration-200 ${
+                            refreshingPrices ? 'animate-spin' : 'hover:scale-110'
+                          }`}
+                          title={refreshingPrices ? "Refreshing prices..." : "Refresh live prices"}
+                        >
+                          <RefreshCw className={`h-3 w-3 text-white ${refreshingPrices ? 'animate-spin' : ''}`} />
+                        </button>
                       </div>
                     </th>
                     <th className="px-1 sm:px-2 py-2 text-center font-medium">Value</th>
@@ -1199,9 +1243,23 @@ export default function PortfolioDetailsPage() {
     dataKey="value"
     stroke="none"
     // Update state on hover, passing the full data object
-    onMouseEnter={(data) => setHoveredSegment(data)}
-    // Clear state when the mouse leaves the chart
+    onMouseEnter={(data) => {
+      setHoveredSegment(data);
+      // If something is selected and we hover over a different segment, auto-switch selection
+      if (selectedSegment && selectedSegment.name !== data.name) {
+        setSelectedSegment(data);
+      }
+    }}
+    // Clear hover state when the mouse leaves the chart
     onMouseLeave={() => setHoveredSegment(null)}
+    // Handle click to select/unselect segments
+    onClick={(data) => {
+      if (selectedSegment?.name === data.name) {
+        setSelectedSegment(null); // Unselect if clicking the same segment
+      } else {
+        setSelectedSegment(data); // Select the clicked segment
+      }
+    }}
   >
     {(portfolioAllocationData.length > 0 ? portfolioAllocationData : [
       { name: "HDFCBANK", value: 79.57, color: "#3B82F6", sector: "Banking" },
@@ -1242,25 +1300,25 @@ export default function PortfolioDetailsPage() {
                   {/* Center Display */}
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="text-center max-w-32">
-                      {(selectedSegment || hoveredSegment) ? (
+                      {(hoveredSegment || selectedSegment) ? (
                         <div className="transition-all duration-300 transform scale-105">
                           <div className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
-                            {(selectedSegment || hoveredSegment)?.value.toFixed(1)}%
+                            {(hoveredSegment || selectedSegment)?.value.toFixed(1)}%
             </div>
                           <div className="text-sm font-semibold text-gray-700 truncate leading-tight">
-                            {(selectedSegment || hoveredSegment)?.name}
+                            {(hoveredSegment || selectedSegment)?.name}
                           </div>
                           <div className="text-xs text-gray-500 uppercase tracking-wide mt-1">
-                            {(selectedSegment || hoveredSegment)?.sector}
+                            {(hoveredSegment || selectedSegment)?.sector}
                           </div>
                           <div className="text-xs font-medium text-gray-600 mt-1">
-                            ₹{(((selectedSegment || hoveredSegment)?.value || 0) / 100 * 30000).toFixed(0)}
+                            ₹{(((hoveredSegment || selectedSegment)?.value || 0) / 100 * 30000).toFixed(0)}
                           </div>
                         </div>
                       ) : (
                         <div className="text-gray-400">
                           <div className="text-base font-semibold mb-1">Portfolio</div>
-                          <div className="text-xs">Hover to explore</div>
+                          <div className="text-xs">Click or hover to explore</div>
                         </div>
                       )}
                     </div>
@@ -1303,7 +1361,7 @@ export default function PortfolioDetailsPage() {
                 <span className="text-xs text-gray-500 font-medium">% of portfolio</span>
           </div>
               
-              <div className="space-y-2 max-h-64 overflow-y-auto">
+              <div className="space-y-2 h-64 sm:h-72 lg:h-80 overflow-y-auto">
                 {(portfolioAllocationData.length > 0 ? portfolioAllocationData : [
                   { name: "HDFCBANK", value: 79.57, color: "#3B82F6", sector: "Banking" },
                   { name: "IDFCFIRSTB", value: 20.43, color: "#10B981", sector: "Banking" }
@@ -1316,7 +1374,7 @@ export default function PortfolioDetailsPage() {
                     return (
                 <div
                   key={index}
-                        className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                        className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-200 ${
                           isSelected 
                             ? 'bg-blue-50 border border-blue-200' 
                             : isHovered
@@ -1324,10 +1382,16 @@ export default function PortfolioDetailsPage() {
                               : 'hover:bg-gray-50 border border-transparent'
                         }`}
                         onClick={() => setSelectedSegment(isSelected ? null : stock)}
-                        onMouseEnter={() => setHoveredSegment(stock)}
+                        onMouseEnter={() => {
+                          setHoveredSegment(stock);
+                          // If something is selected and we hover over a different item, auto-switch selection
+                          if (selectedSegment && selectedSegment.name !== stock.name) {
+                            setSelectedSegment(stock);
+                          }
+                        }}
                         onMouseLeave={() => setHoveredSegment(null)}
                       >
-                        <div className="flex items-center space-x-2 min-w-0 flex-1">
+                        <div className="flex items-center space-x-3 min-w-0 flex-1">
                           <div 
                             className="w-3 h-3 rounded-full flex-shrink-0" 
                             style={{ backgroundColor: stock.color }}

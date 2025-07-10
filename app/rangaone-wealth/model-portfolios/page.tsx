@@ -192,7 +192,7 @@ export default function ModelPortfoliosPage() {
   if (authLoading) {
     return (
       <DashboardLayout>
-        <div className="max-w-6xl mx-auto p-4">
+        <div className="max-w-6xl mx-auto">
           <PageHeader 
             title="Model Portfolios" 
             subtitle="Discover our expertly crafted investment strategies" 

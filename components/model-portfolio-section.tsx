@@ -237,66 +237,7 @@ export const ModelPortfolioSection = () => {
         </div>
       </section>
 
-      {/* Points Section */}
-      <section className="bg-white py-16">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Basic Points */}
-            <div className="bg-blue-50 p-8 rounded-2xl">
-              <h3 className="text-2xl font-bold text-blue-600 mb-6">Basic Plan Features</h3>
-              <ul className="space-y-4">
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-blue-500 mr-3 mt-1" />
-                  <span className="text-gray-700">10-15 Quality Stock Recommendations</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-blue-500 mr-3 mt-1" />
-                  <span className="text-gray-700">5 Short-term Trade Ideas</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-blue-500 mr-3 mt-1" />
-                  <span className="text-gray-700">Basic Market Updates</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-blue-500 mr-3 mt-1" />
-                  <span className="text-gray-700">Email Support</span>
-                </li>
-              </ul>
-            </div>
 
-            {/* Premium Points */}
-            <div className="bg-[#f0f4e8] p-8 rounded-2xl">
-              <h3 className="text-2xl font-bold text-[#1e4e45] mb-6">Premium Plan Features</h3>
-              <ul className="space-y-4">
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-[#1e4e45] mr-3 mt-1" />
-                  <span className="text-gray-700">20-25 Premium Stock Recommendations</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-[#1e4e45] mr-3 mt-1" />
-                  <span className="text-gray-700">10 High-Potential Trade Ideas</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-[#1e4e45] mr-3 mt-1" />
-                  <span className="text-gray-700">Exclusive Model Portfolios</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-[#1e4e45] mr-3 mt-1" />
-                  <span className="text-gray-700">Priority Call Support</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-[#1e4e45] mr-3 mt-1" />
-                  <span className="text-gray-700">Live Webinars Access</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-[#1e4e45] mr-3 mt-1" />
-                  <span className="text-gray-700">IPO Recommendations</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
 
       <CheckoutModal
         isOpen={checkoutModal.isOpen}
