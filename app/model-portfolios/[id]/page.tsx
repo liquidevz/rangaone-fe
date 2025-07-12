@@ -10,6 +10,7 @@ import axiosApi from "@/lib/axios";
 import { authService } from "@/services/auth.service";
 import { stockPriceService, type StockPriceData } from "@/services/stock-price.service";
 import { tipsService, type Tip } from "@/services/tip.service";
+import TipsCarousel from "@/components/tips-carousel";
 import {
   Download,
   FileText,
@@ -18,7 +19,6 @@ import {
   RefreshCw,
   TrendingUp,
   Target,
-  Calendar,
   ExternalLink,
   Clock,
 } from "lucide-react";
@@ -37,13 +37,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
+
 import { PageHeader } from '@/components/page-header';
 
 interface StockPrice {
@@ -1522,261 +1516,31 @@ export default function PortfolioDetailsPage() {
             </Card>
 
         {/* Portfolio Tips Carousel */}
-        {!tipsLoading && portfolioTips.length > 0 && (
-          <Card className="mb-6 shadow-sm border border-gray-200 overflow-hidden">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                    <TrendingUp className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900">Portfolio Tips & Insights</h3>
-                    <p className="text-sm text-gray-600">Expert recommendations for your portfolio</p>
-                  </div>
+        <Card className="mb-6 shadow-sm border border-gray-200 overflow-hidden">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4 text-white" />
                 </div>
-                <div className="hidden sm:flex items-center space-x-2 bg-blue-50 px-3 py-1.5 rounded-full">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                  <span className="text-xs font-medium text-blue-700">{portfolioTips.length} Active Tips</span>
-                </div>
-              </div>
-
-              <Carousel
-                opts={{
-                  align: "start",
-                  loop: true,
-                }}
-                className="w-full"
-              >
-                <CarouselContent className="-ml-2 md:-ml-4">
-                  {portfolioTips.map((tip, index) => (
-                    <CarouselItem key={tip._id} className="pl-2 md:pl-4 md:basis-1/2 lg:basis-1/3">
-                      <div className="p-1">
-                        <Card className="h-full bg-gradient-to-br from-white via-gray-50/30 to-blue-50/20 border border-gray-200/60 hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
-                          <CardContent className="p-5">
-                            {/* Tip Header */}
-                            <div className="flex items-start justify-between mb-4">
-                              <div className="flex items-center space-x-2">
-                                <div className={`w-3 h-3 rounded-full ${
-                                  tip.action?.toLowerCase() === 'buy' ? 'bg-green-500' :
-                                  tip.action?.toLowerCase() === 'sell' ? 'bg-red-500' :
-                                  'bg-yellow-500'
-                                }`}></div>
-                                <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                                  tip.action?.toLowerCase() === 'buy' ? 'bg-green-100 text-green-700' :
-                                  tip.action?.toLowerCase() === 'sell' ? 'bg-red-100 text-red-700' :
-                                  'bg-yellow-100 text-yellow-700'
-                                }`}>
-                                  {tip.action?.toUpperCase() || 'HOLD'}
-                                </span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Calendar className="w-3 h-3 text-gray-400" />
-                                <span className="text-xs text-gray-500">
-                                  {new Date(tip.createdAt).toLocaleDateString('en-GB', {
-                                    day: 'numeric',
-                                    month: 'short'
-                                  })}
-                                </span>
-                              </div>
-                            </div>
-
-                                                         {/* Stock Symbol & Title */}
-                             <div className="mb-3">
-                               <div className="flex items-center space-x-2 mb-1">
-                                 <h4 className="font-bold text-gray-900 text-lg truncate">
-                                   {tip.title}
-                                 </h4>
-                                 {tip.category && (
-                                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                                     tip.category === 'premium' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'
-                                   }`}>
-                                     {tip.category.charAt(0).toUpperCase() + tip.category.slice(1)}
-                                   </span>
-                                 )}
-                               </div>
-                               <div className="flex items-center space-x-2">
-                                 {tip.horizon && (
-                                   <span className="text-sm font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded flex items-center">
-                                     <Clock className="w-3.5 h-3.5 mr-1" />
-                                     {tip.horizon}
-                                   </span>
-                                 )}
-                                 {tip.targetPercentage && (
-                                   <span className="text-sm font-medium text-green-600 bg-green-50 px-2 py-1 rounded flex items-center">
-                                     <TrendingUp className="w-3.5 h-3.5 mr-1" />
-                                     {tip.targetPercentage} Upside
-                                   </span>
-                                 )}
-                               </div>
-                             </div>
-
-                            {/* Key Metrics */}
-                            <div className="grid grid-cols-2 gap-3 mb-4">
-                              {tip.buyRange && (
-                                <div className="bg-white/70 backdrop-blur-sm rounded-lg p-2.5 border border-gray-200/50">
-                                  <div className="flex items-center space-x-1 mb-1">
-                                    <Target className="w-3 h-3 text-blue-600" />
-                                    <span className="text-xs font-medium text-gray-600">Buy Range</span>
-                                  </div>
-                                  <p className="text-sm font-bold text-gray-900">₹{tip.buyRange}</p>
-                                </div>
-                              )}
-                              {tip.targetPrice && (
-                                <div className="bg-white/70 backdrop-blur-sm rounded-lg p-2.5 border border-gray-200/50">
-                                  <div className="flex items-center space-x-1 mb-1">
-                                    <TrendingUp className="w-3 h-3 text-green-600" />
-                                    <span className="text-xs font-medium text-gray-600">Target</span>
-                                  </div>
-                                  <p className="text-sm font-bold text-gray-900">
-                                    ₹{tip.targetPrice}
-                                    {tip.targetPercentage && (
-                                      <span className="text-xs text-green-600 ml-1">
-                                        ({tip.targetPercentage})
-                                      </span>
-                                    )}
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Description */}
-                            <div className="mb-4">
-                              <p className="text-sm text-gray-700 line-clamp-3 leading-relaxed">
-                                {tip.description}
-                              </p>
-                            </div>
-
-                            {/* Horizon & Actions */}
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-2">
-                                {tip.horizon && (
-                                  <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full font-medium">
-                                    {tip.horizon}
-                                  </span>
-                                )}
-                                {tip.status && (
-                                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                                    tip.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                                  }`}>
-                                    {tip.status.charAt(0).toUpperCase() + tip.status.slice(1)}
-                                  </span>
-                                )}
-                              </div>
-                              
-                              {(tip.tipUrl || tip.downloadLinks?.length > 0) && (
-                                <div className="flex items-center space-x-1">
-                                  {tip.tipUrl && (
-                                    <button
-                                      onClick={() => window.open(tip.tipUrl, '_blank')}
-                                      className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                      title="View analysis"
-                                    >
-                                      <ExternalLink className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
-                                  {tip.downloadLinks?.length > 0 && (
-                                    <button
-                                      onClick={() => window.open(tip.downloadLinks[0].link, '_blank')}
-                                      className="p-1.5 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                                      title="Download report"
-                                    >
-                                      <Download className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Exit Status (if available) */}
-                            {tip.exitStatus && (
-                              <div className="mt-3 pt-3 border-t border-gray-200/50">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs font-medium text-gray-600">Exit Status:</span>
-                                  <div className="flex items-center space-x-1">
-                                    <span className="text-xs font-semibold text-gray-900">{tip.exitStatus}</span>
-                                    {tip.exitStatusPercentage && (
-                                      <span className="text-xs text-green-600 font-medium">
-                                        ({tip.exitStatusPercentage})
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      </div>
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-                <CarouselPrevious className="hidden md:flex -left-4 h-8 w-8 border-gray-300 hover:border-blue-500 hover:bg-blue-50" />
-                <CarouselNext className="hidden md:flex -right-4 h-8 w-8 border-gray-300 hover:border-blue-500 hover:bg-blue-50" />
-              </Carousel>
-
-              {/* Mobile Navigation Dots */}
-              <div className="flex md:hidden justify-center mt-4 space-x-2">
-                {Array.from({ length: Math.ceil(portfolioTips.length / 1) }).map((_, index) => (
-                  <div key={index} className="w-2 h-2 bg-gray-300 rounded-full"></div>
-                ))}
-              </div>
-
-              {/* Tips Summary Footer */}
-              <div className="mt-6 pt-4 border-t border-gray-200/50">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
-                  <div className="flex items-center space-x-4 text-xs text-gray-600">
-                    <span>Total Tips: {portfolioTips.length}</span>
-                    <span>Active: {portfolioTips.filter(tip => tip.status === 'active').length}</span>
-                    {portfolioTips.some(tip => tip.exitStatus) && (
-                      <span>Completed: {portfolioTips.filter(tip => tip.exitStatus).length}</span>
-                    )}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    Last updated: {new Date(Math.max(...portfolioTips.map(tip => new Date(tip.updatedAt).getTime()))).toLocaleDateString('en-GB')}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Loading State for Tips */}
-        {tipsLoading && (
-          <Card className="mb-6 shadow-sm border border-gray-200">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-8 h-8 bg-gray-200 rounded-lg animate-pulse"></div>
                 <div>
-                  <div className="h-4 bg-gray-200 rounded w-48 animate-pulse mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-32 animate-pulse"></div>
+                  <h3 className="text-xl font-bold text-gray-900">Portfolio Tips & Insights</h3>
+                  <p className="text-sm text-gray-600">Expert recommendations for your portfolio</p>
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[1, 2, 3].map((index) => (
-                  <div key={index} className="h-64 bg-gray-100 rounded-lg animate-pulse"></div>
-                ))}
+              <div className="hidden sm:flex items-center space-x-2 bg-blue-50 px-3 py-1.5 rounded-full">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                <span className="text-xs font-medium text-blue-700">Active Tips</span>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            </div>
 
-        {/* Empty State for Tips */}
-        {!tipsLoading && portfolioTips.length === 0 && (
-          <Card className="mb-6 shadow-sm border border-gray-200">
-            <CardContent className="p-6">
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <TrendingUp className="w-8 h-8 text-gray-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Portfolio Tips Available</h3>
-                <p className="text-gray-600 text-sm max-w-md mx-auto">
-                  Expert tips and insights for this portfolio will appear here when available. 
-                  Check back later for the latest recommendations.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+            <TipsCarousel 
+              portfolioId={portfolioId} 
+              tips={portfolioTips} 
+              loading={tipsLoading}
+            />
+          </CardContent>
+        </Card>
 
         {/* Portfolio Allocation Chart */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6">
