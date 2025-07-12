@@ -19,7 +19,7 @@ type TipCardData = {
 const TipCard = ({ tip, isActive, onClick }: { tip: TipCardData; isActive: boolean; onClick?: () => void }) => (
   <div
     className={cn(
-      "relative w-[320px] h-[180px] rounded-2xl p-0.5 transition-shadow duration-300 cursor-pointer",
+      "relative w-[280px] h-[200px] sm:w-[360px] sm:h-[220px] lg:w-[400px] lg:h-[240px] xl:w-[440px] xl:h-[260px] rounded-2xl p-0.5 transition-all duration-300 cursor-pointer",
       isActive ? "shadow-2xl" : "shadow-md",
       onClick && "hover:scale-[1.03] hover:shadow-2xl"
     )}
@@ -28,40 +28,50 @@ const TipCard = ({ tip, isActive, onClick }: { tip: TipCardData; isActive: boole
     }}
     onClick={onClick}
   >
-    <div className="w-full h-full bg-white rounded-[14px] p-4 flex flex-col justify-between">
+    <div className="w-full h-full bg-white rounded-[14px] p-4 sm:p-5 lg:p-6 flex flex-col justify-between">
       <div className="flex justify-between items-start">
-        <div>
-          <div className="bg-black text-white text-xs font-semibold rounded-full px-3 py-1 inline-block shadow-sm">
+        <div className="flex-1 min-w-0">
+          <div className="bg-black text-white text-xs sm:text-sm font-semibold rounded-full px-3 py-1 inline-block shadow-sm">
             Model Portfolio
           </div>
-          <h3 className="text-2xl font-bold text-black mt-1">{tip.stockName}</h3>
-          <p className="text-sm text-gray-500">{tip.exchange}</p>
+          <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-black mt-1 truncate">{tip.stockName}</h3>
+          <p className="text-sm sm:text-base text-gray-500">{tip.exchange}</p>
         </div>
         <div
-          className="relative p-0.5 rounded-lg shadow-sm"
+          className="relative p-0.5 rounded-lg shadow-sm flex-shrink-0 ml-2"
           style={{ background: "linear-gradient(180deg, #60a5fa, #a78bfa)" }}
         >
           <div className="bg-white rounded-[6px] px-3 py-1 text-center">
-            <p className="text-xs text-gray-500">Weightage</p>
-            <p className="text-xl font-bold text-black">{tip.weightage}%</p>
+            <p className="text-xs sm:text-sm text-gray-500">Weightage</p>
+            <p className="text-lg sm:text-xl lg:text-2xl font-bold text-black">{tip.weightage}%</p>
           </div>
         </div>
       </div>
       <div className="flex justify-between items-end">
-        <div>
-          <p className="text-xs text-gray-500">Buy Range</p>
-          <p className="text-base font-semibold text-black">{tip.buyRange}</p>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs sm:text-sm text-gray-500">Buy Range</p>
+          <p className="text-sm sm:text-base lg:text-lg font-semibold text-black truncate">{tip.buyRange}</p>
         </div>
-        <div>
-          <p className="text-xs text-gray-500">Action</p>
-          <p className="text-base font-bold text-black">{tip.action}</p>
+        <div className="flex-shrink-0 ml-2 text-right">
+          <p className="text-xs sm:text-sm text-gray-500">Action</p>
+          <p className="text-sm sm:text-base lg:text-lg font-bold text-black">{tip.action}</p>
         </div>
       </div>
     </div>
   </div>
 )
 
-const CARD_WIDTH = 320
+// Responsive card dimensions
+const getCardWidth = () => {
+  if (typeof window !== 'undefined') {
+    if (window.innerWidth >= 1280) return 440; // xl
+    if (window.innerWidth >= 1024) return 400; // lg
+    if (window.innerWidth >= 640) return 360; // sm
+    return 280; // mobile
+  }
+  return 360; // default for SSR
+}
+
 const CARD_MARGIN = 40
 const DRAG_BUFFER = 50
 
@@ -76,7 +86,19 @@ export default function TipsCarousel({ portfolioId, tips: propTips, loading: pro
   const [activeIndex, setActiveIndex] = useState(0)
   const [tips, setTips] = useState<TipCardData[]>([])
   const [loading, setLoading] = useState(propLoading || false)
+  const [cardWidth, setCardWidth] = useState(360)
   const x = useMotionValue(0)
+
+  // Update card width on window resize
+  useEffect(() => {
+    const updateCardWidth = () => {
+      setCardWidth(getCardWidth())
+    }
+    
+    updateCardWidth()
+    window.addEventListener('resize', updateCardWidth)
+    return () => window.removeEventListener('resize', updateCardWidth)
+  }, [])
 
   // Convert API tips to carousel format
   const convertTipsToCarouselFormat = (apiTips: Tip[]): TipCardData[] => {
@@ -219,14 +241,14 @@ export default function TipsCarousel({ portfolioId, tips: propTips, loading: pro
   // Animate to the new active card position
   useEffect(() => {
     if (tips.length === 0) return
-    const newX = -activeIndex * (CARD_WIDTH + CARD_MARGIN)
+    const newX = -activeIndex * (cardWidth + CARD_MARGIN)
     animate(x, newX, {
       type: "spring",
       stiffness: 300,
       damping: 30,
       mass: 0.5,
     })
-  }, [activeIndex, x, tips.length])
+  }, [activeIndex, x, tips.length, cardWidth])
 
   // Handle drag end to snap to the nearest card
   const onDragEnd = (e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
@@ -237,14 +259,14 @@ export default function TipsCarousel({ portfolioId, tips: propTips, loading: pro
       setActiveIndex((prev) => Math.max(0, Math.min(tips.length - 1, prev + direction)))
     } else {
       // Snap back to the current card if drag is not enough
-      const newX = -activeIndex * (CARD_WIDTH + CARD_MARGIN)
+      const newX = -activeIndex * (cardWidth + CARD_MARGIN)
       animate(x, newX, { type: "spring", stiffness: 300, damping: 30 })
     }
   }
 
   if (loading) {
     return (
-      <div className="relative w-full h-[550px] flex flex-col items-center justify-center overflow-hidden">
+      <div className="relative w-full h-[600px] sm:h-[700px] lg:h-[800px] xl:h-[900px] flex flex-col items-center justify-center overflow-hidden">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading tips...</p>
@@ -255,7 +277,7 @@ export default function TipsCarousel({ portfolioId, tips: propTips, loading: pro
 
   if (tips.length === 0) {
     return (
-      <div className="relative w-full h-[550px] flex flex-col items-center justify-center overflow-hidden">
+      <div className="relative w-full h-[600px] sm:h-[700px] lg:h-[800px] xl:h-[900px] flex flex-col items-center justify-center overflow-hidden">
         <div className="text-center">
           <div className="text-gray-400 mb-4">📊</div>
           <p className="text-gray-600">No tips available at the moment.</p>
@@ -265,19 +287,19 @@ export default function TipsCarousel({ portfolioId, tips: propTips, loading: pro
   }
 
   return (
-    <div className="relative w-full h-[550px] flex flex-col items-center justify-center overflow-hidden">
+    <div className="relative w-full h-[600px] sm:h-[700px] lg:h-[800px] xl:h-[900px] flex flex-col items-center justify-center overflow-hidden">
       {/* Carousel Container */}
-      <div className="relative h-[250px] w-full">
+      <div className="relative h-[200px] sm:h-[220px] lg:h-[240px] xl:h-[260px] w-full">
         <motion.div
           className="absolute left-0 top-0 flex items-center"
           style={{
             x,
-            paddingLeft: `calc(50% - ${CARD_WIDTH / 2}px)`,
-            paddingRight: `calc(50% - ${CARD_WIDTH / 2}px)`,
+            paddingLeft: `calc(50% - ${cardWidth / 2}px)`,
+            paddingRight: `calc(50% - ${cardWidth / 2}px)`,
           }}
           drag="x"
           dragConstraints={{
-            left: -(tips.length - 1) * (CARD_WIDTH + CARD_MARGIN),
+            left: -(tips.length - 1) * (cardWidth + CARD_MARGIN),
             right: 0,
           }}
           onDragEnd={onDragEnd}
@@ -291,7 +313,7 @@ export default function TipsCarousel({ portfolioId, tips: propTips, loading: pro
                 key={tip.id}
                 className="flex-shrink-0"
                 style={{
-                  width: CARD_WIDTH,
+                  width: cardWidth,
                   marginRight: CARD_MARGIN,
                 }}
                 animate={{
@@ -309,7 +331,7 @@ export default function TipsCarousel({ portfolioId, tips: propTips, loading: pro
       </div>
 
       {/* Connecting Line */}
-      <div className="pointer-events-none absolute top-[230px] left-1/2 h-[100px] w-[200px] -translate-x-1/2">
+      <div className="pointer-events-none absolute top-[210px] sm:top-[230px] lg:top-[250px] xl:top-[270px] left-1/2 h-[80px] sm:h-[100px] lg:h-[120px] xl:h-[140px] w-[200px] sm:w-[250px] lg:w-[300px] -translate-x-1/2">
         <svg width="100%" height="100%" viewBox="0 0 200 100" preserveAspectRatio="none">
           <motion.path
             d="M 100 0 L 100 100"
@@ -323,21 +345,21 @@ export default function TipsCarousel({ portfolioId, tips: propTips, loading: pro
       </div>
 
       {/* Date Display */}
-      <div className="relative z-10 mt-20">
-        <div className="bg-white rounded-full border-2 border-black px-6 py-2 shadow-lg">
-          <span className="text-lg font-semibold text-black">
+      <div className="relative z-10 mt-16 sm:mt-20 lg:mt-24 xl:mt-28">
+        <div className="bg-white rounded-full border-2 border-black px-4 py-2 sm:px-6 sm:py-3 lg:px-8 lg:py-4 shadow-lg">
+          <span className="text-base sm:text-lg lg:text-xl xl:text-2xl font-semibold text-black">
             {format(parseISO(tips[activeIndex]?.date || new Date().toISOString()), "dd MMMM yyyy")}
           </span>
         </div>
       </div>
 
       {/* Date Slider */}
-      <div className="w-full max-w-lg mt-4 relative h-10 flex items-center">
+      <div className="w-full max-w-2xl sm:max-w-3xl lg:max-w-4xl xl:max-w-5xl mt-4 sm:mt-6 lg:mt-8 relative h-12 sm:h-14 lg:h-16 flex items-center px-4 sm:px-6 lg:px-8">
         <div className="absolute w-full h-full top-0 left-0 flex items-center justify-between px-1">
-          {Array.from({ length: 31 }).map((_, i) => {
+          {Array.from({ length: Math.min(31, tips.length * 2) }).map((_, i) => {
             let height = "h-2"
-            if (i % 5 === 0) height = "h-6"
-            else if (i % 1 === 0) height = "h-3"
+            if (i % 5 === 0) height = "h-4 sm:h-6 lg:h-8"
+            else if (i % 1 === 0) height = "h-2 sm:h-3 lg:h-4"
             return <div key={i} className={cn("w-0.5 bg-gray-400", height)}></div>
           })}
         </div>
