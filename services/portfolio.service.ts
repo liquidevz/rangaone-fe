@@ -100,6 +100,41 @@ export const portfolioService = {
     }
   },
 
+  // Fetch all portfolios from public endpoint (includes downloadLinks and youTubeLinks)
+  getAllPublic: async (): Promise<Portfolio[]> => {
+    try {
+      const response = await axiosApi.get<Portfolio[]>("/api/portfolios", {
+        headers: {
+          accept: "application/json",
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error("Failed to fetch all public portfolios:", error);
+      return [];
+    }
+  },
+
+  // Get methodology links for a specific portfolio
+  getMethodologyLinks: async (portfolioId: string): Promise<{ downloadLinks: any[], youTubeLinks: any[] }> => {
+    try {
+      const portfolios = await portfolioService.getAllPublic();
+      const portfolio = portfolios.find(p => p._id === portfolioId);
+      
+      if (portfolio) {
+        return {
+          downloadLinks: portfolio.downloadLinks || [],
+          youTubeLinks: portfolio.youTubeLinks || []
+        };
+      }
+      
+      return { downloadLinks: [], youTubeLinks: [] };
+    } catch (error: any) {
+      console.error("Failed to fetch methodology links:", error);
+      return { downloadLinks: [], youTubeLinks: [] };
+    }
+  },
+
   // Fetch portfolio by ID
   getById: async (id: string): Promise<Portfolio> => {
     try {

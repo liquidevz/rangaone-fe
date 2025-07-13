@@ -1,18 +1,20 @@
 import DashboardLayout from "@/components/dashboard-layout"
-import MarketIndices from "@/components/market-indices"
 import Banner from "@/components/banner"
-import ExpertRecommendations from "@/components/expert-recommendations"
-// import ModelPortfolioSection from "@/components/model-portfolio-section"
+import { 
+  MarketIndicesSection, 
+  ExpertRecommendationsSection, 
+  ModelPortfolioSection 
+} from "@/components/dashboard-sections"
 
 export default function Dashboard() {
   return (
     <DashboardLayout>
       <div className="flex flex-col w-full gap-4">
-        <MarketIndices />
+        <MarketIndicesSection />
         <Banner />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <ExpertRecommendations />
-          {/* <ModelPortfolioSection /> */}
+          <ExpertRecommendationsSection />
+          <ModelPortfolioSection />
         </div>
       </div>
     </DashboardLayout>

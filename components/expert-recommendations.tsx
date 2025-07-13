@@ -11,6 +11,7 @@ import { portfolioService } from "@/services/portfolio.service"
 import { subscriptionService, SubscriptionAccess } from "@/services/subscription.service"
 import { Portfolio } from "@/lib/types"
 import { useAuth } from "@/components/auth/auth-context"
+import { useRouter } from "next/navigation";
 
 // Keep the rangaoneWealthRecommendations for the Rangaone Wealth tab
 const rangaoneWealthRecommendations = [
@@ -399,6 +400,8 @@ export default function ExpertRecommendations() {
 
 // New component for Model Portfolio Tip Cards matching the design
 function ModelPortfolioTipCard({ tip }: { tip: Tip }) {
+  const router = useRouter();
+  
   // Extract stock symbol from title (e.g., "AXISBANK: Analysis" -> "AXISBANK")
   const stockSymbol = tip.title.split(':')[0]?.trim().toUpperCase() || 
                      tip.title.split(' ')[0]?.trim().toUpperCase() || 
@@ -412,44 +415,54 @@ function ModelPortfolioTipCard({ tip }: { tip: Tip }) {
   const action = tip.status === "Active" ? "HOLD" : tip.status?.toUpperCase() || "HOLD"
   
   // Extract weightage if available (placeholder for now)
-  const weightage = "4%" // This should come from portfolio allocation data
+  const weightage = "4%" // This should come from tip data
+  
+  // Handle tip click with conditional navigation
+  const handleTipClick = () => {
+    const portfolioId = typeof tip.portfolio === 'string' ? tip.portfolio : tip.portfolio?._id;
+    if (portfolioId) {
+      router.push(`/model-portfolios/${portfolioId}/tips/${tip._id}`);
+    } else {
+      router.push(`/rangaone-wealth/recommendation/${tip._id}`);
+    }
+  };
   
   return (
-    <div className="border-2 border-blue-400 rounded-lg overflow-hidden bg-gradient-to-r from-blue-50 to-green-50">
+    <div className="border-2 border-[#00B7FF] rounded-lg overflow-hidden bg-gradient-to-r from-[#E6F7FF] to-[#F0FFEA]">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-500 to-green-500 p-3">
+      <div className="bg-gradient-to-r from-[#00B7FF] to-[#85D437] p-4">
         <div className="flex items-center justify-between">
-          <div className="bg-gray-800 text-white px-3 py-1 rounded text-sm font-medium">
+          <div className="bg-gray-800 text-white px-4 py-1.5 rounded text-sm font-medium">
             Model Portfolio
           </div>
-          <div className="bg-white text-gray-800 px-3 py-1 rounded text-sm font-bold">
+          <div className="bg-white text-gray-800 px-4 py-1.5 rounded text-sm font-bold">
             Weightage {weightage}
           </div>
         </div>
       </div>
       
       {/* Content */}
-      <div className="p-4">
-        <div className="flex justify-between items-start mb-4">
+      <div className="p-5">
+        <div className="flex justify-between items-start mb-5">
           <div>
-            <h3 className="text-xl font-bold text-gray-900 mb-1">{stockSymbol}</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-1">{stockSymbol}</h3>
             <p className="text-sm text-gray-600">NSE</p>
           </div>
         </div>
         
         <div className="flex justify-between items-end">
           <div>
-            <p className="text-sm font-medium text-gray-700 mb-1">Buy Range</p>
-            <p className="text-lg font-bold text-gray-900">{formattedBuyRange}</p>
+            <p className="text-sm font-medium text-gray-700 mb-2">Buy Range</p>
+            <p className="text-xl font-bold text-gray-900">{formattedBuyRange}</p>
           </div>
           <div className="text-right">
-            <p className="text-sm font-medium text-gray-700 mb-1">Action</p>
-            <p className="text-xl font-bold text-gray-900">{action}</p>
+            <p className="text-sm font-medium text-gray-700 mb-2">Action</p>
+            <p className="text-2xl font-bold text-gray-900">{action}</p>
           </div>
         </div>
         
         {/* Additional Details Link */}
-        <div className="mt-4 pt-3 border-t border-gray-200">
+        <div className="mt-5 pt-3 border-t border-gray-200">
           <Link 
             href={`/rangaone-wealth/recommendation/${tip._id}`}
             className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"

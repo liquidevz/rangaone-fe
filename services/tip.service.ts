@@ -53,5 +53,15 @@ export const tipsService = {
       },
     });
     return response.data;
+  },
+
+  // Fetch tips by portfolio ID
+  getByPortfolioId: async (portfolioId: string): Promise<Tip[]> => {
+    const response = await axiosApi.get<Tip[]>(`/api/tips/portfolios/${portfolioId}/tips`, {
+      headers: {
+        accept: "application/json",
+      },
+    });
+    return response.data;
   }
 };

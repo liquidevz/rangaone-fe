@@ -10,7 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Tip } from "@/services/tip.service";
+import { type Tip } from "@/services/tip.service";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Info, TrendingUp } from "lucide-react";
 import Link from "next/link";
@@ -265,7 +265,8 @@ export default function WealthRecommendationPage({
             <CardContent className="p-6">
               {/* Why Buy This Section Content */}
               <div className="space-y-4">
-                {stockData?.content?.map((item, index) => (
+                {Array.isArray(stockData?.content) ? (
+                  stockData?.content.map((item: { key: string; value: string }, index: number) => (
                   <div key={index} className="flex items-start">
                     <div className="bg-green-100 p-1.5 rounded-full mr-3 mt-0.5">
                       <TrendingUp className="h-4 w-4 text-green-600" />
@@ -275,7 +276,10 @@ export default function WealthRecommendationPage({
                       <p className="text-gray-600 mt-0.5">{item.value}</p>
                     </div>
                   </div>
-                ))}
+                  ))
+                ) : (
+                  <div className="text-gray-600">{stockData?.content}</div>
+                )}
               </div>
               <div className="mt-6 border-t pt-6 flex justify-center">
                 <Button

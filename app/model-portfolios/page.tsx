@@ -10,6 +10,7 @@ import type { Portfolio } from "@/lib/types";
 import { portfolioService } from "@/services/portfolio.service";
 import { subscriptionService, SubscriptionAccess } from "@/services/subscription.service";
 import { useAuth } from "@/components/auth/auth-context";
+import { MethodologyModal } from "@/components/methodology-modal";
 import {
   ArrowUpRight,
   FileText,
@@ -25,8 +26,18 @@ import { useEffect, useState } from "react";
 
 export default function ModelPortfoliosPage() {
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
+  const [userAccessiblePortfolios, setUserAccessiblePortfolios] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [subscriptionAccess, setSubscriptionAccess] = useState<SubscriptionAccess | null>(null);
+  const [methodologyModal, setMethodologyModal] = useState<{
+    isOpen: boolean;
+    portfolioId: string;
+    portfolioName: string;
+  }>({
+    isOpen: false,
+    portfolioId: "",
+    portfolioName: "",
+  });
   const { toast } = useToast();
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -106,21 +117,40 @@ export default function ModelPortfoliosPage() {
 
       try {
         setLoading(true);
-        const [portfoliosData, accessData] = await Promise.all([
-          portfolioService.getAll(),
-          isAuthenticated ? subscriptionService.getSubscriptionAccess() : Promise.resolve(null)
-        ]);
         
-        const safePortfolios = Array.isArray(portfoliosData) ? portfoliosData : [];
-        setPortfolios(safePortfolios);
-        setSubscriptionAccess(accessData);
-        
-        if (safePortfolios.length === 0) {
-          toast({
-            title: "No Portfolios Available",
-            description: "No portfolios are currently available. Please contact support if this is unexpected.",
-            variant: "default",
-          });
+        // First try to get portfolios from authenticated endpoint
+        if (isAuthenticated) {
+          try {
+            const [authPortfolios, accessData] = await Promise.all([
+              portfolioService.getAll(),
+              subscriptionService.getSubscriptionAccess()
+            ]);
+            
+            if (authPortfolios && authPortfolios.length > 0) {
+              setPortfolios(authPortfolios);
+              setSubscriptionAccess(accessData);
+              
+              // Extract IDs of portfolios user has access to
+              const accessibleIds = authPortfolios
+                .filter(p => !p.isPurchased === false) // User has access if isPurchased is not false
+                .map(p => p._id);
+              setUserAccessiblePortfolios(accessibleIds);
+            } else {
+              // Fallback to public endpoint
+              const publicPortfolios = await portfolioService.getPublic();
+              setPortfolios(publicPortfolios);
+              setSubscriptionAccess(accessData);
+            }
+          } catch (error) {
+            console.error("Failed to fetch authenticated portfolios:", error);
+            // Fallback to public endpoint
+            const publicPortfolios = await portfolioService.getPublic();
+            setPortfolios(publicPortfolios);
+          }
+        } else {
+          // Not authenticated - use public endpoint
+          const publicPortfolios = await portfolioService.getPublic();
+          setPortfolios(publicPortfolios);
         }
       } catch (error: any) {
         console.error("Failed to load data:", error);
@@ -180,9 +210,12 @@ export default function ModelPortfoliosPage() {
     router.push(`/model-portfolios/${portfolioId}`);
   };
 
-  const handleMethodologyClick = (portfolioId: string) => {
-    // TODO: Implement methodology view
-    console.log("View methodology for portfolio:", portfolioId);
+  const handleMethodologyClick = (portfolioId: string, portfolioName: string) => {
+    setMethodologyModal({
+      isOpen: true,
+      portfolioId,
+      portfolioName,
+    });
   };
 
   const handleViewReports = (portfolioId: string) => {
@@ -218,7 +251,11 @@ export default function ModelPortfoliosPage() {
           </div>
         ) : (
           <div className="space-y-4 sm:space-y-6">
-            {portfolios.map((portfolio) => (
+            {portfolios.map((portfolio) => {
+              const hasAccess = userAccessiblePortfolios.includes(portfolio._id);
+              const isLocked = !isAuthenticated || !hasAccess;
+              
+              return (
               <Card key={portfolio._id} className="overflow-hidden">
                 <CardContent className="p-3 sm:p-4">
                   {/* Mobile-responsive header section */}
@@ -228,7 +265,10 @@ export default function ModelPortfoliosPage() {
                         <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-lg sm:text-xl font-semibold mb-1 leading-tight">{portfolio.name}</h3>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-lg sm:text-xl font-semibold leading-tight">{portfolio.name}</h3>
+                          {isLocked && <Lock className="h-4 w-4 text-gray-400" />}
+                        </div>
                         <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">{renderDescription(portfolio.description)}</p>
                       </div>
                     </div>
@@ -239,7 +279,7 @@ export default function ModelPortfoliosPage() {
                         variant="outline"
                         size="sm"
                         className="flex items-center justify-center space-x-2 flex-1 sm:flex-none sm:w-auto"
-                        onClick={() => handleMethodologyClick(portfolio._id)}
+                        onClick={() => handleMethodologyClick(portfolio._id, portfolio.name)}
                       >
                         <FileText className="h-4 w-4" />
                         <span className="text-sm">Methodology</span>
@@ -258,46 +298,102 @@ export default function ModelPortfoliosPage() {
 
                   {/* Mobile-responsive metrics grid */}
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-3 sm:mb-4">
-                    <div className="p-3 sm:p-4 bg-gray-50 rounded-lg">
+                    <div className={`p-3 sm:p-4 bg-gray-50 rounded-lg relative ${isLocked ? 'overflow-hidden' : ''}`}>
                       <p className="text-xs sm:text-sm text-gray-600 mb-1">Monthly Gains</p>
-                      <p className={`text-lg sm:text-xl font-semibold ${safeNumber(portfolio.monthlyGains) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {safeString(portfolio.monthlyGains)}%
-                      </p>
+                      <div className="relative">
+                        <p className={`text-lg sm:text-xl font-semibold ${isLocked ? 'blur-sm text-green-600' : safeNumber(portfolio.monthlyGains) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {isLocked ? `+${Math.floor(Math.random() * 20) + 5}.${Math.floor(Math.random() * 99)}%` : `${safeString(portfolio.monthlyGains)}%`}
+                        </p>
+                        {isLocked && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <Lock className="h-4 w-4 text-gray-500" />
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="p-3 sm:p-4 bg-gray-50 rounded-lg">
+                    <div className={`p-3 sm:p-4 bg-gray-50 rounded-lg relative ${isLocked ? 'overflow-hidden' : ''}`}>
                       <p className="text-xs sm:text-sm text-gray-600 mb-1">1 Year Gains</p>
-                      <p className={`text-lg sm:text-xl font-semibold ${safeNumber(portfolio.oneYearGains) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {safeString(portfolio.oneYearGains)}%
-                      </p>
+                      <div className="relative">
+                        <p className={`text-lg sm:text-xl font-semibold ${isLocked ? 'blur-sm text-green-600' : safeNumber(portfolio.oneYearGains) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {isLocked ? `+${Math.floor(Math.random() * 15) + 2}.${Math.floor(Math.random() * 99)}%` : `${safeString(portfolio.oneYearGains)}%`}
+                        </p>
+                        {isLocked && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <Lock className="h-4 w-4 text-gray-500" />
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="p-3 sm:p-4 bg-gray-50 rounded-lg">
+                    <div className={`p-3 sm:p-4 bg-gray-50 rounded-lg relative ${isLocked ? 'overflow-hidden' : ''}`}>
                       <p className="text-xs sm:text-sm text-gray-600 mb-1">CAGR Since Inception</p>
-                      <p className={`text-lg sm:text-xl font-semibold ${safeNumber(portfolio.cagr) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {safeString(portfolio.cagr)}%
-                      </p>
+                      <div className="relative">
+                        <p className={`text-lg sm:text-xl font-semibold ${isLocked ? 'blur-sm text-green-600' : safeNumber(portfolio.cagr) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {isLocked ? `+${Math.floor(Math.random() * 25) + 10}.${Math.floor(Math.random() * 99)}%` : `${safeString(portfolio.cagr)}%`}
+                        </p>
+                        {isLocked && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <Lock className="h-4 w-4 text-gray-500" />
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="p-3 sm:p-4 bg-gray-50 rounded-lg">
+                    <div className={`p-3 sm:p-4 bg-gray-50 rounded-lg relative ${isLocked ? 'overflow-hidden' : ''}`}>
                       <p className="text-xs sm:text-sm text-gray-600 mb-1">Min. Investment Stocks</p>
-                      <p className="text-lg sm:text-xl font-semibold">₹{safeString(portfolio.minInvestment)}</p>
+                      <div className="relative">
+                        <p className={`text-lg sm:text-xl font-semibold ${isLocked ? 'blur-sm text-gray-900' : 'text-gray-900'}`}>
+                          {isLocked ? `₹${Math.floor(Math.random() * 50000) + 10000}` : `₹${safeString(portfolio.minInvestment)}`}
+                        </p>
+                        {isLocked && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <Lock className="h-4 w-4 text-gray-500" />
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Reports button */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center justify-center space-x-2 w-full sm:w-auto"
-                    onClick={() => handleViewReports(portfolio._id)}
-                  >
-                    <ClipboardList className="h-4 w-4" />
-                    <span className="text-sm">Reports</span>
-                  </Button>
+                  {/* Action section */}
+                  {isLocked ? (
+                    <div className="flex items-center justify-between bg-blue-50 p-3 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Lock className="h-4 w-4 text-blue-600" />
+                        <p className="text-sm text-blue-900">
+                          {!isAuthenticated ? "Sign in to access portfolio details" : "Subscribe to unlock full portfolio data"}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        onClick={() => !isAuthenticated ? router.push('/login') : handleViewDetails(portfolio._id)}
+                      >
+                        {!isAuthenticated ? "Sign In" : "Subscribe"}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center justify-center space-x-2 w-full sm:w-auto"
+                      onClick={() => handleViewReports(portfolio._id)}
+                    >
+                      <ClipboardList className="h-4 w-4" />
+                      <span className="text-sm">Reports</span>
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
+
+      <MethodologyModal
+        isOpen={methodologyModal.isOpen}
+        onClose={() => setMethodologyModal({ isOpen: false, portfolioId: "", portfolioName: "" })}
+        portfolioId={methodologyModal.portfolioId}
+        portfolioName={methodologyModal.portfolioName}
+      />
     </DashboardLayout>
   );
 }

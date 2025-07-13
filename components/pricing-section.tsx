@@ -170,11 +170,13 @@ export default function PricingSection() {
         {bundles
           .filter((bundle) => bundle.category === (selected === "M" ? "basic" : "premium"))
           .map((bundle) =>
-            ["monthlyPrice", "quarterlyPrice"]
+            ["quarterlyPrice", "monthlyPrice"] // Swapped order: yearly first, monthly second
               .filter((priceType) => bundle[priceType as keyof Bundle] !== undefined)
               .map((priceType) => {
                 const subscriptionType = priceType === "monthlyPrice" ? "monthly" : "quarterly";
                 const isInCart = hasBundle(bundle._id);
+                const isYearly = priceType === "quarterlyPrice";
+                const isPremium = selected === "A";
                 
                 return (
                   <AnimatePresence mode="wait" key={`${bundle._id}-${priceType}`}>
@@ -183,13 +185,19 @@ export default function PricingSection() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -30 }}
                       transition={{ duration: 0.4 }}
-                      className={`w-full p-6 border-[3px] rounded-xl transition-transform duration-300 ease-in-out hover:scale-105 ${
-                        selected === "M"
-                          ? "bg-[linear-gradient(295.3deg,_#131859_11.58%,_rgba(24,101,123,0.8)_108.02%)] text-white border-slate-300 shadow-[0px_4px_21.5px_8px_#00A6E8]"
-                          : "bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)] text-[#333333] border-[#333333] shadow-[0px_4px_21.5px_8px_#AD9000]"
+                      className={`w-full p-6 ${isYearly ? 'border-[3px]' : 'border-0'} rounded-xl transition-transform duration-300 ease-in-out hover:scale-105 ${
+                        isPremium
+                          ? isYearly
+                            ? "bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)] text-[#333333] border-[#333333] shadow-[0px_4px_21.5px_8px_#AD9000]"
+                            : "bg-[#333333] shadow-[0px_4px_21.5px_8px_#333333]"
+                          : isYearly
+                            ? "bg-[linear-gradient(295.3deg,_#131859_11.58%,_rgba(24,101,123,0.8)_108.02%)] text-white border-slate-300 shadow-[0px_4px_21.5px_8px_#00A6E8]"
+                            : "bg-[linear-gradient(295.3deg,_#131859_11.58%,_rgba(24,101,123,0.8)_108.02%)] text-white shadow-[0px_4px_21.5px_8px_#00A6E8]"
                       }`}
                     >
-                      <p className="text-2xl font-bold mb-2">
+                      <p className={`text-2xl font-bold mb-2 ${
+                        isPremium && !isYearly ? "text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" : ""
+                      }`}>
                         {priceType === "quarterlyPrice" ? "Yearly" : "Monthly"}
                       </p>
                       <div className="overflow-hidden">
@@ -199,26 +207,34 @@ export default function PricingSection() {
                           animate={{ y: 0, opacity: 1 }}
                           exit={{ y: 50, opacity: 0 }}
                           transition={{ ease: "linear", duration: 0.25 }}
-                          className="text-6xl font-bold"
+                          className={`text-6xl font-bold ${
+                            isPremium && !isYearly ? "text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" : ""
+                          }`}
                         >
                           <span>&#8377;{bundle[priceType as keyof Bundle] as number}</span>
                           <span className="font-normal text-xl">/month</span>
                         </motion.p>
                       </div>
 
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className={`flex items-center gap-2 mb-2 ${
+                        isPremium && !isYearly ? "text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" : ""
+                      }`}>
                         <span className="text-lg">
                           {priceType === "quarterlyPrice"
-                            ? `(Save ${Math.round(
-                                ((bundle.monthlyPrice * 12 - bundle.quarterlyPrice * 12) /
-                                  (bundle.monthlyPrice * 12)) * 100
-                              )}%)`
+                            ? "(Annual, Billed Monthly)"
                             : "(Flexible, but higher cost)"}
                         </span>
                       </div>
 
-                      <div className={`flex items-center gap-2 mb-4 ${priceType === "quarterlyPrice" ? "" : "invisible"}`}>
-                        <span className="text-lg">Annual, Billed Monthly</span>
+                      <div className={`flex items-center gap-2 mb-4 ${priceType === "quarterlyPrice" ? "" : "invisible"} ${
+                        isPremium && !isYearly ? "text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" : ""
+                      }`}>
+                        <span className="text-lg">
+                          Save {Math.round(
+                            ((bundle.monthlyPrice * 12 - bundle.quarterlyPrice * 12) /
+                              (bundle.monthlyPrice * 12)) * 100
+                          )}%
+                        </span>
                       </div>
 
                       {/* Buy Now Button */}
@@ -226,31 +242,15 @@ export default function PricingSection() {
                         whileHover={{ scale: 1.015 }}
                         whileTap={{ scale: 0.985 }}
                         onClick={() => handleBundlePurchase(bundle, subscriptionType)}
-                        className={`w-full py-4 font-semibold rounded-lg uppercase mb-3 ${
-                          selected === "M" ? "bg-white text-black" : "bg-[#333333] text-[#D4AF37]"
+                        className={`w-full py-4 font-semibold rounded-lg uppercase ${
+                          isPremium
+                            ? isYearly
+                              ? "bg-[#333333] text-[#D4AF37] hover:text-[#FFD700]"
+                              : "bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)] text-[#333333]"
+                            : "bg-white text-[#131859]"
                         }`}
                       >
                         Buy Now
-                      </motion.button>
-
-                      {/* Add to Cart Button */}
-                      <motion.button
-                        whileHover={{ scale: 1.015 }}
-                        whileTap={{ scale: 0.985 }}
-                        onClick={() => handleAddToCart(bundle, subscriptionType)}
-                        disabled={isInCart}
-                        className={`w-full py-3 font-semibold rounded-lg uppercase flex items-center justify-center gap-2 border-2 transition-all ${
-                          selected === "M" 
-                            ? isInCart
-                              ? "bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed"
-                              : "bg-transparent border-white text-white hover:bg-white hover:text-black"
-                            : isInCart
-                              ? "bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed"  
-                              : "bg-transparent border-[#333333] text-[#333333] hover:bg-[#333333] hover:text-[#D4AF37]"
-                        }`}
-                      >
-                        <ShoppingCart className="w-4 h-4" />
-                        {isInCart ? "In Cart" : "Add to Cart"}
                       </motion.button>
                     </motion.div>
                   </AnimatePresence>
@@ -284,14 +284,14 @@ export default function PricingSection() {
                 transition={{ duration: 0.6, delay: index * 0.2 }}
                 className={`relative rounded-2xl p-8 shadow-xl border-2 transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] ${
                   plan.isPremium
-                    ? "bg-gradient-to-br from-gray-900 via-gray-800 to-black border-yellow-400/30 text-white"
+                    ? "bg-gradient-to-br from-gray-900 via-gray-800 to-black border-[#D4AF37]/30 text-white"
                     : "bg-white border-gray-200/50 text-gray-900"
                 }`}
               >
                 {/* Popular Badge */}
                 {plan.badge && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-4 py-2 rounded-full text-sm font-bold shadow-lg flex items-center gap-1">
+                    <div className="bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)] text-black px-4 py-2 rounded-full text-sm font-bold shadow-lg flex items-center gap-1">
                       <Star className="w-4 h-4" />
                       {plan.badge}
                     </div>
@@ -301,16 +301,16 @@ export default function PricingSection() {
                 {/* Plan Header */}
                 <div className="text-center mb-8">
                   <div className="flex items-center justify-center gap-2 mb-4">
-                    {plan.isPremium && <Crown className="w-6 h-6 text-yellow-400" />}
+                    {plan.isPremium && <Crown className="w-6 h-6 text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" />}
                     <h3 className={`text-2xl lg:text-3xl font-bold ${
-                      plan.isPremium ? "text-yellow-400" : "text-gray-900"
+                      plan.isPremium ? "text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" : "text-gray-900"
                     }`}>
                       {plan.isPremium ? "✨Premium✨" : plan.planName}
                     </h3>
                   </div>
                   <div className={`w-16 h-0.5 mx-auto rounded-full ${
                     plan.isPremium
-                      ? "bg-gradient-to-r from-yellow-400 to-yellow-500"
+                      ? "bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]"
                       : "bg-gradient-to-r from-blue-500 to-blue-600"
                   }`}></div>
                 </div>
@@ -330,7 +330,7 @@ export default function PricingSection() {
                           {benefit.checked ? (
                             <div className={`w-6 h-6 rounded-full flex items-center justify-center shadow-md ${
                               plan.isPremium
-                                ? "bg-gradient-to-r from-yellow-400 to-yellow-500"
+                                ? "bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]"
                                 : "bg-gradient-to-r from-green-400 to-green-600"
                             }`}>
                               <Check className="w-4 h-4 text-white font-bold" strokeWidth={3} />
@@ -341,10 +341,8 @@ export default function PricingSection() {
                             </div>
                           )}
                         </div>
-                        <span className={`text-base font-medium ${
-                          plan.isPremium
-                            ? benefit.checked ? "text-gray-100" : "text-gray-400 line-through"
-                            : benefit.checked ? "text-gray-700" : "text-red-500 line-through"
+                        <span className={`text-base lg:text-lg ${
+                          plan.isPremium ? "text-gray-100" : "text-gray-700"
                         }`}>
                           {benefit.text}
                         </span>
@@ -361,7 +359,7 @@ export default function PricingSection() {
                       variant="outline"
                       className={`w-full py-4 text-base font-semibold rounded-xl border-2 transition-all hover:scale-[1.02] ${
                         plan.isPremium
-                          ? "border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black bg-transparent"
+                          ? "border-[#D4AF37] text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)] hover:bg-[#D4AF37] hover:text-black bg-transparent"
                           : "border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white bg-transparent"
                       }`}
                     >
@@ -375,7 +373,7 @@ export default function PricingSection() {
                       onClick={() => handleBundlePurchase(bundle, "monthly")}
                       className={`w-full py-4 text-base font-bold rounded-xl transition-all hover:scale-[1.02] shadow-lg ${
                         plan.isPremium
-                          ? "bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-black"
+                          ? "bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)] hover:bg-[linear-gradient(270deg,_#FFC107_0%,_#FFD700_50%,_#D4AF37_100%)] text-black"
                           : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
                       }`}
                     >
@@ -394,8 +392,8 @@ export default function PricingSection() {
                 {/* Background Pattern for Premium */}
                 {plan.isPremium && (
                   <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
-                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-yellow-400/10 rounded-full blur-xl"></div>
-                    <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-yellow-400/5 rounded-full blur-2xl"></div>
+                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)] opacity-10 rounded-full blur-xl"></div>
+                    <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)] opacity-5 rounded-full blur-2xl"></div>
                   </div>
                 )}
               </motion.div>

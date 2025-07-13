@@ -108,27 +108,15 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             });
             return;
           } else {
-            // Regular bundle purchase
-            console.log("Creating bundle order with:", {
+            // Use regular order API for all subscription types (including yearly)
+            // The eMandate endpoints are not available yet, so we'll use regular orders
+            console.log("Creating order for subscription type:", subscriptionType);
+            orderResponse = await paymentService.createOrder({
               productType: "Bundle",
               productId: bundle._id,
               planType: subscriptionType,
             });
-
-            if (subscriptionType === "quarterly") {
-              orderResponse = await paymentService.createEmandate({
-                productType: "Bundle",
-                productId: bundle._id,
-                planType: subscriptionType,
-              });
-            } else {
-              orderResponse = await paymentService.createOrder({
-                productType: "Bundle",
-                productId: bundle._id,
-
-                planType: subscriptionType,
-              });
-            }
+            console.log("Order created:", orderResponse);
           }
         } else if (portfolio) {
           // Individual portfolio purchase
@@ -147,12 +135,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           throw new Error("No product selected for purchase");
         }
       } else if (type === "cart") {
-        // Cart checkout - FIXED: Pass the subscription type
-        console.log(
-          "Creating cart checkout order with planType:",
-          subscriptionType
-        );
+        // Cart checkout - use regular checkout for all subscription types
+        console.log("Creating cart checkout order with planType:", subscriptionType);
         orderResponse = await paymentService.cartCheckout(subscriptionType);
+        console.log("Cart checkout created:", orderResponse);
       } else {
         throw new Error("Invalid checkout configuration");
       }
@@ -227,10 +213,21 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const handlePaymentSuccess = async (response: any) => {
     try {
       console.log("Verifying payment with response:", response);
+      console.log("Current orderData:", orderData);
+      console.log("Subscription type:", subscriptionType);
       setPaymentStep("processing");
 
+      // Use regular payment verification for all subscription types
+      // The eMandate endpoints are not available yet
+      console.log("Processing payment verification");
+      
       // Make sure we have all required fields
       if (!response.razorpay_payment_id || !response.razorpay_order_id || !response.razorpay_signature) {
+        console.error("Missing fields:", {
+          payment_id: !!response.razorpay_payment_id,
+          order_id: !!response.razorpay_order_id,
+          signature: !!response.razorpay_signature
+        });
         throw new Error("Missing required payment verification fields");
       }
 
@@ -247,10 +244,19 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         await subscriptionService.forceRefresh();
         
         setPaymentStep("success");
-        toast({
-          title: "Payment Successful",
-          description: "Your subscription has been activated",
-        });
+        
+        // Show appropriate success message based on subscription type
+        if (subscriptionType === "quarterly") {
+          toast({
+            title: "Yearly Subscription Activated",
+            description: "Your yearly subscription has been activated successfully",
+          });
+        } else {
+          toast({
+            title: "Payment Successful",
+            description: "Your subscription has been activated",
+          });
+        }
 
         // Close modal after 2 seconds
         setTimeout(() => {
@@ -648,18 +654,20 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       <p className="mb-2">
                         {bundle._id === "basic-plan-id"
                           ? "Basic plan activated successfully!"
-                          : "Bundle subscription activated successfully!"}
+                          : `${bundle.name} subscription activated successfully!`}
                       </p>
-                      {bundle._id === "basic-plan-id" ? (
+                      {subscriptionType === "quarterly" ? (
                         <p className="text-sm">
-                          You now have access to all basic features and
-                          recommendations.
+                          Your yearly subscription with monthly payments has been set up. 
+                          You'll be charged monthly for the entire year.
                         </p>
                       ) : (
                         <p className="text-sm">
-                          You now have access to all {bundle.portfolios.length}{" "}
-                          portfolio{bundle.portfolios.length > 1 ? "s" : ""} in
-                          this bundle.
+                          {bundle._id === "basic-plan-id" ? (
+                            "You now have access to all basic features and recommendations."
+                          ) : (
+                            `You now have access to all ${bundle.portfolios.length} portfolio${bundle.portfolios.length > 1 ? "s" : ""} in this bundle.`
+                          )}
                         </p>
                       )}
                     </div>

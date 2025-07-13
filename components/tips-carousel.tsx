@@ -5,9 +5,11 @@ import { format, parseISO } from "date-fns"
 import { Slider } from "@/components/ui/slider"
 import { cn } from "@/lib/utils"
 import { tipsService, type Tip } from "@/services/tip.service"
+import { useRouter } from "next/navigation"
 
 type TipCardData = {
   id: string
+  portfolioId?: string
   date: string
   stockName: string
   exchange: string
@@ -19,49 +21,54 @@ type TipCardData = {
 const TipCard = ({ tip, isActive, onClick }: { tip: TipCardData; isActive: boolean; onClick?: () => void }) => (
   <div
     className={cn(
-      "relative w-[320px] h-[180px] rounded-2xl p-0.5 transition-shadow duration-300 cursor-pointer",
-      isActive ? "shadow-2xl" : "shadow-md",
-      onClick && "hover:scale-[1.03] hover:shadow-2xl"
+      "relative w-[380px] h-[220px] rounded-2xl p-1 transition-all duration-300 cursor-pointer",
+      isActive ? "scale-105 shadow-2xl" : "shadow-lg",
+      onClick && "hover:scale-105 hover:shadow-2xl",
     )}
     style={{
-      background: "linear-gradient(90deg, #38bdf8, #34d399)",
+      background: "linear-gradient(90deg, #00B7FF, #85D437)",
     }}
     onClick={onClick}
   >
-    <div className="w-full h-full bg-white rounded-[14px] p-4 flex flex-col justify-between">
+    <div className="w-full h-full bg-white rounded-[14px] p-5 flex flex-col justify-between">
       <div className="flex justify-between items-start">
         <div>
-          <div className="bg-black text-white text-xs font-semibold rounded-full px-3 py-1 inline-block shadow-sm">
+          <div className="bg-black text-white text-sm font-semibold rounded-md px-3 py-1 inline-block shadow-sm">
+            <span className="bg-gradient-to-r from-[#00B7FF] to-[#85D437] bg-clip-text text-transparent font-bold">
             Model Portfolio
+            </span>
           </div>
-          <h3 className="text-2xl font-bold text-black mt-1">{tip.stockName}</h3>
+          <h3 className="text-3xl font-bold text-black mt-2">{tip.stockName}</h3>
           <p className="text-sm text-gray-500">{tip.exchange}</p>
         </div>
         <div
           className="relative p-0.5 rounded-lg shadow-sm"
-          style={{ background: "linear-gradient(180deg, #60a5fa, #a78bfa)" }}
+          style={{ background: "linear-gradient(90deg, #00B7FF, #85D437)" }}
         >
-          <div className="bg-white rounded-[6px] px-3 py-1 text-center">
+          <div
+            className="rounded-[6px] px-4 py-2 text-center"
+            style={{ background: "linear-gradient(90deg, #e0f7ff, #f1fef2)" }}
+          >
             <p className="text-xs text-gray-500">Weightage</p>
-            <p className="text-xl font-bold text-black">{tip.weightage}%</p>
+            <p className="text-3xl font-bold text-black">{tip.weightage}%</p>
           </div>
         </div>
       </div>
       <div className="flex justify-between items-end">
         <div>
-          <p className="text-xs text-gray-500">Buy Range</p>
-          <p className="text-base font-semibold text-black">{tip.buyRange}</p>
+          <p className="text-sm text-gray-500">Buy Range</p>
+          <p className="text-lg font-semibold text-black">{tip.buyRange}</p>
         </div>
-        <div>
-          <p className="text-xs text-gray-500">Action</p>
-          <p className="text-base font-bold text-black">{tip.action}</p>
+        <div className="text-right">
+          <p className="text-sm text-gray-500">Action</p>
+          <p className="text-xl font-bold text-black">{tip.action}</p>
         </div>
       </div>
     </div>
   </div>
 )
 
-const CARD_WIDTH = 320
+const CARD_WIDTH = 380
 const CARD_MARGIN = 40
 const DRAG_BUFFER = 50
 
@@ -77,6 +84,7 @@ export default function TipsCarousel({ portfolioId, tips: propTips, loading: pro
   const [tips, setTips] = useState<TipCardData[]>([])
   const [loading, setLoading] = useState(propLoading || false)
   const x = useMotionValue(0)
+  const router = useRouter()
 
   // Convert API tips to carousel format
   const convertTipsToCarouselFormat = (apiTips: Tip[]): TipCardData[] => {
@@ -88,6 +96,7 @@ export default function TipsCarousel({ portfolioId, tips: propTips, loading: pro
       }
       return {
         id: tip._id,
+        portfolioId: typeof tip.portfolio === 'string' ? tip.portfolio : tip.portfolio?._id,
         date: tip.createdAt,
         stockName,
         exchange: "NSE", // Default to NSE, could be extracted from tip data
@@ -97,6 +106,20 @@ export default function TipsCarousel({ portfolioId, tips: propTips, loading: pro
       };
     });
   }
+
+  // Handle tip click with conditional navigation
+  const handleTipClick = (tip: TipCardData) => {
+    if (onTipClick) {
+      onTipClick(tip.id);
+    } else {
+      // If tip has portfolioId, navigate to portfolio-specific tip page
+      if (tip.portfolioId) {
+        router.push(`/model-portfolios/${tip.portfolioId}/tips/${tip.id}`);
+      } else {
+        router.push(`/rangaone-wealth/recommendation/${tip.id}`);
+      }
+    }
+  };
 
   // Fetch tips if not provided
   useEffect(() => {
@@ -265,9 +288,9 @@ export default function TipsCarousel({ portfolioId, tips: propTips, loading: pro
   }
 
   return (
-    <div className="relative w-full h-[550px] flex flex-col items-center justify-center overflow-hidden">
+    <div className="relative w-full h-[600px] flex flex-col items-center justify-center overflow-hidden">
       {/* Carousel Container */}
-      <div className="relative h-[250px] w-full">
+      <div className="relative h-[300px] w-full">
         <motion.div
           className="absolute left-0 top-0 flex items-center"
           style={{
@@ -301,7 +324,7 @@ export default function TipsCarousel({ portfolioId, tips: propTips, loading: pro
                 }}
                 transition={{ type: "spring", stiffness: 200, damping: 25 }}
               >
-                <TipCard tip={tip} isActive={isActive} onClick={onTipClick ? () => onTipClick(tip.id) : undefined} />
+                <TipCard tip={tip} isActive={isActive} onClick={() => handleTipClick(tip)} />
               </motion.div>
             )
           })}

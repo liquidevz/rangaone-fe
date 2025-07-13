@@ -45,6 +45,11 @@ export interface DownloadLink {
   createdAt: string;
 }
 
+export interface YoutubeLink {
+  link: string;
+  createdAt: string;
+}
+
 export interface Portfolio {
   _id: string;
   name: string;
@@ -57,6 +62,7 @@ export interface Portfolio {
   PortfolioCategory: string;
   holdings: Holding[];
   downloadLinks: DownloadLink[];
+  youTubeLinks?: YoutubeLink[];
   monthlyGains?: number;
   oneYearGains?: number;
   totalInvestment?: number;
