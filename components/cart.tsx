@@ -26,6 +26,7 @@ export default function CartPage() {
   const [discount, setDiscount] = useState(0)
   const [checkoutModal, setCheckoutModal] = useState(false)
   const [updatingQuantity, setUpdatingQuantity] = useState<string | null>(null)
+  const [activatedPortfolioIds, setActivatedPortfolioIds] = useState<string[]>([])
 
   const { isAuthenticated } = useAuth()
   const { cart, localCart, cartItemCount, addToCart, removeFromCart, refreshCart, getEffectiveCart, syncing } = useCart()
@@ -34,13 +35,54 @@ export default function CartPage() {
   useEffect(() => {
     if (isAuthenticated) {
       refreshCart().finally(() => setLoading(false))
+      // Fetch activated portfolios for the user
+      userPortfolioService.getAll().then((portfolios) => {
+        setActivatedPortfolioIds(portfolios.map((p) => p._id))
+      })
     } else {
       setLoading(false)
+      setActivatedPortfolioIds([])
     }
   }, [isAuthenticated, refreshCart])
 
   const effectiveCart = getEffectiveCart()
   const effectiveItems = effectiveCart.items
+
+  // Filter out items with 0/null price for the selected period
+  const filteredItems = effectiveItems.filter((item) => {
+    const isBundle = cartService.isBundle(item)
+    let price = 0
+    if (isBundle) {
+      switch (subscriptionType) {
+        case "yearly":
+          price = cartService.getBundlePrice(item.portfolio, "yearly")
+          break
+        case "quarterly":
+          price = cartService.getBundlePrice(item.portfolio, "quarterly")
+          break
+        default:
+          price = cartService.getBundlePrice(item.portfolio, "monthly")
+          break
+      }
+    } else {
+      switch (subscriptionType) {
+        case "yearly":
+          price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "yearly")?.price || 0
+          break
+        case "quarterly":
+          price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "quarterly")?.price || 0
+          break
+        default:
+          price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "monthly")?.price || 0
+          break
+      }
+      // Block adding activated portfolios
+      if (activatedPortfolioIds.includes(item.portfolio._id)) {
+        return false
+      }
+    }
+    return price > 0
+  })
 
   const updateQuantity = async (portfolioId: string, newQuantity: number) => {
     if (updatingQuantity) return
@@ -126,7 +168,7 @@ export default function CartPage() {
     return result || null
   }
 
-  const subtotal = effectiveItems.reduce((sum, item) => {
+  const subtotal = filteredItems.reduce((sum, item) => {
     let price = 0
     
     if (cartService.isBundle(item)) {
@@ -339,7 +381,7 @@ export default function CartPage() {
                 {/* Enhanced Cart Items List */}
                 <div className="space-y-4 sm:space-y-6">
                   <AnimatePresence>
-                    {effectiveItems.map((item, index) => {
+                    {filteredItems.map((item, index) => {
                       let price = 0
                       let period = ""
                       const isBundle = cartService.isBundle(item)
@@ -542,7 +584,7 @@ export default function CartPage() {
                       <div>
                         <h3 className="font-semibold mb-3 sm:mb-4 text-gray-900 text-sm sm:text-base">Order Details</h3>
                         <div className="space-y-3">
-                          {effectiveItems.map((item) => {
+                          {filteredItems.map((item) => {
                             let price = 0
                             let period = ""
                             const isBundle = cartService.isBundle(item)

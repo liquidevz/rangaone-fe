@@ -145,9 +145,10 @@ export default function ExpertRecommendations() {
           console.log("Basic user - showing basic tips only")
         } else if (subscriptionAccess?.portfolioAccess && subscriptionAccess.portfolioAccess.length > 0) {
           // Individual portfolio subscribers see tips from their portfolios only
-          filteredTips = allTips.filter(tip => 
-            subscriptionAccess.portfolioAccess.includes(tip.portfolio)
-          )
+          filteredTips = allTips.filter(tip => {
+            const portfolioId = typeof tip.portfolio === 'string' ? tip.portfolio : tip.portfolio?._id
+            return subscriptionAccess.portfolioAccess.includes(portfolioId)
+          })
           console.log("Individual portfolio user - showing specific portfolio tips")
         } else {
           // No subscription - show only basic tips

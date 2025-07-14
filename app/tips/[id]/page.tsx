@@ -240,7 +240,7 @@ export default function TipDetailsPage() {
               <div className="text-center mt-6">
                 {tip.downloadLinks && tip.downloadLinks.length > 0 ? (
                   <Button
-                    onClick={() => handleDownload(tip.downloadLinks[0].link)}
+                    onClick={() => handleDownload(tip.downloadLinks[0].linkUrl)}
                     className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-semibold"
                   >
                     <Download className="w-4 h-4 mr-2" />

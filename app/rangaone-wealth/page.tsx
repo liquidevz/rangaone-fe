@@ -211,20 +211,28 @@ export default function RangaoneWealth() {
         <Button
           variant={mainFilter === "basic" ? "default" : "outline"}
           onClick={() => setMainFilter("basic")}
+          className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
         >
           Basic
         </Button>
         <Button
           variant={mainFilter === "premium" ? "default" : "outline"}
           onClick={() => setMainFilter("premium")}
+          className="bg-yellow-600 hover:bg-yellow-700 text-white border-yellow-600"
         >
           Premium
         </Button>
       </div>
 
       {/* Tips Carousel Section */}
-      <div className="mb-10">
-        <TipsCarousel tips={filteredMainTips} loading={loading} onTipClick={handleTipClick} />
+      <div className="mt-20 mb-10">
+        <TipsCarousel 
+          tips={allTips} 
+          loading={loading} 
+          onTipClick={handleTipClick} 
+          categoryFilter={mainFilter as 'basic' | 'premium' | 'all'}
+          sliderSize="large"
+        />
       </div>
 
           {/* Closed Recommendations Section */}
@@ -240,17 +248,24 @@ export default function RangaoneWealth() {
           <Button
             variant={closedFilter === "basic" ? "default" : "outline"}
             onClick={() => setClosedFilter("basic")}
+            className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
           >
             Basic
           </Button>
           <Button
             variant={closedFilter === "premium" ? "default" : "outline"}
             onClick={() => setClosedFilter("premium")}
+            className="bg-yellow-600 hover:bg-yellow-700 text-white border-yellow-600"
           >
             Premium
           </Button>
         </div>
-        <TipsCarousel tips={filteredClosedTips} loading={loading} onTipClick={handleTipClick} />
+        <TipsCarousel 
+          tips={closedTips} 
+          loading={loading} 
+          onTipClick={handleTipClick} 
+          categoryFilter={closedFilter as 'basic' | 'premium' | 'all'}
+        />
       </div>
     </DashboardLayout>
   );

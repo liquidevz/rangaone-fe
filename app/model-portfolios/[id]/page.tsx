@@ -4,8 +4,6 @@ import DashboardLayout from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { useAuth } from "@/components/auth/auth-context";
-import { subscriptionService, type SubscriptionAccess } from "@/services/subscription.service";
 import type { Portfolio, Holding } from "@/lib/types";
 import { portfolioService } from "@/services/portfolio.service";
 import axiosApi from "@/lib/axios";
@@ -21,9 +19,9 @@ import {
   RefreshCw,
   TrendingUp,
   Target,
+  Calendar,
   ExternalLink,
   Clock,
-  Lock,
 } from "lucide-react";
 import { useParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
@@ -40,7 +38,13 @@ import {
   Pie,
   Cell,
 } from "recharts";
-
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 import { PageHeader } from '@/components/page-header';
 
 interface StockPrice {
@@ -81,11 +85,8 @@ export default function PortfolioDetailsPage() {
   const params = useParams();
   const portfolioId = params.id as string;
   const { toast } = useToast();
-  const { user, isAuthenticated } = useAuth();
   
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
-  const [subscriptionAccess, setSubscriptionAccess] = useState<SubscriptionAccess | null>(null);
-  const [hasAccess, setHasAccess] = useState(false);
   const [holdingsWithPrices, setHoldingsWithPrices] = useState<HoldingWithPrice[]>([]);
   const [priceHistory, setPriceHistory] = useState<PriceHistoryData[]>([]);
   const [fullPriceHistory, setFullPriceHistory] = useState<PriceHistoryData[]>([]);
@@ -234,21 +235,13 @@ export default function PortfolioDetailsPage() {
           change = priceData.change;
           changePercent = priceData.changePercent;
           
-          // Calculate current value = Live Price × Quantity
-          if (currentPrice && currentPrice > 0) {
-            // Calculate quantity of stocks that can be bought with allocated amount
-            // Use previous price or current price as base price for quantity calculation
-            const basePrice = previousPrice && previousPrice > 0 ? previousPrice : currentPrice;
-            const quantity = Math.floor(allocationValue / basePrice);
-            
-            // Current value = Live Price × Quantity
-            currentValue = currentPrice * quantity;
-            
-            console.log(`✅ Applied live price for ${holding.symbol}: Base Price ₹${basePrice.toFixed(2)}, Quantity ${quantity}, Live Price ₹${currentPrice.toFixed(2)}, Investment Value: ₹${currentValue.toFixed(2)}`);
-          } else {
-            console.log(`⚠️ Using allocated amount for ${holding.symbol}: ₹${allocationValue.toFixed(2)} (invalid price data)`);
-            currentValue = allocationValue;
+          // Calculate current value based on live price change
+          if (changePercent !== undefined) {
+            const changeDecimal = changePercent / 100;
+            currentValue = allocationValue * (1 + changeDecimal);
           }
+          
+          console.log(`✅ Applied live price for ${holding.symbol}: ₹${currentPrice}, Change: ${changePercent}%, Value: ₹${currentValue.toFixed(2)}`);
         } else {
           console.warn(`⚠️ Failed to get price for ${holding.symbol}:`, priceResponse?.error || "No data");
         }
@@ -461,7 +454,7 @@ export default function PortfolioDetailsPage() {
       setTipsLoading(true);
       console.log("🔍 Fetching portfolio tips for ID:", portfolioId);
       
-      const tips = await portfolioService.getPortfolioTips(portfolioId);
+      const tips = await tipsService.getPortfolioTips({ portfolioId });
       console.log("📋 Portfolio tips fetched:", tips);
       
       setPortfolioTips(tips || []);
@@ -481,64 +474,8 @@ export default function PortfolioDetailsPage() {
         setLoading(true);
         console.log("Loading portfolio data for ID:", portfolioId);
         
-        // Check subscription access first if authenticated
-        let accessData: SubscriptionAccess | null = null;
-        if (isAuthenticated) {
-          try {
-            accessData = await subscriptionService.getSubscriptionAccess();
-            setSubscriptionAccess(accessData);
-            console.log("Subscription access:", accessData);
-          } catch (error) {
-            console.error("Failed to fetch subscription access:", error);
-          }
-        }
-        
         // Fetch portfolio details
-        console.log("🔍 Attempting to fetch portfolio with downloadLinks...");
-        
-        // Try multiple approaches to get the complete data
-        let portfolioResponse: any;
-        
-        // Approach 1: Use the standard service
-        try {
-          portfolioResponse = await portfolioService.getById(portfolioId);
-          console.log("✅ Standard API call successful");
-        } catch (error) {
-          console.error("❌ Standard API call failed:", error);
-          throw error;
-        }
-        
-        // Approach 2: Try different endpoint variations if downloadLinks is missing
-        if (!portfolioResponse?.downloadLinks && !(portfolioResponse?.data?.downloadLinks)) {
-          console.log("⚠️ downloadLinks missing, trying alternative endpoints...");
-          const token = authService.getAccessToken();
-          const endpoints = [
-            `/api/portfolios/${portfolioId}`,
-            `/api/portfolios/${portfolioId}?include=downloadLinks`,
-            `/api/user/portfolios/${portfolioId}?include=all`,
-            `/api/user/portfolios/${portfolioId}?fields=*`,
-          ];
-          
-          for (const endpoint of endpoints) {
-            try {
-              console.log(`🔍 Trying endpoint: ${endpoint}`);
-              const altResponse = await axiosApi.get(endpoint, {
-                headers: {
-                  accept: "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-              });
-              console.log(`📡 Response from ${endpoint}:`, altResponse.data);
-              if (altResponse.data?.downloadLinks || altResponse.data?.data?.downloadLinks) {
-                portfolioResponse = altResponse.data;
-                console.log(`✅ Found downloadLinks via ${endpoint}!`);
-                break;
-              }
-            } catch (error) {
-              console.log(`❌ ${endpoint} failed:`, error);
-            }
-          }
-        }
+        const portfolioResponse: any = await portfolioService.getById(portfolioId);
         console.log("Portfolio response received:", portfolioResponse);
         
         // Handle different response structures
@@ -549,55 +486,19 @@ export default function PortfolioDetailsPage() {
           portfolioData = portfolioResponse.portfolio;
         }
         
-        // Determine access based on subscription and portfolio data
-        let userHasAccess = false;
-        if (isAuthenticated && accessData) {
-          // Check if user has premium access (access to all portfolios)
-          if (accessData.hasPremium) {
-            userHasAccess = true;
-          } 
-          // Check if user has access to this specific portfolio
-          else if (accessData.portfolioAccess.includes(portfolioId)) {
-            userHasAccess = true;
-          }
-          // Check if portfolio is marked as purchased in the response
-          else if (portfolioData?.isPurchased === true) {
-            userHasAccess = true;
-          }
-        }
-        
-        setHasAccess(userHasAccess);
-        console.log("User has access to portfolio:", userHasAccess);
-        
-        console.log("Processed portfolio data:", portfolioData);
-        console.log("=== PORTFOLIO DATA ANALYSIS ===");
-        console.log("Portfolio name:", portfolioData?.name);
-        console.log("Portfolio description:", portfolioData?.description);
-        console.log("Download links field exists:", !!portfolioData?.downloadLinks);
-        console.log("Download links value:", portfolioData?.downloadLinks);
-        console.log("Download links type:", typeof portfolioData?.downloadLinks);
-        console.log("Download links length:", portfolioData?.downloadLinks?.length);
-        console.log("All portfolio keys:", Object.keys(portfolioData || {}));
-        console.log("Raw API response keys:", Object.keys(portfolioResponse || {}));
-        console.log("Raw API response:", portfolioResponse);
-        console.log("=== END ANALYSIS ===");
         setPortfolio(portfolioData);
         
-        // Check for holdings and log detailed info
+        // Check for holdings and fetch live prices
         if (portfolioData.holdings && portfolioData.holdings.length > 0) {
           console.log("Holdings found:", portfolioData.holdings.length, "holdings");
-          console.log("Holdings data:", portfolioData.holdings);
-          
-          // Fetch live prices for holdings
           const holdingsWithLivePrices = await fetchStockPrices(portfolioData.holdings, portfolioData);
-          console.log("Holdings with prices:", holdingsWithLivePrices);
           setHoldingsWithPrices(holdingsWithLivePrices);
         }
         
         // Fetch price history for initial load
         await fetchPriceHistory(portfolioId, selectedTimePeriod);
         
-        // Fetch portfolio tips (in parallel to avoid blocking)
+        // Fetch portfolio tips
         fetchPortfolioTips(portfolioId);
         
       } catch (error) {
@@ -608,7 +509,6 @@ export default function PortfolioDetailsPage() {
           variant: "destructive",
         });
         
-        // Set empty states on error
         setPortfolio(null);
         setHoldingsWithPrices([]);
       } finally {
@@ -617,7 +517,7 @@ export default function PortfolioDetailsPage() {
     }
 
     loadPortfolioData();
-  }, [portfolioId, toast, isAuthenticated]);
+  }, [portfolioId, toast]);
 
   if (loading) {
     return (
@@ -636,8 +536,8 @@ export default function PortfolioDetailsPage() {
       <DashboardLayout>
         <div className="max-w-7xl mx-auto p-4">
           <div className="text-center py-12">
-          <h2 className="text-2xl font-bold mb-4">Portfolio Not Found</h2>
-          <Button onClick={() => window.history.back()}>Go Back</Button>
+            <h2 className="text-2xl font-bold mb-4">Portfolio Not Found</h2>
+            <Button onClick={() => window.history.back()}>Go Back</Button>
           </div>
         </div>
       </DashboardLayout>
@@ -648,61 +548,36 @@ export default function PortfolioDetailsPage() {
   const calculatePortfolioMetrics = () => {
     const minInvestment = (portfolio as any)?.minInvestment || 30000;
     
-    // Calculate actual holdings value using live prices and quantities
+    // Calculate actual holdings value using live prices
     const actualHoldingsValue = holdingsWithPrices.reduce((sum, holding) => {
       const allocatedAmount = (holding.weight / 100) * minInvestment;
       
-      if (holding.currentPrice && holding.currentPrice > 0) {
-        // Calculate quantity of stocks that can be bought with allocated amount
-        // Use previous price or current price as base price for quantity calculation
-        const basePrice = holding.previousPrice && holding.previousPrice > 0 ? holding.previousPrice : holding.currentPrice;
-        const quantity = Math.floor(allocatedAmount / basePrice);
-        
-        // Calculate current value = Live Price × Quantity
-        const currentValue = holding.currentPrice * quantity;
-        
-        console.log(`${holding.symbol}: Allocated ₹${allocatedAmount.toFixed(0)}, Base Price ₹${basePrice.toFixed(2)}, Quantity ${quantity}, Live Price ₹${holding.currentPrice.toFixed(2)}, Current Value ₹${currentValue.toFixed(0)}`);
+      if (holding.currentPrice && holding.previousPrice && holding.previousPrice > 0) {
+        const priceChangeFactor = holding.currentPrice / holding.previousPrice;
+        const currentValue = allocatedAmount * priceChangeFactor;
+        return sum + currentValue;
+      } else if (holding.currentPrice && holding.changePercent !== undefined) {
+        const changeDecimal = holding.changePercent / 100;
+        const currentValue = allocatedAmount * (1 + changeDecimal);
         return sum + currentValue;
       } else {
-        // Fallback to allocated amount if no price data
-        console.log(`${holding.symbol}: Using allocated amount ₹${allocatedAmount.toFixed(0)} (no live price data)`);
         return sum + allocatedAmount;
       }
     }, 0);
     
-    // Calculate cash balance (remaining after stock purchases)
-    const totalStockAllocation = holdingsWithPrices.reduce((sum, holding) => {
-      const allocatedAmount = (holding.weight / 100) * minInvestment;
-      
-      if (holding.currentPrice && holding.currentPrice > 0) {
-        // Use previous price or current price as base price for quantity calculation
-        const basePrice = holding.previousPrice && holding.previousPrice > 0 ? holding.previousPrice : holding.currentPrice;
-        const quantity = Math.floor(allocatedAmount / basePrice);
-        const actualSpent = quantity * basePrice;
-        return sum + actualSpent;
-      } else {
-        return sum + allocatedAmount;
-      }
-    }, 0);
+    // Cash balance
+    const totalStockAllocation = holdingsWithPrices.reduce((sum, holding) => sum + holding.weight, 0);
+    const cashPercentage = Math.max(0, 100 - totalStockAllocation);
+    const cashBalance = (cashPercentage / 100) * minInvestment;
     
-    // Cash balance = Total Investment - Amount actually spent on stocks
-    const cashBalance = minInvestment - totalStockAllocation;
-    
-    // Total holdings value = Stock Investment Value + Cash Balance
+    // Total portfolio value
     const totalPortfolioValue = actualHoldingsValue + cashBalance;
-    
-    console.log(`📊 Portfolio Metrics:
-      Min Investment: ₹${minInvestment.toLocaleString()}
-      Stock Investment Value: ₹${actualHoldingsValue.toFixed(0)}
-      Cash Balance: ₹${cashBalance.toFixed(0)}
-      Total Holdings Value: ₹${totalPortfolioValue.toFixed(0)}
-      P&L: ₹${(totalPortfolioValue - minInvestment).toFixed(0)} (${((totalPortfolioValue - minInvestment) / minInvestment * 100).toFixed(2)}%)`);
     
     return {
       holdingsValue: actualHoldingsValue,
       cashBalance: cashBalance,
       totalValue: totalPortfolioValue,
-      cashPercentage: (cashBalance / minInvestment) * 100,
+      cashPercentage: cashPercentage,
       minInvestment: minInvestment,
       pnl: totalPortfolioValue - minInvestment,
       pnlPercentage: ((totalPortfolioValue - minInvestment) / minInvestment) * 100
@@ -710,16 +585,6 @@ export default function PortfolioDetailsPage() {
   };
   
   const portfolioMetrics = calculatePortfolioMetrics();
-  const totalValue = portfolioMetrics.totalValue;
-
-  // Access control logic
-  const isLocked = !isAuthenticated || !hasAccess;
-  
-  // Helper function to generate fake performance data for locked content
-  const generateFakePerformance = (baseValue: number, variance: number = 5): string => {
-    const randomOffset = (Math.random() - 0.5) * variance;
-    return (baseValue + randomOffset).toFixed(2);
-  };
 
   // Trailing Returns data from API
   const trailingReturns = [
@@ -734,38 +599,37 @@ export default function PortfolioDetailsPage() {
     { period: "Since Inception", value: safeString((portfolio as any)?.CAGRSinceInception || "15.2") },
   ];
 
-  // Color palette from user image
-  const donutColors = [
-    "#001219", "#005F73", "#0A9396", "#94D2BD", "#E9D8A6", "#EE9B00", "#CA6702", "#BB3E03", "#AE2012", "#9B2226"
-  ];
-
-  // Create portfolio allocation data from holdings with consistent colors
+  // Create portfolio allocation data from holdings
   const portfolioAllocationData: PortfolioAllocationItem[] = holdingsWithPrices.length > 0 
     ? holdingsWithPrices
-        .sort((a, b) => b.weight - a.weight) // Sort by weight descending first
+        .sort((a, b) => b.weight - a.weight)
         .map((holding, index) => {
+          const getColorForStock = (symbol: string, index: number) => {
+            const stockColorMap: { [key: string]: string } = {
+              'HDFCBANK': '#3B82F6',
+              'IDFCFIRSTB': '#10B981',
+              'INFY': '#F59E0B',
+              'TCS': '#EF4444',
+              'RELIANCE': '#8B5CF6',
+            };
+            
+            return stockColorMap[symbol] || [
+              '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6366F1',
+              '#14B8A6', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'
+            ][index % 10];
+          };
+          
           return {
             name: holding.symbol,
             value: holding.weight,
-            color: donutColors[index % donutColors.length],
+            color: getColorForStock(holding.symbol, index),
             sector: holding.sector || holding.marketCap || 'Banking',
           };
         })
     : [
-        { name: "HDFCBANK", value: 79.57, color: donutColors[0], sector: "Banking" },
-        { name: "IDFCFIRSTB", value: 20.43, color: donutColors[1], sector: "Banking" }
+        { name: "HDFCBANK", value: 79.57, color: "#3B82F6", sector: "Banking" },
+        { name: "IDFCFIRSTB", value: 20.43, color: "#10B981", sector: "Banking" }
       ];
-
-  // Debug logging
-  console.log('Holdings with prices:', holdingsWithPrices);
-  console.log('Portfolio allocation data:', portfolioAllocationData);
-
-  // Find the largest holding for center display
-  const largestHolding = portfolioAllocationData.length > 0 
-    ? portfolioAllocationData.reduce((prev, current) => 
-        (prev.value > current.value) ? prev : current, portfolioAllocationData[0]
-      )
-    : { name: "HDFCBANK", value: 79.57, color: "#0088FE", sector: "Banking" };
 
   return (
     <DashboardLayout>
@@ -773,16 +637,13 @@ export default function PortfolioDetailsPage() {
         <PageHeader 
           title={safeString(portfolio.name)} 
           subtitle={(() => {
-            // Handle description array with "home card" key for header description
             if (Array.isArray(portfolio.description)) {
               const homeCardDesc = portfolio.description.find((item: any) => item.key === "home card");
               if (homeCardDesc && homeCardDesc.value) {
-                // Strip HTML tags for header display and truncate
                 const textContent = homeCardDesc.value.replace(/<[^>]*>/g, '');
                 return textContent.length > 100 ? textContent.substring(0, 100) + '...' : textContent;
               }
             }
-            // Fallback to string description
             return safeString(portfolio.description);
           })()} 
         />
@@ -796,103 +657,54 @@ export default function PortfolioDetailsPage() {
                 <Button
                   variant="outline"
                   size="lg"
-                  className={`flex-1 sm:flex-none sm:min-w-[120px] flex items-center justify-center space-x-2 
-                           border-gray-300 transition-all duration-200 bg-white shadow-sm
-                           ${isLocked ? 'opacity-50 cursor-not-allowed' : 'hover:border-blue-500 hover:bg-blue-50 hover:shadow-md'}`}
+                  className="flex-1 sm:flex-none sm:min-w-[120px] flex items-center justify-center space-x-2 
+                           border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-all duration-200
+                           bg-white shadow-sm hover:shadow-md"
                   onClick={() => {
-                    if (isLocked) {
-                      toast({
-                        title: "Access Required",
-                        description: "Please subscribe to access portfolio reports and documents.",
-                        variant: "destructive",
-                      });
-                      return;
-                    }
-                    
                     const downloadLinks = (portfolio as any)?.downloadLinks;
                     if (downloadLinks && downloadLinks.length > 0) {
                       window.open(downloadLinks[0].linkUrl || downloadLinks[0].url, '_blank');
-                    } else {
-                      toast({
-                        title: "No Reports Available",
-                        description: "No reports are currently available for this portfolio.",
-                        variant: "destructive",
-                      });
                     }
                   }}
-                  disabled={isLocked}
                 >
                   <FileText className="h-4 w-4 text-gray-600" />
-                  <span className="text-sm font-medium text-gray-700">
-                    {isLocked ? "Locked" : "Reports"}
-                  </span>
-                  {isLocked && <Lock className="h-3 w-3 ml-1 text-gray-500" />}
+                  <span className="text-sm font-medium text-gray-700">Reports</span>
                 </Button>
                 
                 {(portfolio as any)?.youTubeLinks && (portfolio as any).youTubeLinks.length > 0 && (
                 <Button
                   variant="outline"
                   size="lg"
-                  className={`flex-1 sm:flex-none sm:min-w-[120px] flex items-center justify-center space-x-2
-                           border-gray-300 transition-all duration-200 bg-white shadow-sm
-                           ${isLocked ? 'opacity-50 cursor-not-allowed' : 'hover:border-red-500 hover:bg-red-50 hover:shadow-md'}`}
-                  onClick={() => {
-                    if (isLocked) {
-                      toast({
-                        title: "Access Required",
-                        description: "Please subscribe to access portfolio videos and content.",
-                        variant: "destructive",
-                      });
-                      return;
-                    }
-                    
-                    window.open((portfolio as any).youTubeLinks[0].link, '_blank');
-                  }}
-                  disabled={isLocked}
+                  className="flex-1 sm:flex-none sm:min-w-[120px] flex items-center justify-center space-x-2
+                           border-gray-300 hover:border-red-500 hover:bg-red-50 transition-all duration-200
+                           bg-white shadow-sm hover:shadow-md"
+                  onClick={() => window.open((portfolio as any).youTubeLinks[0].link, '_blank')}
                 >
                   <Play className="h-4 w-4 text-gray-600" />
-                  <span className="text-sm font-medium text-gray-700">
-                    {isLocked ? "Locked" : "Video"}
-                  </span>
-                  {isLocked && <Lock className="h-3 w-3 ml-1 text-gray-500" />}
+                  <span className="text-sm font-medium text-gray-700">Video</span>
                 </Button>
                 )}
+              </div>
             </div>
-          </div>
 
-                        <div className="grid grid-cols-3 gap-3 sm:gap-6">
-              <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 text-center shadow-sm hover:shadow-md transition-shadow duration-200 relative">
+            <div className="grid grid-cols-3 gap-3 sm:gap-6">
+              <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 text-center shadow-sm hover:shadow-md transition-shadow duration-200">
                 <p className="text-xs sm:text-sm text-gray-600 mb-2 font-medium leading-tight h-8 flex items-center justify-center">Monthly Gains</p>
-                <p className={`text-lg sm:text-xl lg:text-2xl font-bold ${isLocked ? 'blur-sm text-green-600' : 'text-green-600'}`}>
-                  {isLocked ? `+${generateFakePerformance(15, 8)}%` : `+${safeString((portfolio as any)?.monthlyGains || "0")}%`}
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600">
+                  +{safeString((portfolio as any)?.monthlyGains || "0")}%
                 </p>
-                {isLocked && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Lock className="h-4 w-4 text-gray-500" />
-                  </div>
-                )}
               </div>
-              <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 text-center shadow-sm hover:shadow-md transition-shadow duration-200 relative">
+              <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 text-center shadow-sm hover:shadow-md transition-shadow duration-200">
                 <p className="text-xs sm:text-sm text-gray-600 mb-2 font-medium leading-tight h-8 flex items-center justify-center">1 Year<br/>Gains</p>
-                <p className={`text-lg sm:text-xl lg:text-2xl font-bold ${isLocked ? 'blur-sm text-green-600' : 'text-green-600'}`}>
-                  {isLocked ? `+${generateFakePerformance(22, 12)}%` : `+${safeString((portfolio as any)?.oneYearGains || "0")}%`}
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600">
+                  +{safeString((portfolio as any)?.oneYearGains || "0")}%
                 </p>
-                {isLocked && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Lock className="h-4 w-4 text-gray-500" />
-                  </div>
-                )}
               </div>
-              <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 text-center shadow-sm hover:shadow-md transition-shadow duration-200 relative">
+              <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 text-center shadow-sm hover:shadow-md transition-shadow duration-200">
                 <p className="text-xs sm:text-sm text-gray-600 mb-2 font-medium leading-tight h-8 flex items-center justify-center">CAGR Since<br/>Inception</p>
-                <p className={`text-lg sm:text-xl lg:text-2xl font-bold ${isLocked ? 'blur-sm text-green-600' : 'text-green-600'}`}>
-                  {isLocked ? `+${generateFakePerformance(18, 10)}%` : `+${safeString((portfolio as any)?.CAGRSinceInception || "0")}%`}
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600">
+                  +{safeString((portfolio as any)?.CAGRSinceInception || "0")}%
                 </p>
-                {isLocked && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Lock className="h-4 w-4 text-gray-500" />
-                  </div>
-                )}
               </div>
             </div>
           </CardContent>
@@ -902,103 +714,63 @@ export default function PortfolioDetailsPage() {
         <Card className="mb-4 sm:mb-6">
           <CardContent className="p-4 sm:p-6">
             <h3 className="text-lg font-semibold mb-4">Details</h3>
-
-                        <div className="space-y-6">
-            <div>
-                {/* Extract and render portfolio card description */}
+            <div className="space-y-6">
+              <div>
                 {(() => {
-                  // Debug logging
-                  console.log("=== PORTFOLIO DESCRIPTION DEBUG ===");
-                  console.log("Portfolio description:", (portfolio as any)?.description);
-                  console.log("Portfolio description type:", typeof (portfolio as any)?.description);
-                  console.log("Is array:", Array.isArray((portfolio as any)?.description));
-                  
                   let htmlContent = '';
                   
-                  // Check if description is an array of key-value pairs
                   if (Array.isArray((portfolio as any)?.description)) {
-                    console.log("Processing array description...");
                     const portfolioCardItem = (portfolio as any).description.find((item: any) => 
                       item.key && item.key.toLowerCase() === 'portfolio card'
                     );
-                    console.log("Portfolio card item found:", portfolioCardItem);
                     
                     if (portfolioCardItem && portfolioCardItem.value) {
                       htmlContent = portfolioCardItem.value;
                     } else {
-                      // Try to find any description content
                       const firstDesc = (portfolio as any).description.find((item: any) => item.value);
-                      console.log("First description item:", firstDesc);
                       htmlContent = firstDesc?.value || '';
                     }
                   } else if (typeof (portfolio as any)?.description === 'string') {
-                    console.log("Processing string description...");
                     htmlContent = (portfolio as any).description;
                   }
                   
-                  // Fallback
                   if (!htmlContent) {
-                    console.log("Using fallback content...");
                     htmlContent = (portfolio as any)?.details || "This portfolio is designed for investors looking for balanced growth and risk management.";
                   }
-                  
-                  console.log("Final HTML content:", htmlContent);
-                  console.log("=== END DEBUG ===");
                   
                   return (
                     <div className="tinymce-content">
                       <div 
-                        className="
-                          [&>h1]:text-2xl [&>h1]:font-bold [&>h1]:text-gray-900 [&>h1]:mb-4
-                          [&>h2]:text-xl [&>h2]:font-semibold [&>h2]:text-gray-900 [&>h2]:mb-3
-                          [&>h3]:text-lg [&>h3]:font-semibold [&>h3]:text-gray-900 [&>h3]:mb-2
-                          [&>h4]:text-base [&>h4]:font-semibold [&>h4]:text-gray-900 [&>h4]:mb-2
-                          [&>h5]:text-sm [&>h5]:font-semibold [&>h5]:text-gray-900 [&>h5]:mb-2
-                          [&>h6]:text-xs [&>h6]:font-semibold [&>h6]:text-gray-900 [&>h6]:mb-2
-                          [&>p]:text-gray-700 [&>p]:leading-relaxed [&>p]:mb-4 [&>p]:text-base
-                          [&>strong]:font-semibold [&>strong]:text-gray-900
-                          [&>em]:italic [&>em]:text-gray-700
-                          [&>b]:font-semibold [&>b]:text-gray-900
-                          [&>i]:italic [&>i]:text-gray-700
-                          [&>ul]:my-4 [&>ul]:pl-6 [&>ul]:list-disc
-                          [&>ol]:my-4 [&>ol]:pl-6 [&>ol]:list-decimal
-                          [&>li]:text-gray-700 [&>li]:mb-2 [&>li]:leading-relaxed
-                          [&>blockquote]:border-l-4 [&>blockquote]:border-blue-500 [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:text-gray-600 [&>blockquote]:my-4
-                          [&>table]:border-collapse [&>table]:w-full [&>table]:my-4
-                          [&>thead]:bg-gray-50
-                          [&>th]:border [&>th]:border-gray-300 [&>th]:p-2 [&>th]:font-semibold [&>th]:text-left
-                          [&>td]:border [&>td]:border-gray-300 [&>td]:p-2
-                          [&>a]:text-blue-600 [&>a]:underline hover:[&>a]:text-blue-800
-                          [&>code]:bg-gray-100 [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded [&>code]:text-sm [&>code]:font-mono
-                          [&>pre]:bg-gray-100 [&>pre]:p-4 [&>pre]:rounded [&>pre]:overflow-x-auto [&>pre]:my-4
-                          [&>img]:max-w-full [&>img]:h-auto [&>img]:my-4 [&>img]:rounded
-                          [&>hr]:my-6 [&>hr]:border-gray-300
-                          [&>div]:mb-2
-                          [&>span]:text-gray-700
-                          text-gray-800 leading-relaxed
+                        className="text-gray-800 leading-relaxed prose prose-sm max-w-none
+                          prose-headings:text-gray-900 prose-headings:font-semibold
+                          prose-p:text-gray-700 prose-p:leading-relaxed
+                          prose-strong:text-gray-900 prose-strong:font-semibold
+                          prose-ul:my-4 prose-ol:my-4
+                          prose-li:text-gray-700 prose-li:mb-1
+                          prose-a:text-blue-600 prose-a:underline
                         "
                         dangerouslySetInnerHTML={{
                           __html: safeString(htmlContent)
                         }}
                       />
-              </div>
+                    </div>
                   );
                 })()}
-            </div>
+              </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-4 border-t">
-            <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-4 border-t">
+                <div>
                   <p className="font-semibold text-gray-800">Time Horizon</p>
                   <p className="text-gray-600">{safeString((portfolio as any)?.timeHorizon || "Long term")}</p>
-              </div>
+                </div>
                 <div>
                   <p className="font-semibold text-gray-800">Rebalancing</p>
                   <p className="text-gray-600">{safeString((portfolio as any)?.rebalancing || "Quarterly")}</p>
-            </div>
-            <div>
+                </div>
+                <div>
                   <p className="font-semibold text-gray-800">Benchmark Index</p>
                   <p className="text-gray-600">{safeString((portfolio as any)?.index || (portfolio as any)?.compareWith || "NIFTY 50")}</p>
-              </div>
+                </div>
                 <div>
                   <p className="font-semibold text-gray-800">Portfolio Details</p>
                   <div className="text-xs sm:text-sm text-gray-600 space-y-1">
@@ -1006,80 +778,38 @@ export default function PortfolioDetailsPage() {
                     <p><strong>Expiry:</strong> {(portfolio as any)?.expiryDate ? new Date((portfolio as any).expiryDate).toLocaleDateString() : "N/A"}</p>
                     <p><strong>Duration:</strong> {safeNumber((portfolio as any)?.durationMonths || 12)} months</p>
                     <p><strong>Min Investment:</strong> ₹{safeNumber((portfolio as any)?.minInvestment || 30000).toLocaleString()}</p>
-                    {(portfolio as any)?.subscriptionFee && (
-                      <p><strong>Fee:</strong> ₹{(portfolio as any).subscriptionFee[0]?.price || 'N/A'}/{(portfolio as any).subscriptionFee[0]?.type || 'month'}</p>
-                    )}
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-
-              <div className="mt-6 pt-4 border-t text-sm text-gray-500">
-                <p><strong>Disclaimer:</strong> {(portfolio as any)?.disclaimer || "The information on this site is provided for reference purposes only and should not be misconstrued as investment advice. Under no circumstances does this information represent a recommendation to buy or sell stocks. All these portfolios are created based on our experts experience in the market. These Model Portfolio are prepared by SEBI Registered RIA."}</p>
-                
-                {/* Additional Risk Information */}
-                {(portfolio as any)?.riskProfile && (
-                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-red-800 font-medium">Risk Profile: {(portfolio as any).riskProfile}</p>
-        </div>
-                )}
-                
-                {/* Additional Regulatory Information */}
-                {(portfolio as any)?.regulatoryInfo && (
-                  <div className="mt-2 text-xs text-gray-400">
-                    <p>{(portfolio as any).regulatoryInfo}</p>
-          </div>
-                )}
-        </div>
-          </div>
           </CardContent>
         </Card>
 
         {/* Trailing Returns */}
-        <Card className="mb-6 shadow-sm border border-gray-200 overflow-hidden">
-          <CardContent className="p-4 lg:p-6">
-            <div className="flex items-center justify-between mb-4 lg:mb-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-blue-600 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">Trailing Returns</h3>
-                  <p className="text-sm text-gray-600">Historical performance across different time periods</p>
-                </div>
-              </div>
-              <div className="hidden sm:flex items-center space-x-2 bg-green-50 px-3 py-1.5 rounded-full">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-xs font-medium text-green-700">Live Data</span>
-              </div>
-            </div>
-            
-            <div className={`relative ${isLocked ? 'overflow-hidden' : ''}`}>
-              <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 ${isLocked ? 'blur-sm' : ''}`}>
-                {trailingReturns.map((item, index) => (
-                  <div key={index} className="group relative overflow-hidden bg-white/70 backdrop-blur-sm rounded-lg border border-gray-200/50 p-3 hover:shadow-md transition-all duration-300">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-700 mb-1">{item.period}</p>
-                        <p className={`text-lg font-bold ${isLocked ? 'text-green-600' : 'text-green-600'}`}>
-                          {isLocked ? `+${generateFakePerformance(parseFloat(item.value) || 5, 3)}%` : `+${item.value}%`}
-                        </p>
-                      </div>
-                      <div className="w-8 h-8 bg-gradient-to-r from-green-100 to-blue-100 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                        <TrendingUp className="w-3 h-3 text-green-600" />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              {isLocked && (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/20 backdrop-blur-sm">
-                  <div className="text-center">
-                    <Lock className="h-8 w-8 mx-auto mb-2 text-gray-500" />
-                    <p className="text-sm font-medium text-gray-700">Subscribe to view trailing returns</p>
-                  </div>
-                </div>
-              )}
+        <Card className="mb-4 sm:mb-6">
+          <CardContent className="p-4 sm:p-6">
+            <h3 className="text-lg font-semibold text-blue-600 mb-4">Trailing Returns</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[600px]">
+                <thead>
+                  <tr className="bg-blue-900 text-white">
+                    {trailingReturns.map((item, index) => (
+                      <th key={index} className="px-2 sm:px-4 py-3 text-center font-medium text-xs sm:text-sm whitespace-nowrap">
+                        {item.period}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="bg-gray-50">
+                    {trailingReturns.map((item, index) => (
+                      <td key={index} className="px-2 sm:px-4 py-3 text-center text-xs sm:text-sm">
+                        {item.value}
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </CardContent>
         </Card>
@@ -1114,7 +844,7 @@ export default function PortfolioDetailsPage() {
                   <span className="sm:hidden">{key}</span>
                 </Button>
               ))}
-        </div>
+            </div>
 
             <div className="h-56 sm:h-64 md:h-80 lg:h-96">
               <ResponsiveContainer width="100%" height="100%">
@@ -1161,17 +891,12 @@ export default function PortfolioDetailsPage() {
                       padding: '8px',
                       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                     }}
-                    labelStyle={{
-                      color: '#374151',
-                      fontWeight: 'bold',
-                      marginBottom: '4px'
-                    }}
                   />
                   <Line 
                     type="monotone" 
                     dataKey="portfolioChange" 
                     stroke="#10B981" 
-                    strokeWidth={selectedTimePeriod === '1w' ? 2 : 3}
+                    strokeWidth={3}
                     name="portfolioChange"
                     dot={false}
                     activeDot={{ 
@@ -1185,7 +910,7 @@ export default function PortfolioDetailsPage() {
                     type="monotone" 
                     dataKey="benchmarkChange" 
                     stroke="#6B7280" 
-                    strokeWidth={selectedTimePeriod === '1w' ? 1.5 : 2}
+                    strokeWidth={2}
                     strokeDasharray="4 4"
                     name="benchmarkChange"
                     dot={false}
@@ -1213,13 +938,34 @@ export default function PortfolioDetailsPage() {
                   />
                 </LineChart>
               </ResponsiveContainer>
-          </div>
-
-
+            </div>
           </CardContent>
         </Card>
 
-
+        {/* Portfolio Tips Section */}
+        <Card className="mb-6 sm:mb-8">
+          <CardContent className="p-0">
+            <div className="p-4 sm:p-6 pb-0">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-blue-600 mb-2 sm:mb-0">Portfolio Investment Tips</h3>
+                {/* Removed View All Tips button */}
+              </div>
+            </div>
+            
+            <div className="w-full">
+              <TipsCarousel 
+                portfolioId={portfolio?._id} 
+                tips={portfolioTips}
+                loading={tipsLoading}
+                isModelPortfolio={true}
+                onTipClick={(tipId) => {
+                  // Navigate to tip details page
+                  window.location.href = `/model-portfolios/${portfolio?._id}/tips/${tipId}`;
+                }}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Portfolio & Weights Table */}
         <Card className="mb-4 sm:mb-6">
@@ -1230,83 +976,44 @@ export default function PortfolioDetailsPage() {
                 <Calculator className="h-4 w-4" />
                 <span className="text-sm">Investment calculator</span>
               </Button>
-          </div>
+            </div>
 
-                        {/* Mobile Table Layout - 4 columns */}
+            {/* Mobile Table Layout */}
             <div className="block lg:hidden overflow-x-auto">
-            <table className="w-full">
-              <thead>
+              <table className="w-full">
+                <thead>
                   <tr className="bg-gray-600 text-white text-xs">
-                    <th className="px-2 py-2 text-left font-medium">
-                      <div className="flex items-center">
-                        Stock Name
-                        <svg className="w-3 h-3 ml-1" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                  </th>
-                    <th className="px-2 py-2 text-center font-medium">
-                      <div className="flex items-center justify-center">
-                        Type
-                        <svg className="w-3 h-3 ml-1" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                  </th>
-                    <th className="px-2 py-2 text-center font-medium">
-                      <div className="flex items-center justify-center">
-                        Wt (%)
-                        <svg className="w-3 h-3 ml-1" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                  </th>
+                    <th className="px-2 py-2 text-left font-medium">Stock Name</th>
+                    <th className="px-2 py-2 text-center font-medium">Type</th>
+                    <th className="px-2 py-2 text-center font-medium">Wt (%)</th>
                     <th className="px-2 py-2 text-center font-medium">
                       <div className="flex items-center justify-center space-x-2">
-                        <span>Last Traded Price ({new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric' })} {new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase()})</span>
+                        <span>Last Traded Price</span>
                         <button
                           onClick={handleRefreshPrices}
                           disabled={refreshingPrices}
-                          className={`ml-2 p-1 rounded-full hover:bg-white/20 transition-all duration-200 ${
+                          className={`p-1 rounded-full hover:bg-white/20 transition-all duration-200 ${
                             refreshingPrices ? 'animate-spin' : 'hover:scale-110'
                           }`}
-                          title={refreshingPrices ? "Refreshing prices..." : "Refresh live prices"}
                         >
                           <RefreshCw className={`h-3 w-3 text-white ${refreshingPrices ? 'animate-spin' : ''}`} />
                         </button>
                       </div>
-                  </th>
-                </tr>
-              </thead>
+                    </th>
+                  </tr>
+                </thead>
                 <tbody className="text-xs">
                   {holdingsWithPrices.length > 0 ? holdingsWithPrices.map((holding, index) => (
                     <React.Fragment key={index}>
                       <tr 
-                        className={`cursor-pointer transition-all duration-200 ${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-blue-50 hover:shadow-sm relative group ${index < 2 ? 'animate-pulse-subtle' : ''}`}
+                        className={`cursor-pointer transition-all duration-200 ${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-blue-50`}
                         onClick={() => setExpandedRow(expandedRow === index ? null : index)}
-                        title="Click to expand for more details"
                       >
-                        <td className="px-2 py-2 relative">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="font-medium text-blue-600 leading-tight">{holding.symbol}</div>
-                              <div className="text-gray-500 text-xs leading-tight">NSE : {holding.symbol}</div>
-                            </div>
-                            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                              <svg 
-                                className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${expandedRow === index ? 'rotate-180' : ''}`} 
-                                fill="none" 
-                                stroke="currentColor" 
-                                viewBox="0 0 24 24"
-                              >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                              </svg>
-                            </div>
-                      </div>
-                    </td>
-                        <td className="px-2 py-2 text-center">
-                          <span className="text-gray-700">{(holding.marketCap || getMarketCapCategory(holding.symbol)).replace(' Cap', '\ncap')}</span>
-                    </td>
+                        <td className="px-2 py-2">
+                          <div className="font-medium text-blue-600">{holding.symbol}</div>
+                          <div className="text-gray-500 text-xs">NSE : {holding.symbol}</div>
+                        </td>
+                        <td className="px-2 py-2 text-center text-gray-700">{holding.marketCap || 'Mid cap'}</td>
                         <td className="px-2 py-2 text-center font-medium">{holding.weight.toFixed(1)}</td>
                         <td className="px-2 py-2 text-center">
                           {holding.currentPrice ? (
@@ -1318,14 +1025,14 @@ export default function PortfolioDetailsPage() {
                               </div>
                               {holding.changePercent && (
                                 <div className={`text-xs mt-1 ${holding.changePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                  {holding.changePercent >= 0 ? '+' : ''}{holding.changePercent.toFixed(2)} ({holding.changePercent >= 0 ? '+' : ''}{holding.changePercent.toFixed(2)}%) {holding.changePercent >= 0 ? '▲' : '▼'}
+                                  {holding.changePercent >= 0 ? '+' : ''}{holding.changePercent.toFixed(2)}%
                                 </div>
                               )}
                             </div>
                           ) : (
                             <span className="text-gray-400">Loading...</span>
                           )}
-                    </td>
+                        </td>
                       </tr>
                       {expandedRow === index && (
                         <tr className="bg-blue-50">
@@ -1336,259 +1043,158 @@ export default function PortfolioDetailsPage() {
                                 <div className="text-gray-800">{holding.sector}</div>
                               </div>
                               <div>
-                                <span className="text-gray-600 font-medium">Current Action:</span>
-                                <div>
-                                  <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                                    (holding.status?.toUpperCase() || 'FRESH-BUY') === 'FRESH-BUY' 
-                                      ? 'bg-green-100 text-green-700' 
-                                      : 'bg-gray-100 text-gray-700'
-                                  }`}>
-                                    {holding.status?.toUpperCase() || 'FRESH-BUY'}
-                                  </span>
-                                </div>
-                              </div>
-                              <div>
-                                <span className="text-gray-600 font-medium">BSE Code:</span>
-                                <div className="text-gray-800">{Math.floor(Math.random() * 600000) + 500000}</div>
-                              </div>
-                              <div>
                                 <span className="text-gray-600 font-medium">Investment Value:</span>
                                 <div className="text-gray-800 font-medium">
-                                  ₹{holding.value ? holding.value.toLocaleString('en-IN', { maximumFractionDigits: 0 }) : (Math.floor(Math.random() * 10000) + 5000).toLocaleString('en-IN')}
+                                  ₹{holding.value ? holding.value.toLocaleString('en-IN', { maximumFractionDigits: 0 }) : 'N/A'}
                                 </div>
                               </div>
                             </div>
-                    </td>
-                  </tr>
+                          </td>
+                        </tr>
                       )}
                     </React.Fragment>
                   )) : (
                     <tr>
                       <td colSpan={4} className="px-4 py-8 text-center text-gray-500">
-                        {loading ? "Loading holdings..." : "No holdings data available"}
-                  </td>
-                </tr>
+                        No holdings data available
+                      </td>
+                    </tr>
                   )}
                 </tbody>
               </table>
             </div>
 
-            {/* Desktop Table Layout - All columns */}
+            {/* Desktop Table Layout */}
             <div className="hidden lg:block overflow-x-auto">
-              <table className="w-full min-w-full">
+              <table className="w-full">
                 <thead>
                   <tr className="bg-gray-600 text-white text-xs">
-                    <th className="px-1 sm:px-2 py-2 text-left font-medium">
-                      <div className="flex items-center">
-                        Stock Name
-                        <svg className="w-3 h-3 ml-1" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    </th>
-                    <th className="px-1 sm:px-2 py-2 text-center font-medium">
-                      <div className="flex items-center justify-center">
-                        Type
-                        <svg className="w-3 h-3 ml-1" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    </th>
-                    <th className="px-1 sm:px-2 py-2 text-center font-medium">Sector</th>
-                    <th className="px-1 sm:px-2 py-2 text-center font-medium">
-                      <div className="flex items-center justify-center">
-                        Wt (%)
-                        <svg className="w-3 h-3 ml-1" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    </th>
-                    <th className="px-1 sm:px-2 py-2 text-center font-medium">Action</th>
-                    <th className="px-1 sm:px-2 py-2 text-center font-medium">
+                    <th className="px-2 py-2 text-left font-medium">Stock Name</th>
+                    <th className="px-2 py-2 text-center font-medium">Type</th>
+                    <th className="px-2 py-2 text-center font-medium">Sector</th>
+                    <th className="px-2 py-2 text-center font-medium">Wt (%)</th>
+                    <th className="px-2 py-2 text-center font-medium">Action</th>
+                    <th className="px-2 py-2 text-center font-medium">
                       <div className="flex items-center justify-center space-x-2">
-                        <div className="flex items-center">
-                          <span>Last Traded Price ({new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric' })} {new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase()})</span>
-                          <svg className="w-3 h-3 ml-1" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                          </svg>
-                        </div>
+                        <span>Last Traded Price</span>
                         <button
                           onClick={handleRefreshPrices}
                           disabled={refreshingPrices}
                           className={`p-1 rounded-full hover:bg-white/20 transition-all duration-200 ${
                             refreshingPrices ? 'animate-spin' : 'hover:scale-110'
                           }`}
-                          title={refreshingPrices ? "Refreshing prices..." : "Refresh live prices"}
                         >
                           <RefreshCw className={`h-3 w-3 text-white ${refreshingPrices ? 'animate-spin' : ''}`} />
                         </button>
                       </div>
                     </th>
-                    <th className="px-1 sm:px-2 py-2 text-center font-medium">Value</th>
-                </tr>
+                    <th className="px-2 py-2 text-center font-medium">Value</th>
+                  </tr>
                 </thead>
                 <tbody className="text-xs">
                   {holdingsWithPrices.length > 0 ? holdingsWithPrices.map((holding, index) => (
                     <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                      <td className="px-1 sm:px-2 py-2">
-                        <div>
-                          <div className="font-medium text-blue-600 leading-tight">{holding.symbol}</div>
-                          <div className="text-gray-500 text-xs leading-tight">NSE : {holding.symbol} BSE : {Math.floor(Math.random() * 600000) + 500000}</div>
-                        </div>
-                  </td>
-                      <td className="px-1 sm:px-2 py-2 text-center">
-                        <span className="text-gray-700">{(holding.marketCap || getMarketCapCategory(holding.symbol)).replace(' Cap', '\ncap')}</span>
-                  </td>
-                      <td className="px-1 sm:px-2 py-2 text-center text-gray-700 leading-tight">{holding.sector}</td>
-                      <td className="px-1 sm:px-2 py-2 text-center font-medium">
-                        {holding.weight > 0 ? `${holding.weight.toFixed(1)}%` : '-'}
+                      <td className="px-2 py-2">
+                        <div className="font-medium text-blue-600">{holding.symbol}</div>
+                        <div className="text-gray-500 text-xs">NSE : {holding.symbol}</div>
                       </td>
-                      <td className="px-1 sm:px-2 py-2 text-center">
-                        <span className={`px-1 py-0.5 rounded text-xs font-medium ${
-                          (holding.status?.toUpperCase() || 'FRESH-BUY') === 'FRESH-BUY' 
-                            ? 'bg-green-100 text-green-700' 
-                            : 'bg-gray-100 text-gray-700'
-                        }`}>
+                      <td className="px-2 py-2 text-center text-gray-700">{holding.marketCap || 'Mid cap'}</td>
+                      <td className="px-2 py-2 text-center text-gray-700">{holding.sector}</td>
+                      <td className="px-2 py-2 text-center font-medium">{holding.weight.toFixed(1)}%</td>
+                      <td className="px-2 py-2 text-center">
+                        <span className="px-1 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
                           {holding.status?.toUpperCase() || 'FRESH-BUY'}
                         </span>
-                  </td>
-                      <td className="px-1 sm:px-2 py-2 text-center">
-                        {holding.currentPrice && holding.currentPrice > 0 ? (
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        {holding.currentPrice ? (
                           <div>
                             <div className={`inline-block font-medium px-2 py-1 rounded text-white text-xs ${
                               holding.changePercent && holding.changePercent >= 0 ? 'bg-green-500' : 'bg-red-500'
                             }`}>
                               ₹{holding.currentPrice.toFixed(2)}
                             </div>
-                            {holding.changePercent && holding.changePercent !== 0 && (
+                            {holding.changePercent && (
                               <div className={`text-xs mt-1 ${holding.changePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                {holding.changePercent >= 0 ? '+' : ''}{holding.changePercent.toFixed(2)}% {holding.changePercent >= 0 ? '▲' : '▼'}
+                                {holding.changePercent >= 0 ? '+' : ''}{holding.changePercent.toFixed(2)}%
                               </div>
                             )}
                           </div>
                         ) : (
                           <div className="text-center">
                             <div className="inline-block font-medium px-2 py-1 rounded bg-gray-200 text-gray-700 text-xs">
-                              Live Price
+                              Loading...
                             </div>
-                            <div className="text-xs mt-1 text-gray-500">Loading...</div>
                           </div>
                         )}
-                  </td>
-                      <td className="px-1 sm:px-2 py-2 text-center">
+                      </td>
+                      <td className="px-2 py-2 text-center">
                         <span className="font-medium">
-                          {holding.value && holding.value > 0 
-                            ? `₹${holding.value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}` 
-                            : '-'
-                          }
+                          {holding.value ? `₹${holding.value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : '-'}
                         </span>
-                  </td>
-                </tr>
+                      </td>
+                    </tr>
                   )) : (
                     <tr>
                       <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
-                        {loading ? "Loading holdings..." : "No holdings data available"}
-                  </td>
-                </tr>
+                        No holdings data available
+                      </td>
+                    </tr>
                   )}
                 </tbody>
-            </table>
-          </div>
+              </table>
+            </div>
 
-                        <div className="mt-3 pt-3 border-t border-gray-100">
-              {/* Ultra-Modern Dashboard Layout */}
-              <div className="bg-gradient-to-br from-white via-gray-50/30 to-blue-50/20 rounded-xl border border-gray-200/60 p-4 shadow-sm backdrop-blur-sm">
-                {/* Header with Performance Badge */}
+            {/* Portfolio Summary */}
+            <div className="mt-3 pt-3 border-t border-gray-100">
+              <div className="bg-gradient-to-br from-white via-gray-50/30 to-blue-50/20 rounded-xl border border-gray-200/60 p-4 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                     <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Portfolio Summary</span>
-                    {/* Live Data Indicator */}
-                    {holdingsWithPrices.some(h => h.currentPrice) && (
-                      <div className="flex items-center space-x-1 bg-blue-100 px-2 py-1 rounded-full">
-                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></div>
-                        <span className="text-xs font-medium text-blue-700">Live</span>
-                      </div>
-                    )}
                   </div>
                   <div className="flex items-center space-x-1 bg-green-100 px-2 py-1 rounded-full">
-                    <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                    </svg>
                     <span className="text-xs font-bold text-green-700">
                       {portfolioMetrics.pnlPercentage >= 0 ? '+' : ''}{portfolioMetrics.pnlPercentage.toFixed(2)}%
                     </span>
-          </div>
-        </div>
+                  </div>
+                </div>
 
-                {/* Main Metrics Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {/* Holdings Value */}
-                  <div className="group relative overflow-hidden bg-white/70 backdrop-blur-sm rounded-lg border border-gray-200/50 p-3 hover:shadow-md transition-all duration-300">
-                    <div className="absolute inset-0 bg-gradient-to-br from-slate-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    <div className="relative">
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center space-x-1.5">
-                          <div className="w-4 h-4 bg-slate-600 rounded-sm flex items-center justify-center">
-                            <div className="w-2 h-2 bg-white rounded-sm"></div>
-                </div>
-                          <span className="text-xs font-medium text-slate-700">Holdings</span>
-                        </div>
-                        <div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div>
-                      </div>
-                      <div className="text-base font-bold text-slate-900 leading-none">
-                        ₹{portfolioMetrics.holdingsValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                      </div>
-                      <div className="text-xs text-slate-500 mt-0.5">Total Value</div>
+                  <div className="bg-white/70 rounded-lg border border-gray-200/50 p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium text-slate-700">Holdings</span>
                     </div>
+                    <div className="text-base font-bold text-slate-900">
+                      ₹{portfolioMetrics.holdingsValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                    </div>
+                    <div className="text-xs text-slate-500">Total Value</div>
                   </div>
 
-                  {/* Cash Balance */}
-                  <div className="group relative overflow-hidden bg-white/70 backdrop-blur-sm rounded-lg border border-gray-200/50 p-3 hover:shadow-md transition-all duration-300">
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    <div className="relative">
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center space-x-1.5">
-                          <div className="w-4 h-4 bg-blue-600 rounded-sm flex items-center justify-center">
-                            <div className="w-2 h-2 bg-white rounded-full"></div>
-                          </div>
-                          <span className="text-xs font-medium text-blue-700">Cash</span>
-                        </div>
-                        <div className="text-xs font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">
-                          {portfolioMetrics.cashPercentage.toFixed(1)}%
-                        </div>
-                      </div>
-                      <div className="text-base font-bold text-blue-900 leading-none">
-                        ₹{portfolioMetrics.cashBalance.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                      </div>
-                      <div className="text-xs text-blue-600 mt-0.5">Available</div>
+                  <div className="bg-white/70 rounded-lg border border-gray-200/50 p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium text-blue-700">Cash</span>
+                      <span className="text-xs font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">
+                        {portfolioMetrics.cashPercentage.toFixed(1)}%
+                      </span>
                     </div>
+                    <div className="text-base font-bold text-blue-900">
+                      ₹{portfolioMetrics.cashBalance.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                    </div>
+                    <div className="text-xs text-blue-600">Available</div>
                   </div>
 
-                  {/* Total Portfolio */}
-                  <div className="group relative overflow-hidden bg-white/70 backdrop-blur-sm rounded-lg border border-gray-200/50 p-3 hover:shadow-md transition-all duration-300">
-                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    <div className="relative">
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center space-x-1.5">
-                          <div className="w-4 h-4 bg-indigo-600 rounded-sm flex items-center justify-center">
-                            <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                            </svg>
-                          </div>
-                          <span className="text-xs font-medium text-indigo-700">Portfolio</span>
-                        </div>
-                        <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full"></div>
-                      </div>
-                      <div className="text-base font-bold text-indigo-900 leading-none">
-                        ₹{portfolioMetrics.totalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                      </div>
-                      <div className="text-xs text-indigo-600 mt-0.5">Total Value</div>
+                  <div className="bg-white/70 rounded-lg border border-gray-200/50 p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium text-indigo-700">Portfolio</span>
                     </div>
+                    <div className="text-base font-bold text-indigo-900">
+                      ₹{portfolioMetrics.totalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                    </div>
+                    <div className="text-xs text-indigo-600">Total Value</div>
                   </div>
                 </div>
 
-                {/* Performance Footer */}
                 <div className="mt-3 pt-3 border-t border-gray-100/60">
                   <div className="flex items-center justify-center space-x-2 text-center">
                     <div className="flex items-center space-x-1">
@@ -1599,179 +1205,155 @@ export default function PortfolioDetailsPage() {
                   </div>
                 </div>
               </div>
-                </div>
-              </CardContent>
-            </Card>
-
-        {/* Portfolio Tips Carousel */}
-        <Card className="mb-6 shadow-sm border border-gray-200 overflow-hidden">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">Portfolio Tips & Insights</h3>
-                  <p className="text-sm text-gray-600">Expert recommendations for your portfolio</p>
-                </div>
-              </div>
-              <div className="hidden sm:flex items-center space-x-2 bg-blue-50 px-3 py-1.5 rounded-full">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                <span className="text-xs font-medium text-blue-700">Active Tips</span>
-              </div>
             </div>
-
-            <TipsCarousel 
-              portfolioId={portfolioId} 
-              tips={portfolioTips} 
-              loading={tipsLoading}
-            />
           </CardContent>
         </Card>
 
         {/* Portfolio Allocation Chart */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
-          {/* Chart Card - Enhanced Desktop Layout */}
-          <Card className="shadow-sm border border-gray-200 lg:col-span-3">
+        <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 mb-6">
+          <Card className="shadow-sm border border-gray-200 xl:col-span-2">
             <CardContent className="p-4 lg:p-6">
               <h3 className="text-lg lg:text-xl font-bold mb-4 text-gray-800">Portfolio Allocation</h3>
-              <div className={`relative ${isLocked ? 'overflow-hidden' : ''}`}>
-                <div className={`w-full h-64 sm:h-72 lg:h-80 xl:h-[400px] ${isLocked ? 'blur-sm' : ''}`}>
+              <div className="relative flex items-center justify-center">
+                <div className="w-full h-64 sm:h-72 lg:h-80 xl:h-96 relative">
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart width={400} height={400}>
+                    <PieChart>
                       <Pie
-                        data={portfolioAllocationData.length > 0 ? portfolioAllocationData : [
-                          { name: "HDFCBANK", value: 79.57, color: "#3B82F6", sector: "Banking" },
-                          { name: "IDFCFIRSTB", value: 20.43, color: "#10B981", sector: "Banking" }
-                        ]}
+                        data={portfolioAllocationData}
                         cx="50%"
                         cy="50%"
-                        innerRadius="80%"
-                        outerRadius="100%"
+                        innerRadius="60%"
+                        outerRadius="80%"
                         paddingAngle={2}
                         dataKey="value"
                         stroke="none"
                         onMouseEnter={(data) => {
-                          if (!isLocked) {
-                            setHoveredSegment(data);
-                            if (selectedSegment && selectedSegment.name !== data.name) {
-                              setSelectedSegment(data);
-                            }
+                          setHoveredSegment(data);
+                          if (selectedSegment && selectedSegment.name !== data.name) {
+                            setSelectedSegment(data);
                           }
                         }}
-                        onMouseLeave={() => !isLocked && setHoveredSegment(null)}
+                        onMouseLeave={() => setHoveredSegment(null)}
                         onClick={(data) => {
-                          if (!isLocked) {
-                            if (selectedSegment?.name === data.name) {
-                              setSelectedSegment(null);
-                            } else {
-                              setSelectedSegment(data);
-                            }
+                          if (selectedSegment?.name === data.name) {
+                            setSelectedSegment(null);
+                          } else {
+                            setSelectedSegment(data);
                           }
                         }}
                       >
-                        {portfolioAllocationData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
+                        {portfolioAllocationData.map((entry, index) => {
+                          const isActive = hoveredSegment?.name === entry.name;
+                          const isFaded = hoveredSegment && !isActive;
+
+                          return (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={entry.color}
+                              style={{
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease-in-out',
+                                transform: isActive ? 'scale(1.05)' : 'scale(1)',
+                                filter: isActive
+                                  ? `brightness(1.1) saturate(1.2)`
+                                  : isFaded
+                                    ? 'brightness(0.8) saturate(0.6)'
+                                    : 'none',
+                                opacity: isFaded ? 0.6 : 1,
+                              }}
+                            />
+                          );
+                        })}
                       </Pie>
-                      <Tooltip 
-                        formatter={(value: any) => [`${value}%`, 'Allocation']}
-                        contentStyle={{
-                          backgroundColor: '#f9fafb',
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '8px',
-                          fontSize: '12px'
-                        }}
-                      />
                     </PieChart>
                   </ResponsiveContainer>
+
+                                     {/* Center Display */}
+                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                     <div className="text-center max-w-40">
+                       {(hoveredSegment || selectedSegment) ? (
+                         <div className="transition-all duration-200 ease-in-out">
+                           <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
+                             {(hoveredSegment || selectedSegment)?.value.toFixed(1)}%
+                           </div>
+                           <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-700 leading-tight mb-1">
+                             {(hoveredSegment || selectedSegment)?.name}
+                           </div>
+                           <div className="text-sm text-gray-500 uppercase tracking-wide">
+                             {(hoveredSegment || selectedSegment)?.sector}
+                           </div>
+                         </div>
+                       ) : (
+                         <div className="text-gray-400">
+                           <div className="text-lg font-semibold mb-1">Portfolio</div>
+                           <div className="text-sm">Click or hover to explore</div>
+                         </div>
+                       )}
+                     </div>
+                   </div>
                 </div>
-                
-                {isLocked && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-white/20 backdrop-blur-sm">
-                    <div className="text-center">
-                      <Lock className="h-8 w-8 mx-auto mb-2 text-gray-500" />
-                      <p className="text-sm font-medium text-gray-700">Subscribe to view allocation chart</p>
-                    </div>
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>
 
-          {/* Holdings Details Card */}
-          <Card className="shadow-sm border border-gray-200 lg:col-span-2">
+          <Card className="shadow-sm border border-gray-200 xl:col-span-3">
             <CardContent className="p-4 lg:p-6">
-              <h3 className="text-lg lg:text-xl font-bold mb-4 text-gray-800">Holdings Details</h3>
-              <div className={`relative ${isLocked ? 'overflow-hidden' : ''}`}>
-                <div className={`space-y-3 ${isLocked ? 'blur-sm' : ''}`}>
-                  {portfolioAllocationData.map((stock, index) => {
+              <h3 className="text-lg lg:text-xl font-bold text-gray-800 mb-4">Holdings Detail</h3>
+              <div className="space-y-2 h-64 sm:h-72 lg:h-80 xl:h-96 overflow-y-auto">
+                {portfolioAllocationData
+                  .sort((a, b) => b.value - a.value)
+                  .map((stock, index) => {
                     const isSelected = selectedSegment?.name === stock.name;
                     const isHovered = hoveredSegment?.name === stock.name;
                     
                     return (
                       <div
-                        key={stock.name}
-                        className={`p-3 rounded-lg border transition-all duration-300 cursor-pointer
-                          ${isSelected 
-                            ? 'border-blue-500 bg-blue-50 shadow-md' 
-                            : isHovered 
-                              ? 'border-gray-300 bg-gray-50 shadow-sm' 
-                              : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
-                          }`}
-                        onClick={() => !isLocked && setSelectedSegment(isSelected ? null : stock)}
+                        key={index}
+                        className={`flex items-center justify-between p-3 lg:p-4 rounded-lg cursor-pointer transition-all duration-200 ${
+                          isSelected 
+                            ? 'bg-blue-50 border border-blue-200 shadow-sm' 
+                            : isHovered
+                              ? 'bg-gray-50 border border-gray-200 shadow-sm'
+                              : 'hover:bg-gray-50 border border-transparent hover:shadow-sm'
+                        }`}
+                        onClick={() => setSelectedSegment(isSelected ? null : stock)}
                         onMouseEnter={() => {
-                          if (!isLocked) {
-                            setHoveredSegment(stock);
-                            if (selectedSegment && selectedSegment.name !== stock.name) {
-                              setSelectedSegment(stock);
-                            }
+                          setHoveredSegment(stock);
+                          if (selectedSegment && selectedSegment.name !== stock.name) {
+                            setSelectedSegment(stock);
                           }
                         }}
-                        onMouseLeave={() => !isLocked && setHoveredSegment(null)}
+                        onMouseLeave={() => setHoveredSegment(null)}
                       >
-                        <div className="flex items-center space-x-4 lg:space-x-5 min-w-0 flex-1">
+                        <div className="flex items-center space-x-3 lg:space-x-4 min-w-0 flex-1">
                           <div 
-                            className="w-4 h-4 lg:w-5 lg:h-5 rounded-full flex-shrink-0" 
+                            className="w-3 h-3 lg:w-4 lg:h-4 rounded-full flex-shrink-0" 
                             style={{ backgroundColor: stock.color }}
                           ></div>
                           <div className="min-w-0 flex-1">
-                            <div className="text-base lg:text-lg font-semibold text-gray-800 truncate">
+                            <div className="text-sm lg:text-base font-medium text-gray-800 truncate">
                               {stock.name}
                             </div>
-                            <div className="text-sm text-gray-600 truncate">
-                              {stock.sector}
-                            </div>
+                            <div className="text-xs lg:text-sm text-gray-500">{stock.sector}</div>
                           </div>
-                          <div className="text-right flex-shrink-0">
-                            <div className="text-base lg:text-lg font-bold text-gray-900">
-                              {stock.value.toFixed(1)}%
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              ₹{((stock.value / 100) * portfolioMetrics.totalValue).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                            </div>
+                        </div>
+                        <div className="text-right flex-shrink-0 ml-2 lg:ml-4">
+                          <div className="text-sm lg:text-base font-bold text-gray-900">
+                            {stock.value.toFixed(1)}%
+                          </div>
+                          <div className="text-xs lg:text-sm text-gray-500">
+                            ₹{((stock.value / 100) * portfolioMetrics.totalValue).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                           </div>
                         </div>
                       </div>
                     );
                   })}
-                </div>
-                
-                {isLocked && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-white/20 backdrop-blur-sm">
-                    <div className="text-center">
-                      <Lock className="h-8 w-8 mx-auto mb-2 text-gray-500" />
-                      <p className="text-sm font-medium text-gray-700">Subscribe to view holdings details</p>
-                    </div>
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>
         </div>
 
-                {/* Latest Research Reports Section */}
+        {/* Latest Research Reports Section */}
         <div className="mt-8">
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 space-y-3 sm:space-y-0">
@@ -1801,14 +1383,13 @@ export default function PortfolioDetailsPage() {
                   <div key={index} className="border-b border-gray-100 pb-6 last:border-b-0">
                     <h4 className="font-semibold text-gray-900 text-lg mb-2">
                       {link.name || link.linkDiscription || `${link.linkType?.charAt(0).toUpperCase() + link.linkType?.slice(1) || 'Document'} Report`}
-                  </h4>
+                    </h4>
                     <div className="flex items-center text-sm text-gray-600 mb-2">
                       <span>Publish on {new Date(link.createdAt).toLocaleDateString('en-GB', {
                         day: 'numeric',
                         month: 'short',
                         year: 'numeric'
                       })}</span>
-                      <span className="mx-2">|</span>
                     </div>
                     <p className="text-gray-600 text-sm mb-3 leading-relaxed">
                       {link.linkDiscription || 'Research document and analysis for portfolio subscribers.'}
@@ -1830,323 +1411,8 @@ export default function PortfolioDetailsPage() {
                 </div>
               )}
             </div>
-
-            {(portfolio as any)?.downloadLinks?.length > 5 && (
-              <div className="text-center mt-6">
-                <button className="px-6 py-2 border border-blue-600 text-blue-600 rounded hover:bg-blue-50 transition-colors">
-                  View more
-                </button>
-            </div>
-            )}
           </div>
         </div>
-
-        {/* Performance Chart */}
-        <Card className="mb-4 sm:mb-6">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 space-y-4 sm:space-y-0">
-              <div>
-                <h3 className="text-lg sm:text-xl font-bold mb-2 text-gray-800">Performance Chart</h3>
-                <p className="text-sm text-gray-600">Track portfolio performance over time</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {['1w', '1m', '3m', '6m', '1Yr', 'Since Inception'].map((period) => (
-                  <Button
-                    key={period}
-                    variant={selectedTimePeriod === period ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleTimePeriodChange(period)}
-                    className={`text-xs px-3 py-1 transition-all duration-200 ${
-                      selectedTimePeriod === period 
-                        ? 'bg-blue-600 text-white shadow-md' 
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                    } ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    disabled={isLocked}
-                  >
-                    {period}
-                  </Button>
-                ))}
-              </div>
-            </div>
-            
-            <div className={`relative ${isLocked ? 'overflow-hidden' : ''}`}>
-              <div className={`h-64 sm:h-80 ${isLocked ? 'blur-sm' : ''}`}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={priceHistory}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis 
-                      dataKey="date" 
-                      stroke="#6b7280"
-                      fontSize={12}
-                      tickFormatter={(value) => {
-                        const date = new Date(value);
-                        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                      }}
-                    />
-                    <YAxis 
-                      stroke="#6b7280"
-                      fontSize={12}
-                      tickFormatter={(value) => `₹${value.toLocaleString()}`}
-                    />
-                    <Tooltip 
-                      formatter={(value: any) => [`₹${value.toLocaleString()}`, 'Portfolio Value']}
-                      labelFormatter={(label) => `Date: ${new Date(label).toLocaleDateString()}`}
-                      contentStyle={{
-                        backgroundColor: '#f9fafb',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        fontSize: '12px'
-                      }}
-                    />
-                    <Legend />
-                    <Line 
-                      type="monotone" 
-                      dataKey="value" 
-                      stroke="#3b82f6" 
-                      strokeWidth={2}
-                      dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-                      activeDot={{ r: 6, stroke: '#3b82f6', strokeWidth: 2 }}
-                      name="Portfolio Value"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-              
-              {isLocked && (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/20 backdrop-blur-sm">
-                  <div className="text-center">
-                    <Lock className="h-8 w-8 mx-auto mb-2 text-gray-500" />
-                    <p className="text-sm font-medium text-gray-700">Subscribe to view performance chart</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Holdings Table */}
-        <Card className="mb-4 sm:mb-6">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <div>
-                <h3 className="text-lg sm:text-xl font-bold mb-2 text-gray-800">Portfolio Holdings</h3>
-                <p className="text-sm text-gray-600">Detailed view of all portfolio holdings</p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setRefreshingPrices(true)}
-                disabled={refreshingPrices || isLocked}
-                className={`flex items-center space-x-2 ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <RefreshCw className={`h-4 w-4 ${refreshingPrices ? 'animate-spin' : ''}`} />
-                <span>Refresh Prices</span>
-                {isLocked && <Lock className="h-3 w-3 ml-1 text-gray-500" />}
-              </Button>
-            </div>
-            
-            <div className={`relative ${isLocked ? 'overflow-hidden' : ''}`}>
-              <div className={isLocked ? 'blur-sm' : ''}>
-                {/* Mobile Holdings View */}
-                <div className="block lg:hidden overflow-x-auto">
-                  <div className="space-y-3">
-                    {holdingsWithPrices.map((holding, index) => (
-                      <div key={holding.symbol} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h4 className="font-semibold text-gray-900">{holding.symbol}</h4>
-                            <p className="text-sm text-gray-600">{holding.sector}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-gray-900">₹{holding.currentPrice?.toFixed(2) || 'N/A'}</p>
-                            <p className={`text-sm ${holding.changePercent && holding.changePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {holding.changePercent ? `${holding.changePercent.toFixed(2)}%` : 'N/A'}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <div className={`inline-block font-medium px-2 py-1 rounded text-white text-xs ${
-                            holding.status === 'BUY' ? 'bg-green-500' : 
-                            holding.status === 'SELL' ? 'bg-red-500' : 
-                            'bg-blue-500'
-                          }`}>
-                            {holding.status}
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm text-gray-600">Weight: {holding.weight}%</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Desktop Holdings Table */}
-                <div className="hidden lg:block overflow-x-auto">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="bg-gray-50 border-b border-gray-200">
-                        <th className="text-left p-3 font-semibold text-gray-900">Symbol</th>
-                        <th className="text-left p-3 font-semibold text-gray-900">Sector</th>
-                        <th className="text-right p-3 font-semibold text-gray-900">Current Price</th>
-                        <th className="text-right p-3 font-semibold text-gray-900">Change %</th>
-                        <th className="text-right p-3 font-semibold text-gray-900">Weight %</th>
-                        <th className="text-center p-3 font-semibold text-gray-900">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {holdingsWithPrices.map((holding, index) => (
-                        <tr key={holding.symbol} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                          <td className="p-3 font-medium text-gray-900">{holding.symbol}</td>
-                          <td className="p-3 text-gray-700">{holding.sector}</td>
-                          <td className="p-3 text-right font-medium text-gray-900">₹{holding.currentPrice?.toFixed(2) || 'N/A'}</td>
-                          <td className={`p-3 text-right font-medium ${holding.changePercent && holding.changePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {holding.changePercent ? `${holding.changePercent.toFixed(2)}%` : 'N/A'}
-                          </td>
-                          <td className="p-3 text-right font-medium text-gray-900">{holding.weight}%</td>
-                          <td className="p-3 text-center">
-                            <div className={`inline-block font-medium px-2 py-1 rounded text-white text-xs ${
-                              holding.status === 'BUY' ? 'bg-green-500' : 
-                              holding.status === 'SELL' ? 'bg-red-500' : 
-                              'bg-blue-500'
-                            }`}>
-                              {holding.status}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              
-              {isLocked && (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/20 backdrop-blur-sm">
-                  <div className="text-center">
-                    <Lock className="h-8 w-8 mx-auto mb-2 text-gray-500" />
-                    <p className="text-sm font-medium text-gray-700">Subscribe to view detailed holdings</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Research Reports */}
-        <Card className="mb-6 shadow-sm border border-gray-200 overflow-hidden">
-          <CardContent className="p-4 lg:p-6">
-            <div className="flex items-center justify-between mb-4 lg:mb-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
-                  <FileText className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">
-                    <span className="block sm:inline">Latest Research Reports</span>
-                    <span className="block sm:inline text-base sm:text-lg lg:text-xl text-gray-700 font-medium mt-1 sm:mt-0 sm:ml-2">
-                      & Analysis
-                    </span>
-                  </h3>
-                  <p className="text-sm text-gray-600">In-depth analysis and research documentation</p>
-                </div>
-              </div>
-              <div className="hidden sm:flex items-center space-x-2 bg-purple-50 px-3 py-1.5 rounded-full">
-                <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
-                <span className="text-xs font-medium text-purple-700">Updated</span>
-              </div>
-            </div>
-            
-            <div className={`relative ${isLocked ? 'overflow-hidden' : ''}`}>
-              <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 ${isLocked ? 'blur-sm' : ''}`}>
-                {(portfolio as any)?.downloadLinks?.length > 0 ? (
-                  (portfolio as any).downloadLinks.slice(0, 6).map((link: any, index: number) => (
-                    <div key={index} className="group relative overflow-hidden bg-white/70 backdrop-blur-sm rounded-lg border border-gray-200/50 p-4 hover:shadow-md transition-all duration-300">
-                      <div className="flex items-start space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-r from-blue-100 to-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <FileText className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-gray-900 text-sm mb-1 truncate">
-                            {link.title || link.name || `Research Report ${index + 1}`}
-                          </h4>
-                          <p className="text-xs text-gray-600 mb-2 line-clamp-2">
-                            {link.description || "Comprehensive analysis and insights"}
-                          </p>
-                          <button 
-                            onClick={() => {
-                              if (isLocked) {
-                                toast({
-                                  title: "Access Required",
-                                  description: "Please subscribe to access research reports.",
-                                  variant: "destructive",
-                                });
-                                return;
-                              }
-                              window.open(link.linkUrl || link.url, '_blank');
-                            }}
-                            className={`text-xs font-medium transition-colors ${
-                              isLocked 
-                                ? 'text-gray-400 cursor-not-allowed' 
-                                : 'text-blue-600 hover:text-blue-800'
-                            } flex items-center space-x-1`}
-                            disabled={isLocked}
-                          >
-                            <span>{isLocked ? 'Locked' : 'View Report'}</span>
-                            {isLocked ? (
-                              <Lock className="w-3 h-3" />
-                            ) : (
-                              <ExternalLink className="w-3 h-3" />
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8 col-span-full">
-                    <div className="text-gray-400 mb-2">📄</div>
-                    <p className="text-gray-600">No research reports available at the moment.</p>
-                  </div>
-                )}
-              </div>
-              
-              {isLocked && (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/20 backdrop-blur-sm">
-                  <div className="text-center">
-                    <Lock className="h-8 w-8 mx-auto mb-2 text-gray-500" />
-                    <p className="text-sm font-medium text-gray-700">Subscribe to access research reports</p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {(portfolio as any)?.downloadLinks?.length > 6 && (
-              <div className="text-center mt-6">
-                <button 
-                  onClick={() => {
-                    if (isLocked) {
-                      toast({
-                        title: "Access Required",
-                        description: "Please subscribe to access all research reports.",
-                        variant: "destructive",
-                      });
-                      return;
-                    }
-                  }}
-                  className={`px-6 py-2 border rounded transition-colors ${
-                    isLocked 
-                      ? 'border-gray-300 text-gray-400 cursor-not-allowed' 
-                      : 'border-blue-600 text-blue-600 hover:bg-blue-50'
-                  }`}
-                  disabled={isLocked}
-                >
-                  {isLocked ? 'Locked' : 'View more'}
-                  {isLocked && <Lock className="w-3 h-3 ml-1 inline" />}
-                </button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
     </DashboardLayout>
   );
