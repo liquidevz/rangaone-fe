@@ -13,6 +13,7 @@ import { Portfolio } from "@/lib/types"
 import { useAuth } from "@/components/auth/auth-context"
 import { useRouter } from "next/navigation"
 import { MethodologyModal } from "@/components/methodology-modal"
+import { authService } from "@/services/auth.service"
 
 // Market Indices Component
 export function MarketIndicesSection() {
@@ -137,6 +138,28 @@ export function ExpertRecommendationsSection() {
     fetchSubscriptionAccess()
   }, [isAuthenticated])
 
+  // Debug function - call from browser console: window.debugSubscriptionAccess()
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).debugSubscriptionAccess = async () => {
+        console.log("🔧 Manual subscription access debug...")
+        try {
+          const accessData = await subscriptionService.getSubscriptionAccess(true) // Force refresh
+          console.log("🔍 Fresh subscription access data:", accessData)
+          
+          // Get raw subscription data
+          const rawSubscriptions = await subscriptionService.getUserSubscriptions(true)
+          console.log("📊 Raw subscription data:", rawSubscriptions)
+          
+          return accessData
+        } catch (error) {
+          console.error("❌ Debug failed:", error)
+          return null
+        }
+      }
+    }
+  }, [])
+
   useEffect(() => {
     const fetchModelPortfolioTips = async () => {
       if (activeTab === "modelPortfolio") {
@@ -250,42 +273,107 @@ export function ExpertRecommendationsSection() {
 // Model Portfolio Section Component
 export function ModelPortfolioSection() {
   const [portfolios, setPortfolios] = useState<Portfolio[]>([])
-  const [userAccessiblePortfolios, setUserAccessiblePortfolios] = useState<string[]>([])
+  const [portfolioDetails, setPortfolioDetails] = useState<{ [key: string]: any }>({})
+  const [subscriptionAccess, setSubscriptionAccess] = useState<SubscriptionAccess | null>(null)
   const [loading, setLoading] = useState(true)
   const { isAuthenticated } = useAuth()
+
+  useEffect(() => {
+    const fetchSubscriptionAccess = async () => {
+      if (isAuthenticated) {
+        try {
+          const accessData = await subscriptionService.getSubscriptionAccess()
+          setSubscriptionAccess(accessData)
+        } catch (error) {
+          console.error("Failed to fetch subscription access:", error)
+        }
+      }
+    }
+
+    fetchSubscriptionAccess()
+  }, [isAuthenticated])
+
+  // Debug function - call from browser console: window.debugPortfolioData()
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).debugPortfolioData = async () => {
+        console.log("🔧 Manual portfolio data debug...")
+        try {
+          const token = authService.getAccessToken()
+          console.log("Auth token exists:", !!token)
+          
+          const allPortfolios = await portfolioService.getAll()
+          console.log("📊 All portfolios:", allPortfolios)
+          
+          if (allPortfolios.length > 0) {
+            const firstPortfolio = allPortfolios[0]
+            console.log("Testing with first portfolio:", firstPortfolio._id)
+            
+            const details = await portfolioService.getById(firstPortfolio._id)
+            console.log("📊 Portfolio details:", details)
+            
+            return { allPortfolios, firstPortfolio, details }
+          }
+        } catch (error) {
+          console.error("❌ Debug failed:", error)
+          return null
+        }
+      }
+    }
+  }, [])
 
   useEffect(() => {
     const loadPortfolios = async () => {
       try {
         setLoading(true)
         
-        // First try to get portfolios from authenticated endpoint
+        // Always get portfolios from the appropriate endpoint
+        let portfolioData: Portfolio[] = []
+        
         if (isAuthenticated) {
           try {
-            const authPortfolios = await portfolioService.getAll()
-            if (authPortfolios && authPortfolios.length > 0) {
-              setPortfolios(authPortfolios.slice(0, 6))
-              // Extract IDs of portfolios user has access to
-              const accessibleIds = authPortfolios
-                .filter(p => !p.isPurchased === false) // User has access if isPurchased is not false
-                .map(p => p._id)
-              setUserAccessiblePortfolios(accessibleIds)
-            } else {
-              // Fallback to public endpoint
-              const publicPortfolios = await portfolioService.getPublic()
-              setPortfolios(publicPortfolios.slice(0, 6))
-            }
+            portfolioData = await portfolioService.getAll()
+            console.log("📊 Portfolio data from getAll():", portfolioData)
           } catch (error) {
             console.error("Failed to fetch authenticated portfolios:", error)
-            // Fallback to public endpoint
-            const publicPortfolios = await portfolioService.getPublic()
-            setPortfolios(publicPortfolios.slice(0, 6))
+            portfolioData = await portfolioService.getPublic()
           }
         } else {
-          // Not authenticated - use public endpoint
-          const publicPortfolios = await portfolioService.getPublic()
-          setPortfolios(publicPortfolios.slice(0, 6))
+          portfolioData = await portfolioService.getPublic()
         }
+        
+        setPortfolios(portfolioData.slice(0, 6))
+        
+        // Fetch detailed data for each portfolio
+        if (isAuthenticated && portfolioData.length > 0) {
+          console.log("🔍 Fetching detailed data for portfolios:", portfolioData.slice(0, 6).map(p => p._id))
+          
+          const detailsPromises = portfolioData.slice(0, 6).map(async (portfolio) => {
+            try {
+              console.log(`📡 Fetching details for portfolio ${portfolio._id}`)
+              const details = await portfolioService.getById(portfolio._id)
+              console.log(`📊 Portfolio ${portfolio._id} details:`, details)
+              return { id: portfolio._id, data: details }
+            } catch (error) {
+              console.error(`Failed to fetch details for portfolio ${portfolio._id}:`, error)
+              return { id: portfolio._id, data: null }
+            }
+          })
+          
+          const detailsResults = await Promise.all(detailsPromises)
+          console.log("🎯 All portfolio details results:", detailsResults)
+          
+          const detailsMap = detailsResults.reduce((acc, { id, data }) => {
+            if (data) {
+              acc[id] = data
+            }
+            return acc
+          }, {} as { [key: string]: any })
+          
+          console.log("🗂️ Final portfolio details map:", detailsMap)
+          setPortfolioDetails(detailsMap)
+        }
+        
       } catch (error) {
         console.error("Failed to load portfolios:", error)
       } finally {
@@ -327,16 +415,43 @@ export function ModelPortfolioSection() {
       </div>
 
       <div className="space-y-4">
-        {portfolios.map((portfolio) => (
-          <PortfolioCard 
-            key={portfolio._id} 
-            portfolio={portfolio} 
-            hasAccess={userAccessiblePortfolios.includes(portfolio._id)}
-          />
-        ))}
+        {portfolios.map((portfolio) => {
+          // Use the same access control logic as /model-portfolios page
+          // Check if portfolio has a message field - if yes, user needs to subscribe
+          const hasPortfolioAccess = !portfolio.message
+          
+          return (
+            <PortfolioCard 
+              key={portfolio._id} 
+              portfolio={portfolio} 
+              portfolioDetails={portfolioDetails[portfolio._id] || null}
+              hasAccess={hasPortfolioAccess}
+              subscriptionAccess={subscriptionAccess}
+              isAuthenticated={isAuthenticated}
+            />
+          )
+        })}
       </div>
     </div>
   )
+}
+
+// Helper function to determine portfolio access - keeping for compatibility but not used
+function getPortfolioAccess(portfolioId: string, subscriptionAccess: SubscriptionAccess | null, isAuthenticated: boolean): boolean {
+  if (!isAuthenticated) return false
+  if (!subscriptionAccess) return false
+  
+  // Premium users have access to all portfolios
+  if (subscriptionAccess.hasPremium) return true
+  
+  // Basic users have access to basic portfolios (you may need to adjust this based on your portfolio categorization)
+  if (subscriptionAccess.hasBasic) {
+    // For now, basic users get access to none in dashboard - adjust as needed
+    return false
+  }
+  
+  // Individual portfolio access
+  return subscriptionAccess.portfolioAccess.includes(portfolioId)
 }
 
 // Model Portfolio Tip Card Component
@@ -391,9 +506,20 @@ function ModelPortfolioTipCard({ tip }: { tip: Tip }) {
 }
 
 // Portfolio Card Component
-function PortfolioCard({ portfolio, hasAccess }: { portfolio: Portfolio; hasAccess: boolean }) {
+function PortfolioCard({ 
+  portfolio, 
+  portfolioDetails, 
+  hasAccess, 
+  subscriptionAccess, 
+  isAuthenticated 
+}: { 
+  portfolio: Portfolio
+  portfolioDetails: any
+  hasAccess: boolean
+  subscriptionAccess: SubscriptionAccess | null
+  isAuthenticated: boolean
+}) {
   const router = useRouter()
-  const { isAuthenticated } = useAuth()
   
   const handleDetailsClick = () => {
     router.push(`/model-portfolios/${portfolio._id}`)
@@ -406,79 +532,203 @@ function PortfolioCard({ portfolio, hasAccess }: { portfolio: Portfolio; hasAcce
       router.push('/login')
     }
   }
+
+  // Use the hasAccess prop directly - this is based on /api/user/portfolios response
+  const isLocked = !hasAccess
   
-  // Check if portfolio data should be locked/blurred
-  const isLocked = !isAuthenticated || !hasAccess
+  // Generate realistic fake data for blurred content
+  const generateFakeData = () => ({
+    monthlyGains: `+${Math.floor(Math.random() * 20) + 5}.${Math.floor(Math.random() * 99)}%`,
+    oneYearGains: `+${Math.floor(Math.random() * 15) + 2}.${Math.floor(Math.random() * 99)}%`,
+    cagr: `+${Math.floor(Math.random() * 25) + 10}.${Math.floor(Math.random() * 99)}%`
+  })
+
+  const fakeData = generateFakeData()
+
+  // Get real performance data from API or fallback values
+  const getPerformanceData = () => {
+    console.log(`🎯 Portfolio ${portfolio._id} - portfolioDetails:`, portfolioDetails)
+    console.log(`🔒 Portfolio ${portfolio._id} - isLocked:`, isLocked)
+    
+    if (portfolioDetails && !isLocked) {
+      console.log(`✅ Using API data for portfolio ${portfolio._id}:`, {
+        monthlyGains: portfolioDetails.monthlyGains,
+        oneYearGains: portfolioDetails.oneYearGains,
+        CAGRSinceInception: portfolioDetails.CAGRSinceInception
+      })
+      
+      return {
+        monthlyGains: portfolioDetails.monthlyGains !== undefined ? 
+          `${portfolioDetails.monthlyGains >= 0 ? '+' : ''}${portfolioDetails.monthlyGains}%` : 
+          `+${portfolio.monthlyGains || '13.78'}%`,
+        oneYearGains: portfolioDetails.oneYearGains !== undefined ? 
+          `${portfolioDetails.oneYearGains >= 0 ? '+' : ''}${portfolioDetails.oneYearGains}%` : 
+          `+${portfolio.oneYearGains || '2.86'}%`,
+        cagr: portfolioDetails.CAGRSinceInception !== undefined ? 
+          `${portfolioDetails.CAGRSinceInception >= 0 ? '+' : ''}${portfolioDetails.CAGRSinceInception}%` : 
+          `+${portfolio.cagr || '19.78'}%`
+      }
+    }
+    
+    console.log(`⚠️ Using fallback data for portfolio ${portfolio._id}`)
+    
+    // Fallback to original data or defaults
+    return {
+      monthlyGains: `+${portfolio.monthlyGains || '13.78'}%`,
+      oneYearGains: `+${portfolio.oneYearGains || '2.86'}%`,
+      cagr: `+${portfolio.cagr || '19.78'}%`
+    }
+  }
+
+  const performanceData = getPerformanceData()
+  console.log(`📊 Final performance data for ${portfolio._id}:`, performanceData)
+
+  // Determine button styling based on access
+  const getButtonStyling = () => {
+    if (!isAuthenticated) {
+      return {
+        text: "Login to View",
+        className: "bg-blue-600 hover:bg-blue-700 text-white"
+      }
+    }
+    
+    if (hasAccess) {
+      return {
+        text: "View Portfolio",
+        className: "bg-green-600 hover:bg-green-700 text-white"
+      }
+    }
+    
+    if (subscriptionAccess?.hasPremium) {
+      return {
+        text: "Upgrade Required",
+        className: "bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-white"
+      }
+    }
+    
+    if (subscriptionAccess?.hasBasic) {
+      return {
+        text: "Upgrade to Premium",
+        className: "bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-white"
+      }
+    }
+    
+    return {
+      text: "Subscribe Now",
+      className: "bg-blue-600 hover:bg-blue-700 text-white"
+    }
+  }
+
+  const buttonConfig = getButtonStyling()
   
   return (
-    <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-base font-semibold text-gray-900 uppercase">{portfolio.name}</h3>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleDetailsClick}
-          className="text-gray-600 border-gray-300"
-        >
-          Details
-        </Button>
-      </div>
-      
-      <div className="grid grid-cols-3 gap-4 text-center mb-3">
-        <div className="relative">
-          <div className="text-xs text-gray-500">Monthly Gains</div>
-          <div className="relative">
-            <div className={`text-sm font-semibold ${isLocked ? 'blur-sm text-green-600' : 'text-green-600'}`}>
-              {isLocked ? `+${Math.floor(Math.random() * 20) + 5}.${Math.floor(Math.random() * 99)}%` : `+${portfolio.monthlyGains || '13.78'}%`}
+    <div className="border border-gray-200 rounded-lg hover:shadow-md transition-shadow bg-white overflow-hidden">
+      <div className="p-4">
+        {/* Header Section */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-gray-900 uppercase tracking-wide">
+              {portfolio.name}
+            </h3>
+            <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
+              <span>Min: ₹{(() => {
+                if (portfolioDetails?.minInvestment) {
+                  return portfolioDetails.minInvestment.toLocaleString()
+                }
+                return typeof portfolio.minInvestment === 'number' ? portfolio.minInvestment.toLocaleString() : '10,000'
+              })()}</span>
+              <span>•</span>
+              <span>{(() => {
+                if (portfolioDetails?.durationMonths) {
+                  return `${portfolioDetails.durationMonths} months`
+                }
+                return typeof portfolio.durationMonths === 'number' ? `${portfolio.durationMonths} months` : '12 months'
+              })()}</span>
             </div>
-            {isLocked && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Lock className="h-3 w-3 text-gray-500" />
-              </div>
-            )}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDetailsClick}
+            className="text-gray-600 border-gray-300 hover:bg-gray-50"
+          >
+            Details
+          </Button>
+        </div>
+
+        {/* Performance Metrics - Horizontal Layout */}
+        <div className="grid grid-cols-3 gap-6 mb-4">
+          <div className="text-center">
+            <div className="text-xs text-gray-500 mb-1">Monthly Gains</div>
+            <div className={`text-lg font-bold ${isLocked ? 'blur-sm select-none' : ''} ${
+              isLocked ? 'text-green-600' : 
+              (portfolioDetails?.monthlyGains !== undefined ? 
+                (portfolioDetails.monthlyGains >= 0 ? 'text-green-600' : 'text-red-600') :
+                'text-green-600'
+              )
+            }`}>
+              {isLocked ? fakeData.monthlyGains : performanceData.monthlyGains}
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-xs text-gray-500 mb-1">1 Year Gains</div>
+            <div className={`text-lg font-bold ${isLocked ? 'blur-sm select-none' : ''} ${
+              isLocked ? 'text-green-600' : 
+              (portfolioDetails?.oneYearGains !== undefined ? 
+                (portfolioDetails.oneYearGains >= 0 ? 'text-green-600' : 'text-red-600') :
+                'text-green-600'
+              )
+            }`}>
+              {isLocked ? fakeData.oneYearGains : performanceData.oneYearGains}
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-xs text-gray-500 mb-1">CAGR Since Inception</div>
+            <div className={`text-lg font-bold ${isLocked ? 'blur-sm select-none' : ''} ${
+              isLocked ? 'text-green-600' : 
+              (portfolioDetails?.CAGRSinceInception !== undefined ? 
+                (portfolioDetails.CAGRSinceInception >= 0 ? 'text-green-600' : 'text-red-600') :
+                'text-green-600'
+              )
+            }`}>
+              {isLocked ? fakeData.cagr : performanceData.cagr}
+            </div>
           </div>
         </div>
-        <div className="relative">
-          <div className="text-xs text-gray-500">1 Year Gains</div>
-          <div className="relative">
-            <div className={`text-sm font-semibold ${isLocked ? 'blur-sm text-green-600' : 'text-green-600'}`}>
-              {isLocked ? `+${Math.floor(Math.random() * 15) + 2}.${Math.floor(Math.random() * 99)}%` : `+${portfolio.oneYearGains || '2.86'}%`}
-            </div>
-            {isLocked && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Lock className="h-3 w-3 text-gray-500" />
+
+        {/* Lock Message or Action Button */}
+        {isLocked ? (
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 text-sm text-gray-700 bg-gradient-to-r from-yellow-50 to-amber-50 px-4 py-2 rounded-full border border-yellow-200 animate-pulse">
+              <div className="bg-gradient-to-br from-yellow-400 to-amber-500 rounded-full p-2 shadow-lg transition-transform hover:scale-110">
+                <Lock className="h-5 w-5 text-white animate-[wiggle_1s_ease-in-out_infinite]" />
               </div>
-            )}
-          </div>
-        </div>
-        <div className="relative">
-          <div className="text-xs text-gray-500">CAGR Since Inception</div>
-          <div className="relative">
-            <div className={`text-sm font-semibold ${isLocked ? 'blur-sm text-green-600' : 'text-green-600'}`}>
-              {isLocked ? `+${Math.floor(Math.random() * 25) + 10}.${Math.floor(Math.random() * 99)}%` : `+${portfolio.cagr || '19.78'}%`}
+              <span className="font-medium">
+                {!isAuthenticated 
+                  ? "Login to view details" 
+                  : subscriptionAccess?.hasBasic 
+                    ? "Premium access required"
+                    : "Subscription required"
+                }
+              </span>
             </div>
-            {isLocked && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Lock className="h-3 w-3 text-gray-500" />
-              </div>
-            )}
+            <Button
+              onClick={handleSubscribeClick}
+              className={`px-6 py-2 text-sm font-medium ${buttonConfig.className} flex-shrink-0`}
+            >
+              {buttonConfig.text}
+            </Button>
           </div>
-        </div>
-      </div>
-      
-      {isLocked && (
-        <div className="flex items-center justify-center mb-2">
-          <Lock className="h-4 w-4 text-gray-400" />
-        </div>
-      )}
-      
-      <div className="text-center">
-        <Button
-          onClick={handleSubscribeClick}
-          className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2"
-        >
-          Subscribe now
-        </Button>
+        ) : (
+          <div className="flex justify-center">
+            <Button
+              onClick={handleSubscribeClick}
+              className={`px-6 py-2 text-sm font-medium ${buttonConfig.className}`}
+            >
+              {buttonConfig.text}
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )

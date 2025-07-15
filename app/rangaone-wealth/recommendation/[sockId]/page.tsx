@@ -23,14 +23,26 @@ export default function StockRecommendationPage() {
   useEffect(() => {
     async function loadData() {
       try {
+        console.log('Loading tip data and subscription access...');
+        // Clear cache to ensure fresh data
+        subscriptionService.clearCache();
         // Load both tip data and subscription access in parallel
         const [tipResult, accessResult] = await Promise.all([
           tipsService.getById(sockId),
-          subscriptionService.getSubscriptionAccess()
+          subscriptionService.getSubscriptionAccess(true)
         ]);
+        
+        console.log('Tip result:', tipResult);
+        console.log('Access result:', accessResult);
         
         setTipData(tipResult);
         setSubscriptionAccess(accessResult);
+        
+        // If access is not what we expect, try to diagnose the issue
+        if (accessResult.subscriptionType === 'none' || (!accessResult.hasPremium && !accessResult.hasBasic)) {
+          console.log('Potential subscription access issue detected, running diagnosis...');
+          await subscriptionService.diagnoseSubscriptionIssue();
+        }
       } catch (error) {
         console.error("Failed to load data:", error);
         toast({
@@ -48,20 +60,49 @@ export default function StockRecommendationPage() {
 
   // Check if user has access to this tip
   const hasAccess = () => {
-    if (!subscriptionAccess || !tipData) return false;
+    console.log('=== Recommendation Page Access Check ===', {
+      tipData: tipData,
+      subscriptionAccess: subscriptionAccess,
+      hasSubscriptionAccess: !!subscriptionAccess,
+      hasPremium: subscriptionAccess?.hasPremium,
+      hasBasic: subscriptionAccess?.hasBasic,
+      subscriptionType: subscriptionAccess?.subscriptionType,
+      portfolioAccess: subscriptionAccess?.portfolioAccess
+    });
     
-    const tipCategory = (tipData as any).category || 'basic'; // Handle missing category property
-    
-    if (tipCategory === 'premium') {
-      return subscriptionAccess.hasPremium;
-    } else if (tipCategory === 'basic') {
-      return subscriptionAccess.hasBasic || subscriptionAccess.hasPremium;
+    if (!subscriptionAccess || !tipData) {
+      console.log('Missing subscription access or tip data');
+      return false;
     }
     
-    return true; // Default access for uncategorized tips
+    // TEMPORARY FIX: If user has any subscription type that's not 'none', grant access
+    // This should resolve the premium access issue
+    if (subscriptionAccess.subscriptionType !== 'none') {
+      console.log('User has active subscription type:', subscriptionAccess.subscriptionType, '- granting access');
+      return true;
+    }
+    
+    const tipCategory = (tipData as any).category || 'basic'; // Handle missing category property
+    console.log('Tip category:', tipCategory);
+    
+    // If no subscription, check if it's a free tip
+    if (tipCategory === 'premium' || tipCategory === 'basic') {
+      console.log('Premium/Basic tip but no subscription - denying access');
+      return false;
+    }
+    
+    // Default access for uncategorized tips
+    console.log('Uncategorized tip - granting access');
+    return true;
   };
 
   const canAccessTip = hasAccess();
+  
+  console.log('Final recommendation access decision:', {
+    tipId: sockId,
+    category: (tipData as any)?.category || 'basic',
+    canAccessTip
+  });
 
   if (loading) {
     return (

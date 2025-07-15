@@ -218,8 +218,9 @@ export default function PortfolioDetailsPage() {
       const updatedHoldings: HoldingWithPrice[] = holdings.map(holding => {
         const priceResponse = priceResults.get(holding.symbol);
         
-        // Calculate base allocation value
-        const allocationValue = (holding.weight / 100) * minInvestment;
+        // Calculate base allocation value with exact precision - NO ROUNDING
+        const exactWeight = holding.weight; // Use exact weight value (e.g., 7.44 instead of 7)
+        const allocationValue = (exactWeight / 100) * minInvestment;
         
         let currentValue = allocationValue;
         let currentPrice: number | undefined;
@@ -235,13 +236,13 @@ export default function PortfolioDetailsPage() {
           change = priceData.change;
           changePercent = priceData.changePercent;
           
-          // Calculate current value based on live price change
+          // Calculate current value based on live price change with exact precision
           if (changePercent !== undefined) {
             const changeDecimal = changePercent / 100;
             currentValue = allocationValue * (1 + changeDecimal);
           }
-          
-          console.log(`✅ Applied live price for ${holding.symbol}: ₹${currentPrice}, Change: ${changePercent}%, Value: ₹${currentValue.toFixed(2)}`);
+            
+          console.log(`✅ Applied exact live price for ${holding.symbol}: ₹${currentPrice}, Change: ${changePercent}%, Weight: ${exactWeight}%, Value: ₹${currentValue}`);
         } else {
           console.warn(`⚠️ Failed to get price for ${holding.symbol}:`, priceResponse?.error || "No data");
         }
@@ -536,51 +537,68 @@ export default function PortfolioDetailsPage() {
       <DashboardLayout>
         <div className="max-w-7xl mx-auto p-4">
           <div className="text-center py-12">
-            <h2 className="text-2xl font-bold mb-4">Portfolio Not Found</h2>
-            <Button onClick={() => window.history.back()}>Go Back</Button>
+          <h2 className="text-2xl font-bold mb-4">Portfolio Not Found</h2>
+          <Button onClick={() => window.history.back()}>Go Back</Button>
           </div>
         </div>
       </DashboardLayout>
     );
   }
 
-  // Calculate portfolio metrics based on live pricing
+  // Calculate portfolio metrics based on live pricing with EXACT precision
   const calculatePortfolioMetrics = () => {
     const minInvestment = (portfolio as any)?.minInvestment || 30000;
     
-    // Calculate actual holdings value using live prices
+    console.log(`📊 Calculating exact portfolio metrics for min investment: ₹${minInvestment}`);
+    
+    // Calculate actual holdings value using live prices with EXACT precision
     const actualHoldingsValue = holdingsWithPrices.reduce((sum, holding) => {
-      const allocatedAmount = (holding.weight / 100) * minInvestment;
+      // Use exact weight value (e.g., 7.44 instead of 7) - NO ROUNDING
+      const exactWeight = holding.weight;
+      const allocatedAmount = (exactWeight / 100) * minInvestment;
+      
+      console.log(`💰 ${holding.symbol}: Weight: ${exactWeight}%, Allocated: ₹${allocatedAmount}`);
       
       if (holding.currentPrice && holding.previousPrice && holding.previousPrice > 0) {
         const priceChangeFactor = holding.currentPrice / holding.previousPrice;
         const currentValue = allocatedAmount * priceChangeFactor;
+        console.log(`📈 ${holding.symbol}: Current Price: ₹${holding.currentPrice}, Previous: ₹${holding.previousPrice}, Current Value: ₹${currentValue}`);
         return sum + currentValue;
       } else if (holding.currentPrice && holding.changePercent !== undefined) {
         const changeDecimal = holding.changePercent / 100;
         const currentValue = allocatedAmount * (1 + changeDecimal);
+        console.log(`📊 ${holding.symbol}: Change: ${holding.changePercent}%, Current Value: ₹${currentValue}`);
         return sum + currentValue;
       } else {
+        console.log(`📉 ${holding.symbol}: No live price, using allocated amount: ₹${allocatedAmount}`);
         return sum + allocatedAmount;
       }
     }, 0);
     
-    // Cash balance
+    // Cash balance calculation with EXACT precision
     const totalStockAllocation = holdingsWithPrices.reduce((sum, holding) => sum + holding.weight, 0);
-    const cashPercentage = Math.max(0, 100 - totalStockAllocation);
-    const cashBalance = (cashPercentage / 100) * minInvestment;
+    const exactCashPercentage = Math.max(0, 100 - totalStockAllocation);
+    const exactCashBalance = (exactCashPercentage / 100) * minInvestment;
     
-    // Total portfolio value
-    const totalPortfolioValue = actualHoldingsValue + cashBalance;
+    // Total portfolio value with EXACT precision
+    const exactTotalPortfolioValue = actualHoldingsValue + exactCashBalance;
+    
+    console.log(`📋 Portfolio Metrics (EXACT):`, {
+      holdingsValue: actualHoldingsValue,
+      cashBalance: exactCashBalance,
+      totalValue: exactTotalPortfolioValue,
+      cashPercentage: exactCashPercentage,
+      totalStockAllocation: totalStockAllocation
+    });
     
     return {
       holdingsValue: actualHoldingsValue,
-      cashBalance: cashBalance,
-      totalValue: totalPortfolioValue,
-      cashPercentage: cashPercentage,
+      cashBalance: exactCashBalance,
+      totalValue: exactTotalPortfolioValue,
+      cashPercentage: exactCashPercentage,
       minInvestment: minInvestment,
-      pnl: totalPortfolioValue - minInvestment,
-      pnlPercentage: ((totalPortfolioValue - minInvestment) / minInvestment) * 100
+      pnl: exactTotalPortfolioValue - minInvestment,
+      pnlPercentage: ((exactTotalPortfolioValue - minInvestment) / minInvestment) * 100
     };
   };
   
@@ -684,22 +702,22 @@ export default function PortfolioDetailsPage() {
                   <span className="text-sm font-medium text-gray-700">Video</span>
                 </Button>
                 )}
-              </div>
             </div>
+          </div>
 
-            <div className="grid grid-cols-3 gap-3 sm:gap-6">
+                        <div className="grid grid-cols-3 gap-3 sm:gap-6">
               <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 text-center shadow-sm hover:shadow-md transition-shadow duration-200">
                 <p className="text-xs sm:text-sm text-gray-600 mb-2 font-medium leading-tight h-8 flex items-center justify-center">Monthly Gains</p>
                 <p className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600">
                   +{safeString((portfolio as any)?.monthlyGains || "0")}%
                 </p>
-              </div>
+                  </div>
               <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 text-center shadow-sm hover:shadow-md transition-shadow duration-200">
                 <p className="text-xs sm:text-sm text-gray-600 mb-2 font-medium leading-tight h-8 flex items-center justify-center">1 Year<br/>Gains</p>
                 <p className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600">
                   +{safeString((portfolio as any)?.oneYearGains || "0")}%
                 </p>
-              </div>
+                  </div>
               <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 text-center shadow-sm hover:shadow-md transition-shadow duration-200">
                 <p className="text-xs sm:text-sm text-gray-600 mb-2 font-medium leading-tight h-8 flex items-center justify-center">CAGR Since<br/>Inception</p>
                 <p className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600">
@@ -714,8 +732,8 @@ export default function PortfolioDetailsPage() {
         <Card className="mb-4 sm:mb-6">
           <CardContent className="p-4 sm:p-6">
             <h3 className="text-lg font-semibold mb-4">Details</h3>
-            <div className="space-y-6">
-              <div>
+                        <div className="space-y-6">
+            <div>
                 {(() => {
                   let htmlContent = '';
                   
@@ -753,24 +771,24 @@ export default function PortfolioDetailsPage() {
                           __html: safeString(htmlContent)
                         }}
                       />
-                    </div>
+              </div>
                   );
                 })()}
-              </div>
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-4 border-t">
-                <div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-4 border-t">
+            <div>
                   <p className="font-semibold text-gray-800">Time Horizon</p>
                   <p className="text-gray-600">{safeString((portfolio as any)?.timeHorizon || "Long term")}</p>
-                </div>
+              </div>
                 <div>
                   <p className="font-semibold text-gray-800">Rebalancing</p>
                   <p className="text-gray-600">{safeString((portfolio as any)?.rebalancing || "Quarterly")}</p>
-                </div>
-                <div>
+            </div>
+            <div>
                   <p className="font-semibold text-gray-800">Benchmark Index</p>
                   <p className="text-gray-600">{safeString((portfolio as any)?.index || (portfolio as any)?.compareWith || "NIFTY 50")}</p>
-                </div>
+              </div>
                 <div>
                   <p className="font-semibold text-gray-800">Portfolio Details</p>
                   <div className="text-xs sm:text-sm text-gray-600 space-y-1">
@@ -778,10 +796,10 @@ export default function PortfolioDetailsPage() {
                     <p><strong>Expiry:</strong> {(portfolio as any)?.expiryDate ? new Date((portfolio as any).expiryDate).toLocaleDateString() : "N/A"}</p>
                     <p><strong>Duration:</strong> {safeNumber((portfolio as any)?.durationMonths || 12)} months</p>
                     <p><strong>Min Investment:</strong> ₹{safeNumber((portfolio as any)?.minInvestment || 30000).toLocaleString()}</p>
-                  </div>
-                </div>
-              </div>
             </div>
+          </div>
+        </div>
+          </div>
           </CardContent>
         </Card>
 
@@ -793,7 +811,7 @@ export default function PortfolioDetailsPage() {
               <table className="w-full min-w-[600px]">
                 <thead>
                   <tr className="bg-blue-900 text-white">
-                    {trailingReturns.map((item, index) => (
+                {trailingReturns.map((item, index) => (
                       <th key={index} className="px-2 sm:px-4 py-3 text-center font-medium text-xs sm:text-sm whitespace-nowrap">
                         {item.period}
                       </th>
@@ -844,7 +862,7 @@ export default function PortfolioDetailsPage() {
                   <span className="sm:hidden">{key}</span>
                 </Button>
               ))}
-            </div>
+        </div>
 
             <div className="h-56 sm:h-64 md:h-80 lg:h-96">
               <ResponsiveContainer width="100%" height="100%">
@@ -938,34 +956,11 @@ export default function PortfolioDetailsPage() {
                   />
                 </LineChart>
               </ResponsiveContainer>
-            </div>
+          </div>
           </CardContent>
         </Card>
 
-        {/* Portfolio Tips Section */}
-        <Card className="mb-6 sm:mb-8">
-          <CardContent className="p-0">
-            <div className="p-4 sm:p-6 pb-0">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-blue-600 mb-2 sm:mb-0">Portfolio Investment Tips</h3>
-                {/* Removed View All Tips button */}
-              </div>
-            </div>
-            
-            <div className="w-full">
-              <TipsCarousel 
-                portfolioId={portfolio?._id} 
-                tips={portfolioTips}
-                loading={tipsLoading}
-                isModelPortfolio={true}
-                onTipClick={(tipId) => {
-                  // Navigate to tip details page
-                  window.location.href = `/model-portfolios/${portfolio?._id}/tips/${tipId}`;
-                }}
-              />
-            </div>
-          </CardContent>
-        </Card>
+
 
         {/* Portfolio & Weights Table */}
         <Card className="mb-4 sm:mb-6">
@@ -976,12 +971,12 @@ export default function PortfolioDetailsPage() {
                 <Calculator className="h-4 w-4" />
                 <span className="text-sm">Investment calculator</span>
               </Button>
-            </div>
+          </div>
 
             {/* Mobile Table Layout */}
             <div className="block lg:hidden overflow-x-auto">
-              <table className="w-full">
-                <thead>
+            <table className="w-full">
+              <thead>
                   <tr className="bg-gray-600 text-white text-xs">
                     <th className="px-2 py-2 text-left font-medium">Stock Name</th>
                     <th className="px-2 py-2 text-center font-medium">Type</th>
@@ -999,9 +994,9 @@ export default function PortfolioDetailsPage() {
                           <RefreshCw className={`h-3 w-3 text-white ${refreshingPrices ? 'animate-spin' : ''}`} />
                         </button>
                       </div>
-                    </th>
-                  </tr>
-                </thead>
+                  </th>
+                </tr>
+              </thead>
                 <tbody className="text-xs">
                   {holdingsWithPrices.length > 0 ? holdingsWithPrices.map((holding, index) => (
                     <React.Fragment key={index}>
@@ -1012,9 +1007,9 @@ export default function PortfolioDetailsPage() {
                         <td className="px-2 py-2">
                           <div className="font-medium text-blue-600">{holding.symbol}</div>
                           <div className="text-gray-500 text-xs">NSE : {holding.symbol}</div>
-                        </td>
+                    </td>
                         <td className="px-2 py-2 text-center text-gray-700">{holding.marketCap || 'Mid cap'}</td>
-                        <td className="px-2 py-2 text-center font-medium">{holding.weight.toFixed(1)}</td>
+                        <td className="px-2 py-2 text-center font-medium">{holding.weight}</td>
                         <td className="px-2 py-2 text-center">
                           {holding.currentPrice ? (
                             <div>
@@ -1032,7 +1027,7 @@ export default function PortfolioDetailsPage() {
                           ) : (
                             <span className="text-gray-400">Loading...</span>
                           )}
-                        </td>
+                    </td>
                       </tr>
                       {expandedRow === index && (
                         <tr className="bg-blue-50">
@@ -1049,16 +1044,16 @@ export default function PortfolioDetailsPage() {
                                 </div>
                               </div>
                             </div>
-                          </td>
-                        </tr>
+                    </td>
+                  </tr>
                       )}
                     </React.Fragment>
                   )) : (
                     <tr>
                       <td colSpan={4} className="px-4 py-8 text-center text-gray-500">
                         No holdings data available
-                      </td>
-                    </tr>
+                  </td>
+                </tr>
                   )}
                 </tbody>
               </table>
@@ -1089,7 +1084,7 @@ export default function PortfolioDetailsPage() {
                       </div>
                     </th>
                     <th className="px-2 py-2 text-center font-medium">Value</th>
-                  </tr>
+                </tr>
                 </thead>
                 <tbody className="text-xs">
                   {holdingsWithPrices.length > 0 ? holdingsWithPrices.map((holding, index) => (
@@ -1097,7 +1092,7 @@ export default function PortfolioDetailsPage() {
                       <td className="px-2 py-2">
                         <div className="font-medium text-blue-600">{holding.symbol}</div>
                         <div className="text-gray-500 text-xs">NSE : {holding.symbol}</div>
-                      </td>
+                  </td>
                       <td className="px-2 py-2 text-center text-gray-700">{holding.marketCap || 'Mid cap'}</td>
                       <td className="px-2 py-2 text-center text-gray-700">{holding.sector}</td>
                       <td className="px-2 py-2 text-center font-medium">{holding.weight.toFixed(1)}%</td>
@@ -1105,7 +1100,7 @@ export default function PortfolioDetailsPage() {
                         <span className="px-1 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
                           {holding.status?.toUpperCase() || 'FRESH-BUY'}
                         </span>
-                      </td>
+                  </td>
                       <td className="px-2 py-2 text-center">
                         {holding.currentPrice ? (
                           <div>
@@ -1127,26 +1122,28 @@ export default function PortfolioDetailsPage() {
                             </div>
                           </div>
                         )}
-                      </td>
+                  </td>
                       <td className="px-2 py-2 text-center">
                         <span className="font-medium">
                           {holding.value ? `₹${holding.value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : '-'}
                         </span>
-                      </td>
-                    </tr>
+                  </td>
+                </tr>
                   )) : (
                     <tr>
                       <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
                         No holdings data available
-                      </td>
-                    </tr>
+                  </td>
+                </tr>
                   )}
                 </tbody>
-              </table>
-            </div>
+            </table>
+          </div>
+
+          
 
             {/* Portfolio Summary */}
-            <div className="mt-3 pt-3 border-t border-gray-100">
+                        <div className="mt-3 pt-3 border-t border-gray-100">
               <div className="bg-gradient-to-br from-white via-gray-50/30 to-blue-50/20 rounded-xl border border-gray-200/60 p-4 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-2">
@@ -1157,40 +1154,40 @@ export default function PortfolioDetailsPage() {
                     <span className="text-xs font-bold text-green-700">
                       {portfolioMetrics.pnlPercentage >= 0 ? '+' : ''}{portfolioMetrics.pnlPercentage.toFixed(2)}%
                     </span>
-                  </div>
-                </div>
+          </div>
+        </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="bg-white/70 rounded-lg border border-gray-200/50 p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium text-slate-700">Holdings</span>
-                    </div>
+                      <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-slate-700">Holdings</span>
+                        </div>
                     <div className="text-base font-bold text-slate-900">
-                      ₹{portfolioMetrics.holdingsValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                    </div>
+                        ₹{portfolioMetrics.holdingsValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                      </div>
                     <div className="text-xs text-slate-500">Total Value</div>
                   </div>
 
                   <div className="bg-white/70 rounded-lg border border-gray-200/50 p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium text-blue-700">Cash</span>
+                      <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-blue-700">Cash</span>
                       <span className="text-xs font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">
-                        {portfolioMetrics.cashPercentage.toFixed(1)}%
+                          {portfolioMetrics.cashPercentage.toFixed(2)}%
                       </span>
-                    </div>
+                        </div>
                     <div className="text-base font-bold text-blue-900">
-                      ₹{portfolioMetrics.cashBalance.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                    </div>
+                        ₹{portfolioMetrics.cashBalance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                      </div>
                     <div className="text-xs text-blue-600">Available</div>
                   </div>
 
                   <div className="bg-white/70 rounded-lg border border-gray-200/50 p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium text-indigo-700">Portfolio</span>
-                    </div>
+                      <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-indigo-700">Portfolio</span>
+                        </div>
                     <div className="text-base font-bold text-indigo-900">
-                      ₹{portfolioMetrics.totalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                    </div>
+                        ₹{portfolioMetrics.totalValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                      </div>
                     <div className="text-xs text-indigo-600">Total Value</div>
                   </div>
                 </div>
@@ -1205,6 +1202,31 @@ export default function PortfolioDetailsPage() {
                   </div>
                 </div>
               </div>
+                </div>
+          </CardContent>
+        </Card>
+
+                {/* Portfolio Tips Section */}
+        <Card className="mb-6 sm:mb-8">
+          <CardContent className="p-0">
+            <div className="p-4 sm:p-6 pb-0">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-blue-600 mb-2 sm:mb-0">Portfolio Investment Tips</h3>
+                {/* Removed View All Tips button */}
+              </div>
+            </div>
+            
+            <div className="w-full min-h-[300px] pb-8">
+              <TipsCarousel 
+                portfolioId={portfolio?._id} 
+                tips={portfolioTips}
+                loading={tipsLoading}
+                isModelPortfolio={true}
+                onTipClick={(tipId) => {
+                  // Navigate to tip details page
+                  window.location.href = `/model-portfolios/${portfolio?._id}/tips/${tipId}`;
+                }}
+              />
             </div>
           </CardContent>
         </Card>
@@ -1228,18 +1250,18 @@ export default function PortfolioDetailsPage() {
                         dataKey="value"
                         stroke="none"
                         onMouseEnter={(data) => {
-                          setHoveredSegment(data);
-                          if (selectedSegment && selectedSegment.name !== data.name) {
-                            setSelectedSegment(data);
+                            setHoveredSegment(data);
+                            if (selectedSegment && selectedSegment.name !== data.name) {
+                              setSelectedSegment(data);
                           }
                         }}
                         onMouseLeave={() => setHoveredSegment(null)}
                         onClick={(data) => {
-                          if (selectedSegment?.name === data.name) {
-                            setSelectedSegment(null);
-                          } else {
-                            setSelectedSegment(data);
-                          }
+                            if (selectedSegment?.name === data.name) {
+                              setSelectedSegment(null);
+                            } else {
+                              setSelectedSegment(data);
+                            }
                         }}
                       >
                         {portfolioAllocationData.map((entry, index) => {
@@ -1260,8 +1282,8 @@ export default function PortfolioDetailsPage() {
                                     ? 'brightness(0.8) saturate(0.6)'
                                     : 'none',
                                 opacity: isFaded ? 0.6 : 1,
-                              }}
-                            />
+                        }}
+                      />
                           );
                         })}
                       </Pie>
@@ -1275,7 +1297,7 @@ export default function PortfolioDetailsPage() {
                          <div className="transition-all duration-200 ease-in-out">
                            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
                              {(hoveredSegment || selectedSegment)?.value.toFixed(1)}%
-                           </div>
+                    </div>
                            <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-700 leading-tight mb-1">
                              {(hoveredSegment || selectedSegment)?.name}
                            </div>
@@ -1287,8 +1309,8 @@ export default function PortfolioDetailsPage() {
                          <div className="text-gray-400">
                            <div className="text-lg font-semibold mb-1">Portfolio</div>
                            <div className="text-sm">Click or hover to explore</div>
-                         </div>
-                       )}
+                  </div>
+                )}
                      </div>
                    </div>
                 </div>
@@ -1312,15 +1334,15 @@ export default function PortfolioDetailsPage() {
                         className={`flex items-center justify-between p-3 lg:p-4 rounded-lg cursor-pointer transition-all duration-200 ${
                           isSelected 
                             ? 'bg-blue-50 border border-blue-200 shadow-sm' 
-                            : isHovered
+                            : isHovered 
                               ? 'bg-gray-50 border border-gray-200 shadow-sm'
                               : 'hover:bg-gray-50 border border-transparent hover:shadow-sm'
-                        }`}
+                          }`}
                         onClick={() => setSelectedSegment(isSelected ? null : stock)}
                         onMouseEnter={() => {
-                          setHoveredSegment(stock);
-                          if (selectedSegment && selectedSegment.name !== stock.name) {
-                            setSelectedSegment(stock);
+                            setHoveredSegment(stock);
+                            if (selectedSegment && selectedSegment.name !== stock.name) {
+                              setSelectedSegment(stock);
                           }
                         }}
                         onMouseLeave={() => setHoveredSegment(null)}
@@ -1335,14 +1357,14 @@ export default function PortfolioDetailsPage() {
                               {stock.name}
                             </div>
                             <div className="text-xs lg:text-sm text-gray-500">{stock.sector}</div>
+                            </div>
                           </div>
-                        </div>
                         <div className="text-right flex-shrink-0 ml-2 lg:ml-4">
                           <div className="text-sm lg:text-base font-bold text-gray-900">
-                            {stock.value.toFixed(1)}%
-                          </div>
+                              {stock.value.toFixed(1)}%
+                            </div>
                           <div className="text-xs lg:text-sm text-gray-500">
-                            ₹{((stock.value / 100) * portfolioMetrics.totalValue).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                              ₹{((stock.value / 100) * portfolioMetrics.totalValue).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                           </div>
                         </div>
                       </div>
@@ -1353,7 +1375,7 @@ export default function PortfolioDetailsPage() {
           </Card>
         </div>
 
-        {/* Latest Research Reports Section */}
+                {/* Latest Research Reports Section */}
         <div className="mt-8">
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 space-y-3 sm:space-y-0">
@@ -1383,7 +1405,7 @@ export default function PortfolioDetailsPage() {
                   <div key={index} className="border-b border-gray-100 pb-6 last:border-b-0">
                     <h4 className="font-semibold text-gray-900 text-lg mb-2">
                       {link.name || link.linkDiscription || `${link.linkType?.charAt(0).toUpperCase() + link.linkType?.slice(1) || 'Document'} Report`}
-                    </h4>
+                  </h4>
                     <div className="flex items-center text-sm text-gray-600 mb-2">
                       <span>Publish on {new Date(link.createdAt).toLocaleDateString('en-GB', {
                         day: 'numeric',
@@ -1411,8 +1433,8 @@ export default function PortfolioDetailsPage() {
                 </div>
               )}
             </div>
+            </div>
           </div>
-        </div>
       </div>
     </DashboardLayout>
   );

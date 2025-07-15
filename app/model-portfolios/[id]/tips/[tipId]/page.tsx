@@ -93,13 +93,13 @@ export default function PortfolioTipDetailsPage() {
 
   // If user doesn't have access, show access denied screen
   if (!canAccessTip) {
-    return (
-      <DashboardLayout>
+  return (
+    <DashboardLayout>
         <div className="max-w-7xl mx-auto p-4">
           <div className="mb-6">
-            <Link
-              href={`/model-portfolios/${portfolioId}`}
-              className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900"
+        <Link
+          href={`/model-portfolios/${portfolioId}`}
+          className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900"
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
               Back to Portfolio
@@ -186,10 +186,10 @@ export default function PortfolioTipDetailsPage() {
               <Link
                 href={`/model-portfolios/${portfolioId}`}
                 className="inline-flex items-center text-sm text-white/80 hover:text-white transition-colors"
-              >
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                Back to Portfolio Details
-              </Link>
+        >
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          Back to Portfolio Details
+        </Link>
             </div>
             <div className="text-center">
               <h1 className="text-2xl sm:text-4xl font-bold text-white tracking-wide">

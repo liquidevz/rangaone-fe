@@ -70,6 +70,7 @@ export interface Portfolio {
   isPurchased?: boolean;
   cagr?: number;
   returns?: number;
+  message?: string; // For subscription access control - if present, user needs to subscribe
 }
 
 export interface TipDownloadLink {

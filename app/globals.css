@@ -7,6 +7,13 @@
   @apply text-sm text-gray-700;
 }
 
+/* Add wiggle animation for lock icon */
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-10deg); }
+  75% { transform: rotate(10deg); }
+}
+
 .checkout-description h1,
 .checkout-description h2,
 .checkout-description h3,

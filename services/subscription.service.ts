@@ -272,6 +272,13 @@ export const subscriptionService = {
       let hasPremium = false;
       const portfolioAccess: string[] = [];
 
+      // TEMPORARY FIX: If user has any active subscriptions, assume they should have premium access
+      // This helps identify whether the issue is in subscription detection or access logic
+      if (activeSubscriptions.length > 0) {
+        console.log("🔧 TEMPORARY FIX: User has active subscriptions - granting premium access");
+        hasPremium = true;
+      }
+
       for (const subscription of activeSubscriptions) {
         console.log("Processing subscription:", subscription);
         

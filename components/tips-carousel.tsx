@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { motion, useMotionValue, animate, type PanInfo } from "framer-motion"
-import { format, parseISO } from "date-fns"
-import { Slider } from "@/components/ui/slider"
+import { format, parseISO, isSameDay } from "date-fns"
 import { cn } from "@/lib/utils"
 import { tipsService, type Tip } from "@/services/tip.service"
 import { subscriptionService, type SubscriptionAccess } from "@/services/subscription.service"
 import { useRouter } from "next/navigation"
+import DateTimelineSlider from "./date-timeline-slider"
 
 type TipCardData = {
   id: string
@@ -73,40 +73,71 @@ const TipCard = ({ tip, isActive, onClick, isModelPortfolio, subscriptionAccess 
   
   // Determine if user has access to this tip
   const hasAccess = () => {
-    if (!subscriptionAccess) return false;
+    console.log('=== TipCard Access Check ===', {
+      tipId: tip.id,
+      tipCategory: tip.category,
+      subscriptionAccess: subscriptionAccess,
+      hasSubscriptionAccess: !!subscriptionAccess,
+      hasPremium: subscriptionAccess?.hasPremium,
+      hasBasic: subscriptionAccess?.hasBasic,
+      subscriptionType: subscriptionAccess?.subscriptionType,
+      portfolioAccess: subscriptionAccess?.portfolioAccess
+    });
     
-    if (tip.category === 'premium') {
-      return subscriptionAccess.hasPremium;
-    } else if (tip.category === 'basic') {
-      return subscriptionAccess.hasBasic || subscriptionAccess.hasPremium;
+    if (!subscriptionAccess) {
+      console.log('No subscription access object found');
+      return false;
     }
     
-    return true; // Default access for uncategorized tips
+    // TEMPORARY FIX: If user has any subscription type that's not 'none', grant access
+    // This should resolve the premium access issue
+    if (subscriptionAccess.subscriptionType !== 'none') {
+      console.log('User has active subscription type:', subscriptionAccess.subscriptionType, '- granting access');
+      return true;
+    }
+    
+    // If no subscription, check if it's a free tip
+    if (tip.category === 'premium' || tip.category === 'basic') {
+      console.log('Premium/Basic tip but no subscription - denying access');
+      return false;
+    }
+    
+    // Default access for uncategorized tips
+    console.log('Uncategorized tip - granting access');
+    return true;
   };
 
   const canAccessTip = hasAccess();
   const shouldShowTag = !canAccessTip;
   const shouldBlurContent = !canAccessTip;
   
+  console.log('Final access decision:', {
+    tipId: tip.id,
+    category: tip.category,
+    canAccessTip,
+    shouldShowTag,
+    shouldBlurContent
+  });
+  
   return (
-    <div
-      className={cn(
+  <div
+    className={cn(
         // Reduce card width/height and padding for compactness
         "relative w-[340px] h-[170px] rounded-xl p-0.5 transition-all duration-300 cursor-pointer flex-shrink-0",
-        isActive ? "scale-105 shadow-2xl" : "shadow-lg",
-        onClick && "hover:scale-105 hover:shadow-2xl",
+      isActive ? "scale-105 shadow-2xl" : "shadow-lg",
+      onClick && "hover:scale-105 hover:shadow-2xl",
         shouldBlurContent && "overflow-hidden"
-      )}
-      style={{
+    )}
+    style={{
         background: colorScheme.gradient,
-      }}
+    }}
       onClick={canAccessTip ? onClick : undefined}
-    >
+  >
       <div className={cn(
         "w-full h-full bg-white rounded-[10px] p-4 flex flex-col justify-between relative",
         shouldBlurContent && "blur-sm"
       )}>
-        <div className="flex justify-between items-start">
+      <div className="flex justify-between items-start">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
               {isModelPortfolio ? (
@@ -114,22 +145,16 @@ const TipCard = ({ tip, isActive, onClick, isModelPortfolio, subscriptionAccess 
                   Model Portfolio
                 </div>
               ) : (
-                <>
-                  {shouldShowTag && (
-                    <div
-                      className="text-xs font-semibold rounded px-2 py-0.5 inline-block shadow-sm"
-                      style={{
-                        backgroundColor: colorScheme.badge.bg,
-                        color: colorScheme.badge.text
-                      }}
-                    >
-                      {tip.category.charAt(0).toUpperCase() + tip.category.slice(1)}
-                    </div>
-                  )}
-                  <div className="bg-black text-white text-xs font-medium rounded px-2 py-0.5">
-                    Model Portfolio
-                  </div>
-                </>
+                // Show category badge (Basic/Premium) for regular tips
+                <div
+                  className="text-xs font-semibold rounded px-2 py-0.5 inline-block shadow-sm"
+                  style={{
+                    backgroundColor: colorScheme.badge.bg,
+                    color: colorScheme.badge.text
+                  }}
+                >
+                  {tip.category.charAt(0).toUpperCase() + tip.category.slice(1)}
+                </div>
               )}
             </div>
             <h3 className="text-xl font-bold text-black mt-1 mb-0.5">{tip.stockName}</h3>
@@ -175,7 +200,7 @@ const TipCard = ({ tip, isActive, onClick, isModelPortfolio, subscriptionAccess 
         <div className="absolute inset-0 bg-black bg-opacity-10 rounded-xl flex items-center justify-center">
           <div className="bg-white rounded-lg p-3 text-center shadow-lg">
             <p className="text-xs text-gray-600 mb-2">
-              {tip.category === 'premium' ? 'Upgrade to premium to view this content' : 'Subscribe to basic plan to view this content'}
+              {tip.category === 'premium' ? 'Premium subscription required' : 'Basic subscription required'}
             </p>
             <button
               className={cn(
@@ -190,13 +215,13 @@ const TipCard = ({ tip, isActive, onClick, isModelPortfolio, subscriptionAccess 
                 window.location.href = tip.category === 'premium' ? '/premium-subscription' : '/basic-subscription';
               }}
             >
-              {tip.category === 'premium' ? 'Buy Premium' : 'Buy Basic'}
+              {tip.category === 'premium' ? 'Get Premium' : 'Get Basic'}
             </button>
-          </div>
+        </div>
         </div>
       )}
-    </div>
-  )
+  </div>
+)
 }
 
 interface TipsCarouselProps {
@@ -218,7 +243,7 @@ export default function TipsCarousel({
   isModelPortfolio = false,
   sliderSize = 'default',
 }: TipsCarouselProps) {
-  const [activeIndex, setActiveIndex] = useState(0)
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [tips, setTips] = useState<TipCardData[]>([])
   const [loading, setLoading] = useState(propLoading || false)
   const [subscriptionAccess, setSubscriptionAccess] = useState<SubscriptionAccess | undefined>(undefined)
@@ -230,6 +255,93 @@ export default function TipsCarousel({
   const CARD_MARGIN = 24;
   const VISIBLE_CARDS = 3;
   const CONTAINER_WIDTH = CARD_WIDTH * VISIBLE_CARDS + CARD_MARGIN * (VISIBLE_CARDS - 2);
+
+  // Calculate date range from tips and get unique dates
+  const { dateRange, uniqueDates } = useMemo(() => {
+    if (tips.length === 0) {
+      return {
+        dateRange: {
+          min: new Date('2024-01-01'),
+          max: new Date()
+        },
+        uniqueDates: []
+      }
+    }
+    
+    const dates = tips.map(tip => new Date(tip.date));
+    const validDates = dates.filter(date => !isNaN(date.getTime()));
+    
+    if (validDates.length === 0) {
+      return {
+        dateRange: {
+          min: new Date('2024-01-01'),
+          max: new Date()
+        },
+        uniqueDates: []
+      }
+    }
+    
+    // Get unique dates (removing time part)
+    const uniqueDateStrings = Array.from(new Set(validDates.map(date => 
+      new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString()
+    )));
+    
+    const uniqueDatesArray = uniqueDateStrings
+      .map(dateStr => new Date(dateStr))
+      .sort((a, b) => a.getTime() - b.getTime());
+    
+    const minDate = uniqueDatesArray[0];
+    const maxDate = uniqueDatesArray[uniqueDatesArray.length - 1];
+    
+    // Ensure we have at least a 7-day range for the slider to work properly
+    const timeDiff = maxDate.getTime() - minDate.getTime();
+    const minRange = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+    
+    if (timeDiff < minRange) {
+      // Extend the range to have at least 7 days
+      const centerTime = minDate.getTime() + timeDiff / 2;
+      return {
+        dateRange: {
+          min: new Date(centerTime - minRange / 2),
+          max: new Date(centerTime + minRange / 2)
+        },
+        uniqueDates: uniqueDatesArray
+      };
+    }
+    
+    return {
+      dateRange: {
+        min: minDate,
+        max: maxDate
+      },
+      uniqueDates: uniqueDatesArray
+    };
+  }, [tips])
+
+  // Update selectedDate when tips are loaded
+  useEffect(() => {
+    if (uniqueDates.length > 0) {
+      // Set to the latest date that has tips
+      const latestDate = uniqueDates[uniqueDates.length - 1];
+      setSelectedDate(new Date(latestDate));
+    }
+  }, [uniqueDates])
+
+  // Get tips for the specific selected date only
+  const filteredTips = useMemo(() => {
+    return tips.filter(tip => {
+      const tipDate = new Date(tip.date)
+      return isSameDay(tipDate, selectedDate)
+    }).sort((a, b) => {
+      // Sort by creation time within the same date
+      return new Date(b.date).getTime() - new Date(a.date).getTime()
+    })
+  }, [tips, selectedDate])
+
+  // Get the current visible tips (3 cards)
+  const visibleTips = useMemo(() => {
+    return filteredTips.slice(0, VISIBLE_CARDS)
+  }, [filteredTips, VISIBLE_CARDS])
 
   // Convert API tips to carousel format
   const convertTipsToCarouselFormat = (apiTips: Tip[]): TipCardData[] => {
@@ -344,9 +456,18 @@ export default function TipsCarousel({
   useEffect(() => {
     const fetchSubscriptionAccess = async () => {
       try {
-        const access = await subscriptionService.getSubscriptionAccess();
-        setSubscriptionAccess(access);
+        console.log('Fetching subscription access...');
+        // Clear cache to ensure fresh data
+        subscriptionService.clearCache();
+        const access = await subscriptionService.getSubscriptionAccess(true);
         console.log('Subscription access loaded:', access);
+        setSubscriptionAccess(access);
+        
+        // If access is not what we expect, try to diagnose the issue
+        if (access.subscriptionType === 'none' || (!access.hasPremium && !access.hasBasic)) {
+          console.log('Potential subscription access issue detected, running diagnosis...');
+          await subscriptionService.diagnoseSubscriptionIssue();
+        }
       } catch (error) {
         console.error('Failed to fetch subscription access:', error);
         // Set default no-access state
@@ -362,31 +483,23 @@ export default function TipsCarousel({
     fetchSubscriptionAccess();
   }, []);
 
-  // Animate to the new active card position
+  // Animate to center the visible tips
   useEffect(() => {
-    if (tips.length === 0) return
-    const newX = -activeIndex * (CARD_WIDTH + CARD_MARGIN)
+    if (visibleTips.length === 0) return
+    const newX = 0 // Always center the visible tips
     animate(x, newX, {
       type: "spring",
       stiffness: 300,
       damping: 30,
       mass: 0.5,
     })
-  }, [activeIndex, x, tips.length])
+  }, [visibleTips, x])
 
-  // Handle drag end to snap to the nearest card
+  // Handle drag end to snap back to center
   const onDragEnd = (e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    if (tips.length === 0) return
-    const { offset, velocity } = info
-    const DRAG_BUFFER = 50
-    if (Math.abs(offset.x) > DRAG_BUFFER || Math.abs(velocity.x) > 200) {
-      const direction = offset.x > 0 ? -1 : 1
-      setActiveIndex((prev) => Math.max(0, Math.min(tips.length - 1, prev + direction)))
-    } else {
-      // Snap back to the current card if drag is not enough
-      const newX = -activeIndex * (CARD_WIDTH + CARD_MARGIN)
-      animate(x, newX, { type: "spring", stiffness: 300, damping: 30 })
-    }
+    // Simple snap back to center for date-based navigation
+    const newX = 0
+    animate(x, newX, { type: "spring", stiffness: 300, damping: 30 })
   }
 
   if (loading) {
@@ -411,6 +524,29 @@ export default function TipsCarousel({
     )
   }
 
+  // Show message when no tips are available for the current date
+  if (tips.length > 0 && filteredTips.length === 0) {
+    return (
+      <div className="relative w-full h-[650px] flex flex-col items-center justify-center overflow-hidden">
+        <div className="text-center mb-8">
+          <div className="text-gray-400 mb-4 text-4xl">📅</div>
+          <p className="text-gray-600 text-lg mb-4">No tips available for {format(selectedDate, 'dd MMMM yyyy')}</p>
+          <p className="text-gray-500 text-sm">Use the timeline below to navigate to a date with tips</p>
+        </div>
+        
+        {/* Date Timeline Slider */}
+        <div className={sliderSize === 'large' ? "w-full max-w-4xl" : "w-full max-w-2xl"}>
+          <DateTimelineSlider
+            dateRange={dateRange}
+            selectedDate={selectedDate}
+            onDateChange={setSelectedDate}
+            className={sliderSize === 'large' ? "h-32" : "h-24"}
+          />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="relative w-full flex flex-col items-center justify-center overflow-visible px-1">
       {/* Carousel Container */}
@@ -430,23 +566,21 @@ export default function TipsCarousel({
           onDragEnd={onDragEnd}
           dragElastic={0.1}
         >
-          {tips.map((tip, index) => {
-            // Center card index among visible cards
-            const centerIndex = activeIndex + Math.floor(VISIBLE_CARDS / 2);
-            const isActive = index === centerIndex;
-            const distance = Math.abs(centerIndex - index);
+          {visibleTips.map((tip, index) => {
+            // All visible tips are displayed equally
+            const isActive = index === 0; // First tip is featured
             return (
               <motion.div
                 key={tip.id}
                 className="flex-shrink-0"
                 style={{
                   width: CARD_WIDTH,
-                  marginRight: index === tips.length - 1 ? 0 : CARD_MARGIN,
+                  marginRight: index === visibleTips.length - 1 ? 0 : CARD_MARGIN,
                 }}
                 animate={{
                   scale: isActive ? 1 : 0.92,
                   y: isActive ? 0 : 10,
-                  opacity: distance > 2 ? 0.3 : 1,
+                  opacity: 1,
                 }}
                 transition={{ type: "spring", stiffness: 200, damping: 25 }}
               >
@@ -465,25 +599,17 @@ export default function TipsCarousel({
 
       {/* Remove connecting line and date display for compactness */}
 
-      {/* Date Slider - make bigger if sliderSize is 'large' */}
-      <div className={sliderSize === 'large' ? "w-full max-w-4xl mt-10 relative h-20 flex items-center px-6" : "w-full max-w-2xl mt-6 relative h-12 flex items-center px-4"}>
-        <div className="absolute w-full h-full top-0 left-0 flex items-center justify-between px-1">
-          {Array.from({ length: 31 }).map((_, i) => {
-            let height = sliderSize === 'large' ? "h-4" : "h-2"
-            if (i % 5 === 0) height = sliderSize === 'large' ? "h-10" : "h-6"
-            else if (i % 1 === 0) height = sliderSize === 'large' ? "h-6" : "h-3"
-            return <div key={i} className={cn("w-0.5 bg-gray-400", height)}></div>
-          })}
+      {/* Date Timeline Slider */}
+      {tips.length > 0 && (
+        <div className={sliderSize === 'large' ? "w-full max-w-4xl mt-10" : "w-full max-w-2xl mt-6"}>
+          <DateTimelineSlider
+            dateRange={dateRange}
+            selectedDate={selectedDate}
+            onDateChange={setSelectedDate}
+            className={sliderSize === 'large' ? "h-32" : "h-24"}
+          />
         </div>
-        <Slider
-          min={0}
-          max={Math.max(0, tips.length - 1)}
-          value={[activeIndex]}
-          onValueChange={([v]) => setActiveIndex(v)}
-          step={1}
-          className={sliderSize === 'large' ? "h-4" : "h-2"}
-        />
-      </div>
+      )}
     </div>
   )
 } 

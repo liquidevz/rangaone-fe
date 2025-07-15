@@ -29,7 +29,50 @@ class StockPriceService {
   private readonly MAX_RETRIES = 2;
 
   /**
-   * Fetch live stock price for a single symbol
+   * Fetch live stock price for a single symbol by ID
+   */
+  async getStockPriceById(id: string): Promise<StockPriceResponse> {
+    try {
+      // Check cache first
+      const cached = this.getCachedPrice(id);
+      if (cached) {
+        return { success: true, data: cached };
+      }
+
+      // Get auth token
+      const token = authService.getAccessToken();
+      if (!token) {
+        console.warn(`No auth token available for fetching stock ID ${id} price`);
+        return { success: false, data: null, error: "Authentication required" };
+      }
+
+      console.log(`🔍 Fetching live price for stock ID ${id}`);
+
+      // Make API call with retry logic using the exact endpoint
+      const stockData = await this.fetchByIdWithRetry(id, token);
+      
+      if (stockData) {
+        // Cache the result
+        this.setCachedPrice(id, stockData);
+        console.log(`✅ Successfully fetched price for stock ID ${id}: ₹${stockData.currentPrice}`);
+        return { success: true, data: stockData };
+      } else {
+        console.warn(`⚠️ No data returned for stock ID ${id}`);
+        return { success: false, data: null, error: "No data available" };
+      }
+
+    } catch (error: any) {
+      console.error(`❌ Failed to fetch price for stock ID ${id}:`, error);
+      return { 
+        success: false, 
+        data: null, 
+        error: error.message || "Failed to fetch stock price" 
+      };
+    }
+  }
+
+  /**
+   * Fetch live stock price for a single symbol (backwards compatibility)
    */
   async getStockPrice(symbol: string): Promise<StockPriceResponse> {
     try {
@@ -72,7 +115,37 @@ class StockPriceService {
   }
 
   /**
-   * Fetch live stock prices for multiple symbols
+   * Fetch live stock prices for multiple stock IDs with exact precision
+   */
+  async getMultipleStockPricesById(ids: string[]): Promise<Map<string, StockPriceResponse>> {
+    console.log(`🔍 Fetching exact prices for ${ids.length} stock IDs`);
+    
+    const results = new Map<string, StockPriceResponse>();
+    
+    // Use Promise.allSettled to handle partial failures gracefully
+    const promises = ids.map(async (id) => {
+      const result = await this.getStockPriceById(id);
+      return { id, result };
+    });
+
+    const settledResults = await Promise.allSettled(promises);
+    
+    settledResults.forEach((settledResult) => {
+      if (settledResult.status === 'fulfilled') {
+        const { id, result } = settledResult.value;
+        results.set(id, result);
+      } else {
+        console.error('Failed to fetch price for stock ID:', settledResult.reason);
+      }
+    });
+
+    console.log(`✅ Completed fetching exact prices. Success: ${Array.from(results.values()).filter(r => r.success).length}/${ids.length}`);
+    
+    return results;
+  }
+
+  /**
+   * Fetch live stock prices for multiple symbols (backwards compatibility)
    */
   async getMultipleStockPrices(symbols: string[]): Promise<Map<string, StockPriceResponse>> {
     console.log(`🔍 Fetching prices for ${symbols.length} symbols`);
@@ -102,7 +175,37 @@ class StockPriceService {
   }
 
   /**
-   * Fetch with retry logic
+   * Fetch with retry logic using stock ID (exact API endpoint)
+   */
+  private async fetchByIdWithRetry(id: string, token: string, retryCount = 0): Promise<StockPriceData | null> {
+    try {
+      const response = await axiosApi.get(`/api/stock-symbols/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        timeout: this.REQUEST_TIMEOUT,
+      });
+
+      console.log(`📊 API response for stock ID ${id}:`, response.data);
+
+      return this.parseStockByIdResponse(response.data, id);
+
+    } catch (error: any) {
+      console.error(`❌ API call failed for stock ID ${id} (attempt ${retryCount + 1}):`, error.message);
+      
+      if (retryCount < this.MAX_RETRIES) {
+        console.log(`🔄 Retrying stock ID ${id} (${retryCount + 1}/${this.MAX_RETRIES})`);
+        // Exponential backoff: wait 1s, then 2s, then 4s
+        await this.delay(Math.pow(2, retryCount) * 1000);
+        return this.fetchByIdWithRetry(id, token, retryCount + 1);
+      }
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch with retry logic using symbol search (backwards compatibility)
    */
   private async fetchWithRetry(symbol: string, token: string, retryCount = 0): Promise<StockPriceData | null> {
     try {
@@ -132,7 +235,70 @@ class StockPriceService {
   }
 
   /**
-   * Parse API response and extract stock data
+   * Parse API response for stock by ID and extract stock data
+   */
+  private parseStockByIdResponse(responseData: any, id: string): StockPriceData | null {
+    try {
+      // Handle the direct response from /api/stock-symbols/{id}
+      let stockData = responseData;
+
+      // Handle different response structures
+      if (responseData?.data) {
+        stockData = responseData.data;
+      } else if (responseData?.success && responseData?.data) {
+        stockData = responseData.data;
+      }
+
+      if (!stockData || !stockData.symbol) {
+        console.warn(`⚠️ No stock data found in response for ID ${id}`);
+        return null;
+      }
+
+      // Extract price information with exact precision
+      const currentPrice = this.parseExactPrice(stockData.currentPrice);
+      const previousPrice = this.parseExactPrice(stockData.previousPrice);
+
+      if (isNaN(currentPrice) || currentPrice <= 0) {
+        console.warn(`⚠️ Invalid current price for ID ${id}:`, currentPrice);
+        return null;
+      }
+
+      // Calculate change and change percentage with exact precision
+      const change = currentPrice - previousPrice;
+      const changePercent = previousPrice > 0 ? (change / previousPrice) * 100 : 0;
+
+      const result: StockPriceData = {
+        symbol: stockData.symbol,
+        currentPrice,
+        previousPrice,
+        change,
+        changePercent,
+        name: stockData.name,
+        exchange: stockData.exchange,
+        marketCap: stockData.marketCap,
+        volume: this.parseExactPrice(stockData.volume),
+        high: this.parseExactPrice(stockData.high),
+        low: this.parseExactPrice(stockData.low),
+        open: this.parseExactPrice(stockData.open),
+      };
+
+      console.log(`📈 Parsed exact stock data for ID ${id}:`, {
+        symbol: result.symbol,
+        currentPrice: result.currentPrice,
+        change: result.change,
+        changePercent: result.changePercent + '%'
+      });
+
+      return result;
+
+    } catch (error) {
+      console.error(`❌ Failed to parse response for ID ${id}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Parse API response and extract stock data (backwards compatibility)
    */
   private parseStockResponse(responseData: any, symbol: string): StockPriceData | null {
     try {
@@ -210,7 +376,29 @@ class StockPriceService {
   }
 
   /**
-   * Safely parse price values
+   * Safely parse price values with exact precision (no rounding)
+   */
+  private parseExactPrice(value: any): number {
+    if (value === null || value === undefined || value === '') {
+      return 0;
+    }
+    
+    if (typeof value === 'number') {
+      return isNaN(value) ? 0 : value;
+    }
+    
+    if (typeof value === 'string') {
+      // Remove currency symbols, commas, and other non-numeric characters
+      const cleaned = value.replace(/[₹,\s]/g, '');
+      const parsed = parseFloat(cleaned);
+      return isNaN(parsed) ? 0 : parsed;
+    }
+    
+    return 0;
+  }
+
+  /**
+   * Safely parse price values (backwards compatibility)
    */
   private parsePrice(value: any): number {
     if (value === null || value === undefined || value === '') {
