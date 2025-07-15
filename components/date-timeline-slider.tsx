@@ -49,6 +49,21 @@ export default function DateTimelineSlider({
     }
   }, [selectedDate, containerWidth, currentPosition, tickSpacing, x])
 
+  // Handle click on timeline
+  const handleTimelineClick = (event: React.MouseEvent) => {
+    if (containerWidth > 0) {
+      const rect = containerRef.current?.getBoundingClientRect()
+      if (rect) {
+        const clickX = event.clientX - rect.left
+        const currentX = x.get()
+        const relativeClickX = clickX - currentX - containerWidth / 2
+        const clickedDay = Math.round(relativeClickX / tickSpacing)
+        const newDate = addDays(dateRange.min, Math.max(0, Math.min(totalDays, clickedDay)))
+        onDateChange(newDate)
+      }
+    }
+  }
+
   const handleDragEnd = () => {
     const finalX = x.get()
     const centeredPositionInTimeline = containerWidth / 2 - finalX
@@ -106,6 +121,7 @@ export default function DateTimelineSlider({
         drag="x"
         dragConstraints={dragConstraints}
         onDragEnd={handleDragEnd}
+        onClick={handleTimelineClick}
       >
         <div className="relative h-full flex items-end" style={{ width: `${timelineWidth}px` }}>
           {ticks.map((tick, i) => (

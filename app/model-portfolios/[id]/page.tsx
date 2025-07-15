@@ -1216,7 +1216,7 @@ export default function PortfolioDetailsPage() {
               </div>
             </div>
             
-            <div className="w-full min-h-[300px] pb-8">
+            <div className={`w-full ${portfolioTips.length > 0 ? 'min-h-[300px] pb-8' : 'pb-2'}`}>
               <TipsCarousel 
                 portfolioId={portfolio?._id} 
                 tips={portfolioTips}

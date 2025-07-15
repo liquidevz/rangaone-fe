@@ -8,6 +8,7 @@ import { tipsService, type Tip } from "@/services/tip.service"
 import { subscriptionService, type SubscriptionAccess } from "@/services/subscription.service"
 import { useRouter } from "next/navigation"
 import DateTimelineSlider from "./date-timeline-slider"
+import { Button } from "@/components/ui/button"
 
 type TipCardData = {
   id: string
@@ -247,6 +248,7 @@ export default function TipsCarousel({
   const [tips, setTips] = useState<TipCardData[]>([])
   const [loading, setLoading] = useState(propLoading || false)
   const [subscriptionAccess, setSubscriptionAccess] = useState<SubscriptionAccess | undefined>(undefined)
+  const [showAllTips, setShowAllTips] = useState(true) // Toggle between filtered and all tips
   const x = useMotionValue(0)
   const router = useRouter()
 
@@ -342,6 +344,35 @@ export default function TipsCarousel({
   const visibleTips = useMemo(() => {
     return filteredTips.slice(0, VISIBLE_CARDS)
   }, [filteredTips, VISIBLE_CARDS])
+
+  // For normal carousel without filtering
+  const allTips = useMemo(() => {
+    return tips.sort((a, b) => {
+      // Sort by creation time
+      return new Date(b.date).getTime() - new Date(a.date).getTime()
+    })
+  }, [tips])
+
+  // Choose which tips to display based on showAllTips state
+  const displayTips = useMemo(() => {
+    return showAllTips ? allTips : visibleTips
+  }, [showAllTips, allTips, visibleTips])
+
+  // Reset to show all tips
+  const handleReset = () => {
+    setShowAllTips(true)
+    // Reset to latest date
+    if (uniqueDates.length > 0) {
+      const latestDate = uniqueDates[uniqueDates.length - 1];
+      setSelectedDate(new Date(latestDate));
+    }
+  }
+
+  // Handle date change from timeline slider
+  const handleDateChange = (date: Date) => {
+    setSelectedDate(date)
+    setShowAllTips(false) // Switch to filtered view when date is changed
+  }
 
   // Convert API tips to carousel format
   const convertTipsToCarouselFormat = (apiTips: Tip[]): TipCardData[] => {
@@ -504,7 +535,7 @@ export default function TipsCarousel({
 
   if (loading) {
     return (
-      <div className="relative w-full h-[650px] flex flex-col items-center justify-center overflow-hidden">
+      <div className="relative w-full flex flex-col items-center justify-center overflow-hidden py-4">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading tips...</p>
@@ -515,7 +546,7 @@ export default function TipsCarousel({
 
   if (tips.length === 0) {
     return (
-      <div className="relative w-full h-[650px] flex flex-col items-center justify-center overflow-hidden">
+      <div className="relative w-full flex flex-col items-center justify-center overflow-hidden py-4">
         <div className="text-center">
           <div className="text-gray-400 mb-4 text-4xl">📊</div>
           <p className="text-gray-600">No tips available for the selected category.</p>
@@ -524,25 +555,42 @@ export default function TipsCarousel({
     )
   }
 
-  // Show message when no tips are available for the current date
-  if (tips.length > 0 && filteredTips.length === 0) {
+  // Show message when no tips are available for the current date (only when in filtered mode)
+  if (tips.length > 0 && filteredTips.length === 0 && !showAllTips) {
     return (
-      <div className="relative w-full h-[650px] flex flex-col items-center justify-center overflow-hidden">
-        <div className="text-center mb-8">
-          <div className="text-gray-400 mb-4 text-4xl">📅</div>
-          <p className="text-gray-600 text-lg mb-4">No tips available for {format(selectedDate, 'dd MMMM yyyy')}</p>
-          <p className="text-gray-500 text-sm">Use the timeline below to navigate to a date with tips</p>
+      <div className="relative w-full flex flex-col items-center justify-center overflow-visible px-1">
+        {/* Empty state container with same width as carousel */}
+        <div className="relative" style={{ width: `${CONTAINER_WIDTH}px`, height: '170px', margin: '0 auto' }}>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <div className="text-center">
+              <div className="text-gray-400 mb-4 text-4xl">📅</div>
+              <p className="text-gray-600 text-lg mb-4">No tips available for {format(selectedDate, 'dd MMMM yyyy')}</p>
+              <p className="text-gray-500 text-sm">Use the timeline below to navigate to a date with tips</p>
+            </div>
+          </div>
         </div>
         
-        {/* Date Timeline Slider */}
-        <div className={sliderSize === 'large' ? "w-full max-w-4xl" : "w-full max-w-2xl"}>
-          <DateTimelineSlider
-            dateRange={dateRange}
-            selectedDate={selectedDate}
-            onDateChange={setSelectedDate}
-            className={sliderSize === 'large' ? "h-32" : "h-24"}
-          />
-        </div>
+        {/* Date Timeline Slider with Reset Button - positioned consistently */}
+        {tips.length > 0 && (
+          <div className={sliderSize === 'large' ? "w-full max-w-4xl mt-10" : "w-full max-w-2xl mt-6"}>
+            <div className="flex flex-col items-center space-y-4">
+              <DateTimelineSlider
+                dateRange={dateRange}
+                selectedDate={selectedDate}
+                onDateChange={handleDateChange}
+                className={sliderSize === 'large' ? "h-32" : "h-24"}
+              />
+              <Button
+                onClick={handleReset}
+                variant="outline"
+                size="sm"
+                className="text-sm"
+              >
+                Show All Tips
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -560,13 +608,13 @@ export default function TipsCarousel({
           }}
           drag="x"
           dragConstraints={{
-            left: -(tips.length - VISIBLE_CARDS) * (CARD_WIDTH + CARD_MARGIN),
+            left: -(displayTips.length - VISIBLE_CARDS) * (CARD_WIDTH + CARD_MARGIN),
             right: 0,
           }}
           onDragEnd={onDragEnd}
           dragElastic={0.1}
         >
-          {visibleTips.map((tip, index) => {
+          {displayTips.map((tip, index) => {
             // All visible tips are displayed equally
             const isActive = index === 0; // First tip is featured
             return (
@@ -575,7 +623,7 @@ export default function TipsCarousel({
                 className="flex-shrink-0"
                 style={{
                   width: CARD_WIDTH,
-                  marginRight: index === visibleTips.length - 1 ? 0 : CARD_MARGIN,
+                  marginRight: index === displayTips.length - 1 ? 0 : CARD_MARGIN,
                 }}
                 animate={{
                   scale: isActive ? 1 : 0.92,
@@ -599,15 +647,25 @@ export default function TipsCarousel({
 
       {/* Remove connecting line and date display for compactness */}
 
-      {/* Date Timeline Slider */}
+      {/* Date Timeline Slider with Reset Button */}
       {tips.length > 0 && (
         <div className={sliderSize === 'large' ? "w-full max-w-4xl mt-10" : "w-full max-w-2xl mt-6"}>
-          <DateTimelineSlider
-            dateRange={dateRange}
-            selectedDate={selectedDate}
-            onDateChange={setSelectedDate}
-            className={sliderSize === 'large' ? "h-32" : "h-24"}
-          />
+          <div className="flex flex-col items-center space-y-4">
+            <DateTimelineSlider
+              dateRange={dateRange}
+              selectedDate={selectedDate}
+              onDateChange={handleDateChange}
+              className={sliderSize === 'large' ? "h-32" : "h-24"}
+            />
+            <Button
+              onClick={handleReset}
+              variant="outline"
+              size="sm"
+              className="text-sm"
+            >
+              Show All Tips
+            </Button>
+          </div>
         </div>
       )}
     </div>

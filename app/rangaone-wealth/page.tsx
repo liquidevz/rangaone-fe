@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent } from "@/components/ui/card";
 import TipsCarousel from "@/components/tips-carousel";
 
 // Helper function to format currency
@@ -200,73 +201,78 @@ export default function RangaoneWealth() {
         subtitle="Expert Model Portfolio & Stock Recommendations"
       />
 
-      {/* Main Tips Filter */}
-      <div className="flex justify-center mb-4 gap-2">
-        <Button
-          variant={mainFilter === "all" ? "default" : "outline"}
-          onClick={() => setMainFilter("all")}
-        >
-          All
-        </Button>
-        <Button
-          variant={mainFilter === "basic" ? "default" : "outline"}
-          onClick={() => setMainFilter("basic")}
-          className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
-        >
-          Basic
-        </Button>
-        <Button
-          variant={mainFilter === "premium" ? "default" : "outline"}
-          onClick={() => setMainFilter("premium")}
-          className="bg-yellow-600 hover:bg-yellow-700 text-white border-yellow-600"
-        >
-          Premium
-        </Button>
-      </div>
 
-      {/* Tips Carousel Section */}
-      <div className="mt-20 mb-10">
-        <TipsCarousel 
-          tips={allTips} 
-          loading={loading} 
-          onTipClick={handleTipClick} 
-          categoryFilter={mainFilter as 'basic' | 'premium' | 'all'}
-          sliderSize="large"
-        />
-      </div>
 
-          {/* Closed Recommendations Section */}
-      <div className="mt-12">
-        <h2 className="text-xl font-bold mb-4 text-center">Closed Recommendations</h2>
-        <div className="flex justify-center mb-4 gap-2">
-          <Button
-            variant={closedFilter === "all" ? "default" : "outline"}
-            onClick={() => setClosedFilter("all")}
-          >
-            All
-          </Button>
-          <Button
-            variant={closedFilter === "basic" ? "default" : "outline"}
-            onClick={() => setClosedFilter("basic")}
-            className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
-          >
-            Basic
-          </Button>
-          <Button
-            variant={closedFilter === "premium" ? "default" : "outline"}
-            onClick={() => setClosedFilter("premium")}
-            className="bg-yellow-600 hover:bg-yellow-700 text-white border-yellow-600"
-          >
-            Premium
-          </Button>
-        </div>
-        <TipsCarousel 
-          tips={closedTips} 
-          loading={loading} 
-          onTipClick={handleTipClick} 
-          categoryFilter={closedFilter as 'basic' | 'premium' | 'all'}
-        />
-      </div>
+      {/* Open Recommendations Section */}
+      <Card className="mt-12 mb-12 shadow-sm border border-gray-200">
+        <CardContent className="p-6">
+          <h2 className="text-xl font-bold mb-4 text-center">Open Recommendations</h2>
+          <div className="flex justify-center mb-4 gap-2">
+            <Button
+              variant={mainFilter === "all" ? "default" : "outline"}
+              onClick={() => setMainFilter("all")}
+            >
+              All
+            </Button>
+            <Button
+              variant={mainFilter === "basic" ? "default" : "outline"}
+              onClick={() => setMainFilter("basic")}
+              className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+            >
+              Basic
+            </Button>
+            <Button
+              variant={mainFilter === "premium" ? "default" : "outline"}
+              onClick={() => setMainFilter("premium")}
+              className="bg-yellow-600 hover:bg-yellow-700 text-white border-yellow-600"
+            >
+              Premium
+            </Button>
+          </div>
+          <TipsCarousel 
+            tips={allTips} 
+            loading={loading} 
+            onTipClick={handleTipClick} 
+            categoryFilter={mainFilter as 'basic' | 'premium' | 'all'}
+            sliderSize="large"
+          />
+        </CardContent>
+      </Card>
+
+      {/* Closed Recommendations Section */}
+      <Card className="mt-12 mb-12 shadow-sm border border-gray-200">
+        <CardContent className="p-6">
+          <h2 className="text-xl font-bold mb-4 text-center">Closed Recommendations</h2>
+          <div className="flex justify-center mb-4 gap-2">
+            <Button
+              variant={closedFilter === "all" ? "default" : "outline"}
+              onClick={() => setClosedFilter("all")}
+            >
+              All
+            </Button>
+            <Button
+              variant={closedFilter === "basic" ? "default" : "outline"}
+              onClick={() => setClosedFilter("basic")}
+              className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+            >
+              Basic
+            </Button>
+            <Button
+              variant={closedFilter === "premium" ? "default" : "outline"}
+              onClick={() => setClosedFilter("premium")}
+              className="bg-yellow-600 hover:bg-yellow-700 text-white border-yellow-600"
+            >
+              Premium
+            </Button>
+          </div>
+          <TipsCarousel 
+            tips={closedTips} 
+            loading={loading} 
+            onTipClick={handleTipClick} 
+            categoryFilter={closedFilter as 'basic' | 'premium' | 'all'}
+          />
+        </CardContent>
+      </Card>
     </DashboardLayout>
   );
 }
