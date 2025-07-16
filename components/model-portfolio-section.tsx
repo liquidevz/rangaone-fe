@@ -1,11 +1,11 @@
 // components/model-portfolio-section.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { MotionConfig, motion } from "framer-motion";
 import { FaYoutube } from "react-icons/fa";
 import { FiBookOpen } from "react-icons/fi";
-import { ShoppingCart, CreditCard, Check, Play, FileText } from "lucide-react";
+import { ShoppingCart, CreditCard, Check, Play, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,10 +22,10 @@ import { SectionHeading } from "@/components/ui/section-heading";
 type SubscriptionType = "monthly" | "quarterly" | "yearly";
 // --- Constants ---
 const portfolioColors = [
-  "bg-[#0A9396]",
-  "bg-[#EE9B00]",
-  "bg-[#FFE627]",
-  "bg-[#3187CE]",
+  "bg-[#F97C7C]",
+  "bg-[#FFD400]",
+  "bg-[#92DFF3]",
+  "bg-[#96B766]",
   "bg-green-200",
   "bg-yellow-100",
   "bg-indigo-200",
@@ -67,6 +67,10 @@ export default function ModelPortfolioSection() {
   const [portfolios, setPortfolios] = useState<UserPortfolio[]>([])
   const [loading, setLoading] = useState(true)
   const [hoveredCard, setHoveredCard] = useState<string | null>(null)
+  const [currentSlide, setCurrentSlide] = useState(0)
+  const [isAutoPlaying, setIsAutoPlaying] = useState(false)
+  const carouselRef = useRef<HTMLDivElement>(null)
+  const autoPlayRef = useRef<NodeJS.Timeout | null>(null)
   const { isAuthenticated } = useAuth()
   const { addToCart } = useCart()
   const { toast } = useToast()
@@ -90,6 +94,129 @@ export default function ModelPortfolioSection() {
     }
     loadPortfolios()
   }, [toast])
+
+  // Carousel functions
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % features.length)
+  }
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + features.length) % features.length)
+  }
+
+  const goToSlide = (index: number) => {
+    setCurrentSlide(index)
+  }
+
+  // Auto-play functionality
+  const startAutoPlay = () => {
+    setIsAutoPlaying(true)
+    autoPlayRef.current = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % features.length)
+    }, 4000)
+  }
+
+  const stopAutoPlay = () => {
+    setIsAutoPlaying(false)
+    if (autoPlayRef.current) {
+      clearInterval(autoPlayRef.current)
+      autoPlayRef.current = null
+    }
+  }
+
+  // Start auto-play on mount
+  useEffect(() => {
+    startAutoPlay()
+    return () => stopAutoPlay()
+  }, [])
+
+  // Touch/swipe functionality
+  const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [touchEnd, setTouchEnd] = useState<number | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragOffset, setDragOffset] = useState(0)
+
+  const minSwipeDistance = 30 // Reduced for more responsive swiping
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setIsDragging(true)
+    setTouchEnd(null)
+    setTouchStart(e.targetTouches[0].clientX)
+    setDragOffset(0)
+  }
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!touchStart) return
+    
+    const currentTouch = e.targetTouches[0].clientX
+    const diff = touchStart - currentTouch
+    setDragOffset(diff)
+    setTouchEnd(currentTouch)
+  }
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) {
+      setIsDragging(false)
+      return
+    }
+    
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > minSwipeDistance
+    const isRightSwipe = distance < -minSwipeDistance
+
+    if (isLeftSwipe) {
+      nextSlide()
+    } else if (isRightSwipe) {
+      prevSlide()
+    }
+    
+    setIsDragging(false)
+    setDragOffset(0)
+  }
+
+  // Mouse drag support for desktop touch devices
+  const onMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true)
+    setTouchEnd(null)
+    setTouchStart(e.clientX)
+    setDragOffset(0)
+  }
+
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !touchStart) return
+    
+    const currentX = e.clientX
+    const diff = touchStart - currentX
+    setDragOffset(diff)
+    setTouchEnd(currentX)
+  }
+
+  const onMouseUp = () => {
+    if (!touchStart || !touchEnd) {
+      setIsDragging(false)
+      return
+    }
+    
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > minSwipeDistance
+    const isRightSwipe = distance < -minSwipeDistance
+
+    if (isLeftSwipe) {
+      nextSlide()
+    } else if (isRightSwipe) {
+      prevSlide()
+    }
+    
+    setIsDragging(false)
+    setDragOffset(0)
+  }
+
+  const onMouseLeave = () => {
+    if (isDragging) {
+      setIsDragging(false)
+      setDragOffset(0)
+    }
+  }
 
   const handleBuyNow = async (portfolio: UserPortfolio) => {
     try {
@@ -128,35 +255,122 @@ export default function ModelPortfolioSection() {
 
   return (
     <div className="bg-[#fefcea] dark:bg-gray-900">
-      {/* --- Features Section --- */}
-      <section className="py-8 sm:py-12">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-8 sm:mb-12">
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">Model Portfolios</h1>
-            <p className="mt-2 text-lg text-gray-600 dark:text-gray-300">
-              Smart investment strategies for every investor
-            </p>
-          </div>
-          <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature) => (
-              <div
-                key={feature.title}
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 relative border-t-4 border-blue-800 dark:border-blue-500 hover:shadow-xl transition-shadow duration-300 flex flex-col text-center"
-              >
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-white dark:bg-gray-800 p-2 rounded-full border-2 border-blue-800 dark:border-blue-500 shadow-md">
-                  <img
-                    src={feature.icon || "/placeholder.svg"}
-                    alt={feature.title}
-                    className="h-8 w-8 object-contain"
-                  />
-                </div>
-                <h3 className="text-blue-900 dark:text-blue-300 font-bold text-lg mt-4 mb-2">{feature.title}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{feature.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+             {/* --- Features Section --- */}
+       <section className="py-8 sm:py-12">
+         <div className="container mx-auto px-4">
+           <div className="text-center mb-8 sm:mb-12">
+             <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">Model Portfolios</h1>
+             <p className="mt-2 text-lg text-gray-600 dark:text-gray-300">
+               Smart investment strategies for every investor
+             </p>
+           </div>
+           
+           {/* Desktop Grid */}
+           <div className="hidden sm:grid max-w-7xl mx-auto grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+             {features.map((feature) => (
+               <div
+                 key={feature.title}
+                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 relative border-t-4 border-blue-800 dark:border-blue-500 hover:shadow-xl transition-shadow duration-300 flex flex-col text-center"
+               >
+                 <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-white dark:bg-gray-800 p-2 rounded-full border-2 border-blue-800 dark:border-blue-500 shadow-md">
+                   <img
+                     src={feature.icon || "/placeholder.svg"}
+                     alt={feature.title}
+                     className="h-8 w-8 object-contain"
+                   />
+                 </div>
+                 <h3 className="text-blue-900 dark:text-blue-300 font-bold text-lg mt-4 mb-2">{feature.title}</h3>
+                 <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{feature.description}</p>
+               </div>
+             ))}
+           </div>
+
+           {/* Mobile Carousel */}
+           <div className="sm:hidden relative overflow-hidden">
+             <div 
+               ref={carouselRef}
+               className={`flex ${isDragging ? 'transition-none' : 'transition-transform duration-300 ease-out'}`}
+               style={{ 
+                 transform: `translateX(calc(-${currentSlide * 100}% + ${dragOffset}px))`,
+                 cursor: isDragging ? 'grabbing' : 'grab'
+               }}
+               onTouchStart={onTouchStart}
+               onTouchMove={onTouchMove}
+               onTouchEnd={onTouchEnd}
+               onMouseDown={onMouseDown}
+               onMouseMove={onMouseMove}
+               onMouseUp={onMouseUp}
+               onMouseLeave={onMouseLeave}
+             >
+               {features.map((feature, index) => (
+                 <div
+                   key={feature.title}
+                   className="w-full flex-shrink-0 px-2"
+                 >
+                   <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 relative border-t-4 border-blue-800 dark:border-blue-500 hover:shadow-xl transition-shadow duration-300 flex flex-col text-center">
+                     <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-white dark:bg-gray-800 p-2 rounded-full border-2 border-blue-800 dark:border-blue-500 shadow-md">
+                       <img
+                         src={feature.icon || "/placeholder.svg"}
+                         alt={feature.title}
+                         className="h-8 w-8 object-contain"
+                       />
+                     </div>
+                     <h3 className="text-blue-900 dark:text-blue-300 font-bold text-lg mt-4 mb-2">{feature.title}</h3>
+                     <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{feature.description}</p>
+                   </div>
+                 </div>
+               ))}
+             </div>
+
+             {/* Navigation Arrows */}
+             <button
+               onClick={() => {
+                 stopAutoPlay()
+                 prevSlide()
+                 startAutoPlay()
+               }}
+               onMouseEnter={stopAutoPlay}
+               onMouseLeave={startAutoPlay}
+               className="absolute left-2 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 rounded-full p-3 shadow-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors z-10"
+             >
+               <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+             </button>
+             <button
+               onClick={() => {
+                 stopAutoPlay()
+                 nextSlide()
+                 startAutoPlay()
+               }}
+               onMouseEnter={stopAutoPlay}
+               onMouseLeave={startAutoPlay}
+               className="absolute right-2 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 rounded-full p-3 shadow-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors z-10"
+             >
+               <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+             </button>
+
+             {/* Dots Indicator */}
+             <div className="flex justify-center mt-4 space-x-2">
+               {features.map((_, index) => (
+                 <button
+                   key={index}
+                   onClick={() => {
+                     stopAutoPlay()
+                     goToSlide(index)
+                     startAutoPlay()
+                   }}
+                   onMouseEnter={stopAutoPlay}
+                   onMouseLeave={startAutoPlay}
+                   className={`w-3 h-3 rounded-full transition-colors ${
+                     index === currentSlide 
+                       ? 'bg-blue-600 dark:bg-blue-400' 
+                       : 'bg-gray-300 dark:bg-gray-600'
+                   }`}
+                 />
+               ))}
+             </div>
+           </div>
+         </div>
+       </section>
 
       {/* --- Portfolio Cards Section --- */}
       <section className="bg-[#fefcea] dark:bg-gray-900 py-8 sm:py-12">
@@ -199,64 +413,72 @@ export default function ModelPortfolioSection() {
                   className={`absolute inset-0 ${colorClass} border-2 border-black dark:border-gray-700 rounded-xl pointer-events-none z-[1]`}
                 />
 
-                {/* Main Card - with consistent borders and rounding */}
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  className={`relative ${colorClass} border-2 border-black dark:border-gray-700 rounded-xl p-5 sm:p-6 flex flex-col h-full font-sans z-[2]`}
-                >
-                  <div className="flex-grow">
-                    <h2 className="font-serif text-3xl lg:text-4xl font-bold text-black dark:text-white">
-                      {portfolio.name}
-                    </h2>
-                    <p className="text-lg font-bold text-black dark:text-white mt-1">
-                      ₹{(quarterlyFee || monthlyFee || 0).toLocaleString()} / Quarter
-                    </p>
-                    <p className="text-sm text-gray-700 dark:text-gray-400">Annual, Billed Quarterly</p>
+                                                  {/* Main Card - with consistent borders and rounding */}
+                 <motion.div
+                   whileHover={{ scale: 1.02 }}
+                   className={`relative ${colorClass} border-2 border-black dark:border-gray-700 rounded-xl p-4 sm:p-5 flex flex-col h-full font-sans z-[2]`}
+                 >
+                   {/* Header Section */}
+                   <div className="mb-4">
+                     <h2 className="font-serif text-2xl lg:text-3xl font-bold text-black dark:text-white">
+                       {portfolio.name}
+                     </h2>
+                     <p className="text-base font-bold text-black dark:text-white mt-1">
+                       ₹{(quarterlyFee || monthlyFee || 0).toLocaleString()} / Quarter
+                     </p>
+                     <p className="text-xs text-gray-700 dark:text-gray-400">Annual, Billed Quarterly</p>
+                   </div>
 
-                    <p className="text-gray-800 dark:text-gray-300 my-4 text-base">{homeDescription}</p>
+                   {/* Description Section */}
+                   <div className="mb-4 flex-grow">
+                     <p className="text-gray-800 dark:text-gray-300 text-sm line-clamp-2">{homeDescription}</p>
+                   </div>
 
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="text-blue-600 dark:text-blue-400 font-bold text-base">Methodology</h3>
-                        <div className="flex items-center space-x-3 mt-2">
-                          {methodologyLink && (
-                            <a
-                              href={methodologyLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              title="Read Methodology"
-                            >
-                              <div className="w-12 h-12 bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-600 rounded-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                                <FileText className="w-6 h-6 text-black dark:text-white" />
-                              </div>
-                            </a>
-                          )}
-                          <a href="#" target="_blank" rel="noopener noreferrer" title="Watch Video">
-                            <div className="w-12 h-12 bg-black dark:bg-white rounded-lg flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
-                              <Play className="w-6 h-6 text-white dark:text-black" fill="currentColor" />
-                            </div>
-                          </a>
-                        </div>
-                      </div>
+                   {/* Methodology and Investment Section */}
+                   <div className="grid grid-cols-2 gap-4">
+                     <div className="flex flex-col">
+                       <h3 className="text-blue-600 dark:text-blue-400 font-bold text-sm mb-2">Methodology</h3>
+                       <div className="flex items-center space-x-2">
+                         {methodologyLink && (
+                           <a
+                             href={methodologyLink}
+                             target="_blank"
+                             rel="noopener noreferrer"
+                             title="Read Methodology"
+                           >
+                             <div className="w-10 h-10 bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-600 rounded-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                               <FileText className="w-5 h-5 text-black dark:text-white" />
+                             </div>
+                           </a>
+                         )}
+                         <a href="#" target="_blank" rel="noopener noreferrer" title="Watch Video">
+                           <div className="w-10 h-10 bg-black dark:bg-white rounded-lg flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
+                             <Play className="w-5 h-5 text-white dark:text-black" fill="currentColor" />
+                           </div>
+                         </a>
+                       </div>
+                     </div>
 
-                      <div className="border-t border-gray-400 dark:border-gray-600 pt-4">
-                        <h3 className="font-bold text-base text-black dark:text-white">Min. Investment</h3>
-                        <div className="text-2xl font-bold text-black dark:text-white mt-1">
-                          ₹{portfolio.minInvestment?.toLocaleString() || (monthlyFee * 12).toLocaleString()}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                     <div className="flex flex-col">
+                       <h3 className="font-bold text-sm text-black dark:text-white mb-2">Min. Investment</h3>
+                       <div className="flex items-center">
+                         <span className="text-lg font-bold text-black dark:text-white">
+                           ₹{portfolio.minInvestment?.toLocaleString() || (monthlyFee * 12).toLocaleString()}
+                         </span>
+                       </div>
+                     </div>
+                   </div>
 
-                  <div className="mt-6 pt-4">
-                    <button
-                      onClick={() => handleBuyNow(portfolio)}
-                      className="w-full border-2 border-black dark:border-gray-500 bg-black dark:bg-white px-4 py-3 text-center font-bold text-white dark:text-black transition-all duration-300 ease-in-out rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 text-base flex items-center justify-center gap-2"
-                    >
-                      <ShoppingCart className="w-5 h-5" />
-                      <span>Buy Now</span>
-                    </button>
-                  </div>
+                                     {/* Button Section */}
+                   <div className="mt-4 pt-2">
+                     <button
+                       onClick={() => handleBuyNow(portfolio)}
+                       className="w-full border-2 border-black dark:border-gray-500 bg-black dark:bg-white px-3 py-2.5 text-center font-bold text-white dark:text-black transition-all duration-300 ease-in-out rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 text-sm flex items-center justify-center gap-2"
+                     >
+                       <ShoppingCart className="w-4 h-4" />
+                       <span>Buy Now</span>
+                     </button>
+                   </div>
                 </motion.div>
               </motion.div>
             )
