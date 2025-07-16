@@ -191,6 +191,17 @@ export const cartService = {
     });
   },
 
+  // Remove cart item by cart item ID (for invalid items)
+  removeCartItemById: async (cartItemId: string): Promise<Cart> => {
+    const token = authService.getAccessToken();
+    return await del<Cart>(`/api/user/cart/item/${cartItemId}`, {
+      headers: {
+        accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
   // Clear cart
   clearCart: async (): Promise<{ message: string; cart: Cart }> => {
     const token = authService.getAccessToken();
@@ -292,6 +303,69 @@ export const cartService = {
     } catch (error) {
       console.error("Failed to validate cart:", error);
       return { isValid: false, invalidItems: [] };
+    }
+  },
+
+  // Clean up invalid cart items (items with null portfolios)
+  cleanupInvalidItems: async (): Promise<Cart> => {
+    try {
+      const cart = await cartService.getCart();
+      const invalidItems = cart.items.filter(item => 
+        !item || 
+        !item.portfolio || 
+        !item.portfolio._id || 
+        !item.quantity || 
+        item.quantity <= 0
+      );
+
+      if (invalidItems.length === 0) {
+        return cart;
+      }
+
+      console.log(`Found ${invalidItems.length} invalid items to clean up`);
+
+      // Remove invalid items one by one
+      for (const item of invalidItems) {
+        try {
+          if (item.portfolio && item.portfolio._id) {
+            await cartService.removeFromCart(item.portfolio._id);
+          } else if (item._id) {
+            await cartService.removeCartItemById(item._id);
+          }
+        } catch (error) {
+          console.error("Failed to remove invalid item:", error, item);
+        }
+      }
+
+      // Return the cleaned cart
+      return await cartService.getCart();
+    } catch (error) {
+      console.error("Failed to cleanup invalid items:", error);
+      throw error;
+    }
+  },
+
+  // Debug cart function
+  debugCart: async (): Promise<void> => {
+    try {
+      const cart = await cartService.getCart();
+      console.log("=== CART SERVICE DEBUG ===");
+      console.log("Cart:", cart);
+      console.log("Items count:", cart.items.length);
+      console.log("Items:", cart.items);
+      
+      const invalidItems = cart.items.filter(item => 
+        !item || 
+        !item.portfolio || 
+        !item.portfolio._id || 
+        !item.quantity || 
+        item.quantity <= 0
+      );
+      
+      console.log("Invalid items:", invalidItems);
+      console.log("=== END CART SERVICE DEBUG ===");
+    } catch (error) {
+      console.error("Cart service debug failed:", error);
     }
   },
 };

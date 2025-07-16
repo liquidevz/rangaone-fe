@@ -2,13 +2,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Minus, X, ShoppingCart as CartIcon, CreditCard, ArrowLeft, Package, Sparkles, Trash2, Tag, Heart, Shield } from "lucide-react"
+import { Plus, Minus, X, ShoppingCart as CartIcon, CreditCard, ArrowLeft, Package, Sparkles, Trash2, Tag, Heart, Shield, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from "@/components/auth/auth-context"
 import { useCart } from "@/components/cart/cart-context"
@@ -29,21 +30,68 @@ export default function CartPage() {
   const [activatedPortfolioIds, setActivatedPortfolioIds] = useState<string[]>([])
 
   const { isAuthenticated } = useAuth()
-  const { cart, localCart, cartItemCount, addToCart, removeFromCart, refreshCart, getEffectiveCart, syncing } = useCart()
+  const { 
+    cart, 
+    localCart, 
+    cartItemCount, 
+    addToCart, 
+    removeFromCart, 
+    refreshCart, 
+    getEffectiveCart, 
+    syncing,
+    error,
+    clearError
+  } = useCart()
   const { toast } = useToast()
 
   useEffect(() => {
-    if (isAuthenticated) {
-      refreshCart().finally(() => setLoading(false))
-      // Fetch activated portfolios for the user
-      userPortfolioService.getAll().then((portfolios) => {
-        setActivatedPortfolioIds(portfolios.map((p) => p._id))
-      })
-    } else {
-      setLoading(false)
-      setActivatedPortfolioIds([])
+    const initializeCart = async () => {
+      try {
+        if (isAuthenticated) {
+          await refreshCart()
+          // Fetch activated portfolios for the user
+          try {
+            const portfolios = await userPortfolioService.getAll()
+            const activatedIds = portfolios.map((p) => p._id)
+            setActivatedPortfolioIds(activatedIds)
+            
+            // Remove already-purchased items from cart
+            const effectiveCart = getEffectiveCart()
+            const itemsToRemove = effectiveCart.items.filter(item => 
+              activatedIds.includes(item.portfolio._id)
+            )
+            
+            if (itemsToRemove.length > 0) {
+              console.log(`Removing ${itemsToRemove.length} already-purchased items from cart`)
+              for (const item of itemsToRemove) {
+                try {
+                  await removeFromCart(item.portfolio._id)
+                } catch (removeError) {
+                  console.error(`Failed to remove already-purchased item ${item.portfolio._id}:`, removeError)
+                }
+              }
+              
+              // Show notification about removed items
+              toast({
+                title: "Items Removed",
+                description: `${itemsToRemove.length} already-purchased item(s) were removed from your cart.`,
+                variant: "default",
+              })
+            }
+          } catch (portfolioError) {
+            console.error("Failed to load activated portfolios:", portfolioError)
+            // Don't block cart loading for this error
+          }
+        }
+      } catch (error) {
+        console.error("Failed to initialize cart:", error)
+      } finally {
+        setLoading(false)
+      }
     }
-  }, [isAuthenticated, refreshCart])
+
+    initializeCart()
+  }, [isAuthenticated, refreshCart, getEffectiveCart, removeFromCart, toast])
 
   const effectiveCart = getEffectiveCart()
   const effectiveItems = effectiveCart.items
@@ -52,36 +100,41 @@ export default function CartPage() {
   const filteredItems = effectiveItems.filter((item) => {
     const isBundle = cartService.isBundle(item)
     let price = 0
-    if (isBundle) {
-      switch (subscriptionType) {
-        case "yearly":
-          price = cartService.getBundlePrice(item.portfolio, "yearly")
-          break
-        case "quarterly":
-          price = cartService.getBundlePrice(item.portfolio, "quarterly")
-          break
-        default:
-          price = cartService.getBundlePrice(item.portfolio, "monthly")
-          break
+    
+    try {
+      if (isBundle) {
+        switch (subscriptionType) {
+          case "yearly":
+            price = cartService.getBundlePrice(item.portfolio, "yearly")
+            break
+          case "quarterly":
+            price = cartService.getBundlePrice(item.portfolio, "quarterly")
+            break
+          default:
+            price = cartService.getBundlePrice(item.portfolio, "monthly")
+            break
+        }
+      } else {
+        switch (subscriptionType) {
+          case "yearly":
+            price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "yearly")?.price || 0
+            break
+          case "quarterly":
+            price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "quarterly")?.price || 0
+            break
+          default:
+            price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "monthly")?.price || 0
+            break
+        }
+        // NOTE: Removed the filter that was hiding already-purchased items
+        // Instead, we now prevent adding them to cart in the first place
+        // If they somehow end up in cart, we'll show them with a clear message
       }
-    } else {
-      switch (subscriptionType) {
-        case "yearly":
-          price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "yearly")?.price || 0
-          break
-        case "quarterly":
-          price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "quarterly")?.price || 0
-          break
-        default:
-          price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "monthly")?.price || 0
-          break
-      }
-      // Block adding activated portfolios
-      if (activatedPortfolioIds.includes(item.portfolio._id)) {
-        return false
-      }
+      return price > 0
+    } catch (error) {
+      console.error("Error filtering cart items:", error)
+      return false
     }
-    return price > 0
   })
 
   const updateQuantity = async (portfolioId: string, newQuantity: number) => {
@@ -89,6 +142,7 @@ export default function CartPage() {
     
     try {
       setUpdatingQuantity(portfolioId)
+      clearError() // Clear any previous errors
       
       if (newQuantity <= 0) {
         await removeFromCart(portfolioId)
@@ -116,9 +170,10 @@ export default function CartPage() {
         })
       }
     } catch (error: any) {
+      console.error("Failed to update quantity:", error)
       toast({
-        title: "Error",
-        description: error.message || "Failed to update cart",
+        title: "Update Failed",
+        description: error.message || "Failed to update cart. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -128,15 +183,35 @@ export default function CartPage() {
 
   const removeItem = async (portfolioId: string) => {
     try {
+      clearError() // Clear any previous errors
       await removeFromCart(portfolioId)
       toast({
         title: "Item Removed",
         description: "Item has been removed from your cart",
       })
     } catch (error: any) {
+      console.error("Failed to remove item:", error)
       toast({
-        title: "Error",
-        description: error.message || "Failed to remove item",
+        title: "Remove Failed",
+        description: error.message || "Failed to remove item. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleRefreshCart = async () => {
+    try {
+      clearError()
+      await refreshCart()
+      toast({
+        title: "Cart Refreshed",
+        description: "Cart has been refreshed successfully",
+      })
+    } catch (error: any) {
+      console.error("Failed to refresh cart:", error)
+      toast({
+        title: "Refresh Failed",
+        description: error.message || "Failed to refresh cart. Please try again.",
         variant: "destructive",
       })
     }
@@ -164,39 +239,49 @@ export default function CartPage() {
       return null
     }
     
-    const result = userPortfolioService.getDescriptionByKey(descriptions, "checkout card")
-    return result || null
+    try {
+      const result = userPortfolioService.getDescriptionByKey(descriptions, "checkout card")
+      return result || null
+    } catch (error) {
+      console.error("Failed to get checkout description:", error)
+      return null
+    }
   }
 
   const subtotal = filteredItems.reduce((sum, item) => {
     let price = 0
     
-    if (cartService.isBundle(item)) {
-      switch (subscriptionType) {
-        case "yearly":
-          price = cartService.getBundlePrice(item.portfolio, "yearly")
-          break
-        case "quarterly":
-          price = cartService.getBundlePrice(item.portfolio, "quarterly")
-          break
-        default:
-          price = cartService.getBundlePrice(item.portfolio, "monthly")
-          break
+    try {
+      if (cartService.isBundle(item)) {
+        switch (subscriptionType) {
+          case "yearly":
+            price = cartService.getBundlePrice(item.portfolio, "yearly")
+            break
+          case "quarterly":
+            price = cartService.getBundlePrice(item.portfolio, "quarterly")
+            break
+          default:
+            price = cartService.getBundlePrice(item.portfolio, "monthly")
+            break
+        }
+      } else {
+        switch (subscriptionType) {
+          case "yearly":
+            price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "yearly")?.price || 0
+            break
+          case "quarterly":
+            price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "quarterly")?.price || 0
+            break
+          default:
+            price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "monthly")?.price || 0
+            break
+        }
       }
-    } else {
-      switch (subscriptionType) {
-        case "yearly":
-          price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "yearly")?.price || 0
-          break
-        case "quarterly":
-          price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "quarterly")?.price || 0
-          break
-        default:
-          price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "monthly")?.price || 0
-          break
-      }
+      return sum + (price * item.quantity)
+    } catch (error) {
+      console.error("Error calculating subtotal:", error)
+      return sum
     }
-    return sum + (price * item.quantity)
   }, 0) || 0
 
   const discountAmount = subtotal * discount
@@ -238,6 +323,17 @@ export default function CartPage() {
                 <div className="p-2 sm:p-3 bg-blue-100 rounded-full">
                   <CartIcon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
                 </div>
+                {error && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRefreshCart}
+                    className="text-blue-600 hover:text-blue-700"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Refresh
+                  </Button>
+                )}
               </div>
             </div>
             
@@ -262,6 +358,43 @@ export default function CartPage() {
                 }
               </motion.p>
             </div>
+
+            {/* Error Alert */}
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="mt-4 sm:mt-6"
+                >
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="flex items-center justify-between">
+                      <span>{error}</span>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleRefreshCart}
+                          className="text-red-600 hover:text-red-700 p-1"
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={clearError}
+                          className="text-red-600 hover:text-red-700 p-1"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                </motion.div>
+              )}
+            </AnimatePresence>
             
             {/* Status Notifications */}
             <AnimatePresence>
@@ -302,7 +435,7 @@ export default function CartPage() {
           </div>
         </div>
 
-                    <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-6 sm:py-8">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-6 sm:py-8">
           {cartItemCount === 0 ? (
             // Enhanced Empty Cart State
             <motion.div 
@@ -320,7 +453,19 @@ export default function CartPage() {
                 <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 sm:mb-4">Your cart is empty</h2>
                 <p className="text-gray-600 mb-6 sm:mb-8 text-base sm:text-lg leading-relaxed">
                   Discover our investment portfolios and subscription plans to start building your wealth.
-                </p> 
+                </p>
+                
+                {error && (
+                  <div className="mb-6">
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        There was an issue loading your cart. Please try refreshing the page.
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                )}
+                
                 <Link href="/#portfolios">
                   <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02]">
                     Browse Portfolios
@@ -352,7 +497,10 @@ export default function CartPage() {
                       ].map((option) => (
                         <button
                           key={option.key}
-                          onClick={() => setSubscriptionType(option.key as any)}
+                          onClick={() => {
+                            setSubscriptionType(option.key as any)
+                            clearError() // Clear errors when user interacts
+                          }}
                           className={`relative p-3 sm:p-4 rounded-xl font-medium transition-all duration-200 text-center ${
                             subscriptionType === option.key 
                               ? "bg-blue-600 text-white shadow-lg transform scale-[1.02] ring-2 ring-blue-600 ring-offset-2" 
@@ -386,40 +534,47 @@ export default function CartPage() {
                       let period = ""
                       const isBundle = cartService.isBundle(item)
                       
-                      if (isBundle) {
-                        switch (subscriptionType) {
-                          case "yearly":
-                            price = cartService.getBundlePrice(item.portfolio, "yearly")
-                            period = "Yearly"
-                            break
-                          case "quarterly":
-                            price = cartService.getBundlePrice(item.portfolio, "quarterly")
-                            period = "Quarterly"
-                            break
-                          default:
-                            price = cartService.getBundlePrice(item.portfolio, "monthly")
-                            period = "Monthly"
-                            break
+                      try {
+                        if (isBundle) {
+                          switch (subscriptionType) {
+                            case "yearly":
+                              price = cartService.getBundlePrice(item.portfolio, "yearly")
+                              period = "Yearly"
+                              break
+                            case "quarterly":
+                              price = cartService.getBundlePrice(item.portfolio, "quarterly")
+                              period = "Quarterly"
+                              break
+                            default:
+                              price = cartService.getBundlePrice(item.portfolio, "monthly")
+                              period = "Monthly"
+                              break
+                          }
+                        } else {
+                          switch (subscriptionType) {
+                            case "yearly":
+                              price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "yearly")?.price || 0
+                              period = "Yearly"
+                              break
+                            case "quarterly":
+                              price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "quarterly")?.price || 0
+                              period = "Quarterly"
+                              break
+                            default:
+                              price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "monthly")?.price || 0
+                              period = "Monthly"
+                              break
+                          }
                         }
-                      } else {
-                        switch (subscriptionType) {
-                          case "yearly":
-                            price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "yearly")?.price || 0
-                            period = "Yearly"
-                            break
-                          case "quarterly":
-                            price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "quarterly")?.price || 0
-                            period = "Quarterly"
-                            break
-                          default:
-                            price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "monthly")?.price || 0
-                            period = "Monthly"
-                            break
-                        }
+                      } catch (error) {
+                        console.error("Error calculating price:", error)
+                        price = 0
+                        period = "Monthly"
                       }
 
                       const isUpdating = updatingQuantity === item.portfolio._id
                       const checkoutDescription = getCheckoutDescription(item.portfolio.description)
+                      const isAlreadyPurchased = activatedPortfolioIds.includes(item.portfolio._id)
 
                       return (
                         <motion.div
@@ -436,11 +591,17 @@ export default function CartPage() {
                               <div className="flex-1 min-w-0">
                                 <h3 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">{item.portfolio.name}</h3>
                                 <div className="flex flex-wrap items-center gap-2 mt-2">
-                                {isBundle && (
+                                  {isBundle && (
                                     <Badge variant="secondary" className="text-xs">
-                                    {(item.portfolio as any).category === "premium" ? "Premium" : "Basic"} Subscription
-                                  </Badge>
-                                )}
+                                      {(item.portfolio as any).category === "premium" ? "Premium" : "Basic"} Subscription
+                                    </Badge>
+                                  )}
+                                  {isAlreadyPurchased && (
+                                    <Badge variant="destructive" className="text-xs">
+                                      <Shield className="w-3 h-3 mr-1" />
+                                      Already Purchased
+                                    </Badge>
+                                  )}
                                   <Badge variant="outline" className="text-xs">
                                     <Shield className="w-3 h-3 mr-1" />
                                     Secure
@@ -460,6 +621,21 @@ export default function CartPage() {
                                   className="checkout-description text-gray-600 text-sm prose prose-sm max-w-none"
                                   dangerouslySetInnerHTML={{ __html: checkoutDescription }}
                                 />
+                              </div>
+                            )}
+
+                            {/* Already Purchased Warning */}
+                            {isAlreadyPurchased && (
+                              <div className="mb-4 p-3 sm:p-4 bg-orange-50 rounded-lg border border-orange-200">
+                                <div className="flex items-center gap-2">
+                                  <Shield className="w-4 h-4 text-orange-600" />
+                                  <div>
+                                    <p className="text-sm font-medium text-orange-800">Already Purchased</p>
+                                    <p className="text-xs text-orange-600">
+                                      You already have access to this portfolio. This item will be removed from your cart automatically.
+                                    </p>
+                                  </div>
+                                </div>
                               </div>
                             )}
 
@@ -589,36 +765,42 @@ export default function CartPage() {
                             let period = ""
                             const isBundle = cartService.isBundle(item)
                             
-                            if (isBundle) {
-                              switch (subscriptionType) {
-                                case "yearly":
-                                  price = cartService.getBundlePrice(item.portfolio, "yearly")
-                                  period = "Yearly"
-                                  break
-                                case "quarterly":
-                                  price = cartService.getBundlePrice(item.portfolio, "quarterly")
-                                  period = "Quarterly"
-                                  break
-                                default:
-                                  price = cartService.getBundlePrice(item.portfolio, "monthly")
-                                  period = "Monthly"
-                                  break
+                            try {
+                              if (isBundle) {
+                                switch (subscriptionType) {
+                                  case "yearly":
+                                    price = cartService.getBundlePrice(item.portfolio, "yearly")
+                                    period = "Yearly"
+                                    break
+                                  case "quarterly":
+                                    price = cartService.getBundlePrice(item.portfolio, "quarterly")
+                                    period = "Quarterly"
+                                    break
+                                  default:
+                                    price = cartService.getBundlePrice(item.portfolio, "monthly")
+                                    period = "Monthly"
+                                    break
+                                }
+                              } else {
+                                switch (subscriptionType) {
+                                  case "yearly":
+                                    price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "yearly")?.price || 0
+                                    period = "Yearly"
+                                    break
+                                  case "quarterly":
+                                    price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "quarterly")?.price || 0
+                                    period = "Quarterly"
+                                    break
+                                  default:
+                                    price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "monthly")?.price || 0
+                                    period = "Monthly"
+                                    break
+                                }
                               }
-                            } else {
-                              switch (subscriptionType) {
-                                case "yearly":
-                                  price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "yearly")?.price || 0
-                                  period = "Yearly"
-                                  break
-                                case "quarterly":
-                                  price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "quarterly")?.price || 0
-                                  period = "Quarterly"
-                                  break
-                                default:
-                                  price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "monthly")?.price || 0
-                                  period = "Monthly"
-                                  break
-                              }
+                            } catch (error) {
+                              console.error("Error calculating order detail price:", error)
+                              price = 0
+                              period = "Monthly"
                             }
 
                             return (
@@ -670,12 +852,33 @@ export default function CartPage() {
                       </div>
 
                       <Button
-                        className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 sm:py-4 text-sm sm:text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02]"
-                        onClick={() => setCheckoutModal(true)}
-                        disabled={updatingQuantity !== null}
+                        className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 sm:py-4 text-sm sm:text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => {
+                          clearError()
+                          
+                          // Check for already-purchased items before checkout
+                          const alreadyPurchasedItems = filteredItems.filter(item => 
+                            activatedPortfolioIds.includes(item.portfolio._id)
+                          )
+                          
+                          if (alreadyPurchasedItems.length > 0) {
+                            toast({
+                              title: "Cannot Checkout",
+                              description: "Please remove already-purchased items from your cart before proceeding.",
+                              variant: "destructive",
+                            })
+                            return
+                          }
+                          
+                          setCheckoutModal(true)
+                        }}
+                        disabled={updatingQuantity !== null || syncing || !!error}
                       >
                         <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3" />
-                        {updatingQuantity ? "Updating..." : isAuthenticated ? "Proceed to Checkout" : "Sign In & Checkout"}
+                        {updatingQuantity ? "Updating..." : 
+                         syncing ? "Syncing..." :
+                         error ? "Error - Please Refresh" :
+                         isAuthenticated ? "Proceed to Checkout" : "Sign In & Checkout"}
                       </Button>
                       
                       {!isAuthenticated && (

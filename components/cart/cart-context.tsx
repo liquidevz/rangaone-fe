@@ -13,6 +13,7 @@ interface CartContextType {
   cartItemCount: number;
   loading: boolean;
   syncing: boolean;
+  error: string | null;
   refreshCart: () => Promise<void>;
   addToCart: (portfolioId: string, quantity?: number) => Promise<void>;
   addBundleToCart: (bundleId: string, subscriptionType?: "monthly" | "quarterly" | "yearly") => Promise<void>;
@@ -26,6 +27,9 @@ interface CartContextType {
   hasBundle: (bundleId: string) => boolean;
   syncLocalCartToServer: () => Promise<void>;
   getEffectiveCart: () => { items: any[]; itemCount: number };
+  clearError: () => void;
+  forceCleanupInvalidItems: () => Promise<void>;
+  debugCart: () => Promise<void>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -47,102 +51,277 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const [localCart, setLocalCart] = useState<LocalCart>({ items: [], lastUpdated: new Date().toISOString() });
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const { isAuthenticated, user } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+  const [authInitialized, setAuthInitialized] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState(0);
+  const { isAuthenticated, user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
 
-  // Load local cart on mount
-  useEffect(() => {
-    const localCartData = localCartService.getLocalCart();
-    setLocalCart(localCartData);
+  // Clear error function
+  const clearError = useCallback(() => {
+    setError(null);
   }, []);
+
+  // Enhanced error handling
+  const handleError = useCallback((error: any, operation: string) => {
+    console.error(`Cart ${operation} error:`, error);
+    
+    let errorMessage = `Failed to ${operation}`;
+    if (error?.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error?.message) {
+      errorMessage = error.message;
+    }
+    
+    setError(errorMessage);
+    
+    // Show toast for user feedback
+    toast({
+      title: "Cart Error",
+      description: errorMessage,
+      variant: "destructive",
+    });
+  }, [toast]);
+
+  // Load local cart on mount with error handling
+  useEffect(() => {
+    try {
+      const localCartData = localCartService.getLocalCart();
+      setLocalCart(localCartData);
+      console.log("Local cart loaded:", localCartData);
+    } catch (error) {
+      console.error("Failed to load local cart:", error);
+      handleError(error, "load local cart");
+    }
+  }, [handleError]);
+
+  // Validate server cart item
+  const isValidServerCartItem = useCallback((item: any) => {
+    try {
+      return item && 
+             item.portfolio && 
+             item.portfolio._id && 
+             item.portfolio.name && 
+             typeof item.quantity === 'number' && 
+             item.quantity > 0;
+    } catch (error) {
+      console.error("Error validating server cart item:", error, item);
+      return false;
+    }
+  }, []);
+
+  // Validate local cart item  
+  const isValidLocalCartItem = useCallback((item: any) => {
+    return item && 
+           item.portfolioId && 
+           item.itemData && 
+           item.itemData.name && 
+           typeof item.quantity === 'number' && 
+           item.quantity > 0 && 
+           item.itemType;
+  }, []);
+
+  // Clean up invalid items from local storage
+  const cleanupInvalidLocalItems = useCallback(() => {
+    try {
+      const currentLocalCart = localCartService.getLocalCart();
+      const validItems = currentLocalCart.items.filter(isValidLocalCartItem);
+      
+      if (validItems.length !== currentLocalCart.items.length) {
+        console.log(`Cleaning up ${currentLocalCart.items.length - validItems.length} invalid items from local cart`);
+        const cleanedCart = { ...currentLocalCart, items: validItems };
+        localCartService.clearLocalCart();
+        validItems.forEach(item => {
+          if (item.itemType === "bundle") {
+            localCartService.addBundleToLocalCart(item.bundleId!, item.subscriptionType, item.itemData);
+          } else {
+            localCartService.addPortfolioToLocalCart(item.portfolioId, item.quantity, item.subscriptionType, item.itemData);
+          }
+        });
+        setLocalCart(cleanedCart);
+      }
+    } catch (error) {
+      console.error("Error cleaning up invalid items:", error);
+    }
+  }, [isValidLocalCartItem]);
 
   // Get effective cart (server cart if authenticated, local cart if not)
   const getEffectiveCart = useCallback(() => {
-    if (isAuthenticated && cart) {
-      return {
-        items: cart.items,
-        itemCount: cart.items.reduce((total, item) => total + item.quantity, 0)
-      };
-    } else {
-      // Convert local cart items to display format
-      const items = localCart.items.map(localItem => ({
-        _id: localItem.portfolioId,
-        portfolio: {
-          _id: localItem.bundleId || localItem.portfolioId,
-          name: localItem.itemData.name,
-          description: localItem.itemData.description || [],
-          subscriptionFee: localItem.itemData.subscriptionFee || [],
-          minInvestment: 0,
-          durationMonths: 0,
-          category: localItem.itemData.category
-        },
-        quantity: localItem.quantity,
-        addedAt: localItem.addedAt
-      }));
-      
-      return {
-        items,
-        itemCount: localCart.items.reduce((total, item) => total + item.quantity, 0)
-      };
+    try {
+      if (isAuthenticated && cart) {
+        // Filter out invalid server cart items
+        const validItems = cart.items.filter(isValidServerCartItem);
+        
+        return {
+          items: validItems,
+          itemCount: validItems.reduce((total, item) => total + item.quantity, 0)
+        };
+      } else {
+        // Filter out invalid local cart items
+        const validLocalItems = localCart.items.filter(isValidLocalCartItem);
+        
+        // If we found invalid items, clean them up
+        if (validLocalItems.length !== localCart.items.length) {
+          cleanupInvalidLocalItems();
+        }
+        
+        // Convert valid local cart items to display format
+        const items = validLocalItems.map(localItem => ({
+          _id: localItem.portfolioId,
+          portfolio: {
+            _id: localItem.bundleId || localItem.portfolioId,
+            name: localItem.itemData.name,
+            description: localItem.itemData.description || [],
+            subscriptionFee: localItem.itemData.subscriptionFee || [],
+            minInvestment: 0,
+            durationMonths: 0,
+            category: localItem.itemData.category
+          },
+          quantity: localItem.quantity,
+          addedAt: localItem.addedAt
+        }));
+        
+        return {
+          items,
+          itemCount: validLocalItems.reduce((total, item) => total + item.quantity, 0)
+        };
+      }
+    } catch (error) {
+      console.error("Error getting effective cart:", error);
+      return { items: [], itemCount: 0 };
     }
-  }, [isAuthenticated, cart, localCart]);
+  }, [isAuthenticated, cart, localCart, isValidServerCartItem, isValidLocalCartItem, cleanupInvalidLocalItems]);
 
   const cartItemCount = getEffectiveCart().itemCount;
 
+  // Enhanced cart refresh with better error handling
   const refreshCart = useCallback(async () => {
+    if (authLoading) return; // Don't refresh while auth is loading
+    
+    // Rate limiting to prevent infinite loops
+    const now = Date.now();
+    if (now - lastRefreshTime < 2000) { // Prevent refresh more than once every 2 seconds
+      console.log("Cart refresh rate limited");
+      return;
+    }
+    setLastRefreshTime(now);
+    
     if (!isAuthenticated) {
-      const localCartData = localCartService.getLocalCart();
-      setLocalCart(localCartData);
+      try {
+        const localCartData = localCartService.getLocalCart();
+        setLocalCart(localCartData);
+        console.log("Refreshed local cart");
+      } catch (error) {
+        console.error("Failed to refresh local cart:", error);
+        handleError(error, "refresh local cart");
+      }
       return;
     }
     
     try {
       setLoading(true);
+      setError(null);
+      
       const cartData = await cartService.getCart();
+      console.log("Server cart fetched:", cartData);
+      
+      // Check for invalid items and clean them up
+      const invalidItems = cartData.items.filter(item => 
+        !item || 
+        !item.portfolio || 
+        !item.portfolio._id || 
+        !item.quantity || 
+        item.quantity <= 0
+      );
+      
+      if (invalidItems.length > 0) {
+        console.log("Invalid cart item found:", invalidItems[0]);
+        console.log(`Found ${invalidItems.length} invalid items, cleaning up...`);
+        
+        try {
+          const cleanedCart = await cartService.cleanupInvalidItems();
+          setCart(cleanedCart);
+          console.log("Cart cleaned and refreshed successfully");
+          return;
+        } catch (cleanupError) {
+          console.error("Failed to cleanup invalid items:", cleanupError);
+          // Continue with original cart data but filter out invalid items
+          const validItems = cartData.items.filter(item => 
+            item && 
+            item.portfolio && 
+            item.portfolio._id && 
+            item.quantity && 
+            item.quantity > 0
+          );
+          cartData.items = validItems;
+        }
+      }
       
       // Enrich cart items with full portfolio data if description is missing
       if (cartData.items && cartData.items.length > 0) {
-        const { userPortfolioService } = await import("@/services/user-portfolio.service");
-        const allPortfolios = await userPortfolioService.getAll();
-        
-        const enrichedItems = cartData.items.map(item => {
-          // Check if description is missing or empty
-          if (!item.portfolio.description || item.portfolio.description.length === 0) {
-            const fullPortfolio = allPortfolios.find(p => p._id === item.portfolio._id);
-            if (fullPortfolio) {
-              return {
-                ...item,
-                portfolio: {
-                  ...item.portfolio,
-                  description: fullPortfolio.description || []
-                }
-              };
+        try {
+          const { userPortfolioService } = await import("@/services/user-portfolio.service");
+          const allPortfolios = await userPortfolioService.getAll();
+          
+          const enrichedItems = cartData.items.map(item => {
+            try {
+              // Check if item has valid portfolio (double check after cleanup)
+              if (!item || !item.portfolio || !item.portfolio._id) {
+                console.warn("Invalid cart item found after cleanup:", item);
+                return item;
+              }
+              
+              // Check if description is missing or empty
+              if (!item.portfolio.description || item.portfolio.description.length === 0) {
+                const fullPortfolio = allPortfolios.find(p => p._id === item.portfolio._id);
+                if (fullPortfolio) {
+                return {
+                  ...item,
+                  portfolio: {
+                    ...item.portfolio,
+                    description: fullPortfolio.description || []
+                  }
+                };
+              }
             }
+            return item;
+          } catch (itemError) {
+            console.error("Error enriching cart item:", itemError, item);
+            return item;
           }
-          return item;
         });
-        
-        cartData.items = enrichedItems;
+          
+          cartData.items = enrichedItems;
+        } catch (portfolioError) {
+          console.warn("Failed to enrich portfolio data:", portfolioError);
+          // Continue with cart data without enrichment
+        }
       }
       
       setCart(cartData);
+      console.log("Cart refreshed successfully");
     } catch (error) {
       console.error("Failed to fetch cart:", error);
+      handleError(error, "refresh cart");
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, authLoading, handleError, lastRefreshTime]);
 
-  // Sync local cart to server when user authenticates
+  // Enhanced sync with better error handling and recovery
   const syncLocalCartToServer = useCallback(async () => {
-    if (!isAuthenticated || syncing) return;
+    if (!isAuthenticated || syncing || authLoading) return;
     
     const localCartData = localCartService.getLocalCart();
     if (localCartData.items.length === 0) return;
 
     try {
       setSyncing(true);
-      console.log("Syncing local cart to server...", localCartData);
+      setError(null);
+      console.log("Starting cart sync...", localCartData);
+
+      let successCount = 0;
+      let failureCount = 0;
 
       // Add each local cart item to server cart
       for (const localItem of localCartData.items) {
@@ -155,108 +334,204 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
               quantity: localItem.quantity 
             });
           }
+          successCount++;
         } catch (error) {
           console.error("Failed to sync item:", localItem, error);
+          failureCount++;
         }
       }
 
-      // Clear local cart after successful sync
-      localCartService.clearLocalCart();
-      setLocalCart({ items: [], lastUpdated: new Date().toISOString() });
+      // Clear local cart only if all items were successfully synced
+      if (failureCount === 0) {
+        localCartService.clearLocalCart();
+        setLocalCart({ items: [], lastUpdated: new Date().toISOString() });
+        console.log("Local cart cleared after successful sync");
+      }
       
       // Refresh server cart
       await refreshCart();
       
-      toast({
-        title: "Cart Synced",
-        description: `${localCartData.items.length} item(s) transferred to your account.`,
-      });
+      // Show appropriate toast message
+      if (successCount > 0) {
+        toast({
+          title: "Cart Synced",
+          description: `${successCount} item(s) transferred to your account${failureCount > 0 ? `. ${failureCount} item(s) failed to sync.` : '.'}`,
+        });
+      }
+      
+      if (failureCount > 0) {
+        toast({
+          title: "Partial Sync",
+          description: `${failureCount} item(s) failed to sync. Please try adding them manually.`,
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error("Failed to sync local cart:", error);
-      toast({
-        title: "Sync Failed",
-        description: "Failed to transfer local cart items. Please try again.",
-        variant: "destructive",
-      });
+      handleError(error, "sync cart");
     } finally {
       setSyncing(false);
     }
-  }, [isAuthenticated, syncing, refreshCart, toast]);
+  }, [isAuthenticated, syncing, authLoading, refreshCart, toast, handleError]);
 
-  // Auto-sync when user logs in
+  // Enhanced auth state change handling
   useEffect(() => {
-    if (isAuthenticated && user && localCartService.hasItems()) {
-      syncLocalCartToServer();
-    } else if (isAuthenticated && user) {
-      refreshCart();
-    }
-  }, [isAuthenticated, user, syncLocalCartToServer, refreshCart]);
+    if (authLoading) return; // Don't run while auth is loading
+    
+    const handleAuthChange = async () => {
+      if (isAuthenticated && user && !authInitialized) {
+        console.log("User authenticated, initializing cart...");
+        setAuthInitialized(true);
+        
+        // Check if there are items in local cart to sync
+        if (localCartService.hasItems()) {
+          await syncLocalCartToServer();
+        } else {
+          await refreshCart();
+        }
+      } else if (!isAuthenticated && authInitialized) {
+        console.log("User logged out, clearing server cart...");
+        setCart(null);
+        setAuthInitialized(false);
+        await refreshCart(); // This will refresh local cart
+      }
+    };
 
+    handleAuthChange();
+  }, [isAuthenticated, user, authLoading, authInitialized, syncLocalCartToServer, refreshCart]);
+
+  // Enhanced add to cart with subscription check
   const addToCart = async (portfolioId: string, quantity: number = 1) => {
-    if (isAuthenticated) {
-      // Add to server cart
-      try {
+    try {
+      setError(null);
+      
+      // Check if user has already purchased this portfolio
+      if (isAuthenticated) {
+        try {
+          const { subscriptionService } = await import("@/services/subscription.service");
+          const hasAccess = await subscriptionService.hasPortfolioAccess(portfolioId);
+          
+          if (hasAccess) {
+            const errorMessage = "You already have access to this portfolio. No need to purchase again.";
+            setError(errorMessage);
+            toast({
+              title: "Already Purchased",
+              description: errorMessage,
+              variant: "destructive",
+            });
+            return;
+          }
+        } catch (subscriptionError) {
+          console.warn("Failed to check subscription status:", subscriptionError);
+          // Continue with adding to cart if subscription check fails
+        }
+        
+        // Add to server cart
         const updatedCart = await cartService.addToCart({ portfolioId, quantity });
         setCart(updatedCart);
-      } catch (error) {
-        console.error("Failed to add to cart:", error);
-        throw error;
+        console.log("Added to server cart:", portfolioId, quantity);
+      } else {
+        // Add to local cart - we need item data for offline storage
+        try {
+          // Import userPortfolioService to get real portfolio data
+          const { userPortfolioService } = await import("@/services/user-portfolio.service");
+          
+          // Fetch all portfolios to find the one we're adding
+          const portfolios = await userPortfolioService.getAll();
+          const portfolio = portfolios.find(p => p._id === portfolioId);
+          
+          const itemData = {
+            name: portfolio?.name || `Portfolio ${portfolioId.slice(-6)}`,
+            description: portfolio?.description || [],
+            subscriptionFee: portfolio?.subscriptionFee || [
+              { type: "monthly" as const, price: 999 },
+              { type: "quarterly" as const, price: 2997 },
+              { type: "yearly" as const, price: 9999 }
+            ]
+          };
+          
+          const updatedLocalCart = localCartService.addPortfolioToLocalCart(
+            portfolioId, 
+            quantity, 
+            "monthly", 
+            itemData
+          );
+          setLocalCart(updatedLocalCart);
+          console.log("Added to local cart:", portfolioId, quantity);
+        } catch (portfolioError) {
+          console.error("Failed to get portfolio data:", portfolioError);
+          // Add with minimal data as fallback
+          const itemData = {
+            name: `Portfolio ${portfolioId.slice(-6)}`,
+            description: [],
+            subscriptionFee: [
+              { type: "monthly" as const, price: 999 },
+              { type: "quarterly" as const, price: 2997 },
+              { type: "yearly" as const, price: 9999 }
+            ]
+          };
+          
+          const updatedLocalCart = localCartService.addPortfolioToLocalCart(
+            portfolioId, 
+            quantity, 
+            "monthly", 
+            itemData
+          );
+          setLocalCart(updatedLocalCart);
+          console.log("Added to local cart with fallback data:", portfolioId, quantity);
+        }
       }
-    } else {
-      // Add to local cart - we need item data for offline storage
-      try {
-        // Import userPortfolioService to get real portfolio data
-        const { userPortfolioService } = await import("@/services/user-portfolio.service");
-        
-        // Fetch all portfolios to find the one we're adding
-        const portfolios = await userPortfolioService.getAll();
-        const portfolio = portfolios.find(p => p._id === portfolioId);
-        
-        const itemData = {
-          name: portfolio?.name || `Portfolio ${portfolioId.slice(-6)}`,
-          description: portfolio?.description || [],
-          subscriptionFee: portfolio?.subscriptionFee || [
-            { type: "monthly" as const, price: 999 },
-            { type: "quarterly" as const, price: 2997 },
-            { type: "yearly" as const, price: 9999 }
-          ]
-        };
-        
-        const updatedLocalCart = localCartService.addPortfolioToLocalCart(
-          portfolioId, 
-          quantity, 
-          "monthly", 
-          itemData
-        );
-        setLocalCart(updatedLocalCart);
-      } catch (error) {
-        console.error("Failed to add to local cart:", error);
-        throw error;
-      }
+    } catch (error) {
+      console.error("Failed to add to cart:", error);
+      handleError(error, "add to cart");
+      throw error;
     }
   };
 
+  // Enhanced add bundle to cart with subscription check
   const addBundleToCart = async (bundleId: string, subscriptionType: "monthly" | "quarterly" | "yearly" = "monthly") => {
-    if (isAuthenticated) {
-      // Add to server cart
-      try {
+    try {
+      setError(null);
+      
+      // Check if user has already purchased this bundle
+      if (isAuthenticated) {
+        try {
+          const { subscriptionService } = await import("@/services/subscription.service");
+          const access = await subscriptionService.getSubscriptionAccess();
+          
+          // Check if user already has premium access (for premium bundles) or basic access (for basic bundles)
+          const isPremiumBundle = bundleId.includes("premium");
+          const isBasicBundle = bundleId.includes("basic");
+          
+          if ((isPremiumBundle && access.hasPremium) || (isBasicBundle && access.hasBasic)) {
+            const bundleType = isPremiumBundle ? "premium" : "basic";
+            const errorMessage = `You already have ${bundleType} access. No need to purchase again.`;
+            setError(errorMessage);
+            toast({
+              title: "Already Purchased",
+              description: errorMessage,
+              variant: "destructive",
+            });
+            return;
+          }
+        } catch (subscriptionError) {
+          console.warn("Failed to check subscription status:", subscriptionError);
+          // Continue with adding to cart if subscription check fails
+        }
+        
+        // Add to server cart
         const updatedCart = await cartService.addBundleToCart(bundleId, subscriptionType);
         setCart(updatedCart);
-      } catch (error) {
-        console.error("Failed to add bundle to cart:", error);
-        throw error;
-      }
-    } else {
-      // Add to local cart
-      try {
-        // Get bundle data - in a real app, you might want to fetch this from bundleService
+        console.log("Added bundle to server cart:", bundleId, subscriptionType);
+      } else {
+        // Add to local cart
         const itemData = {
           name: bundleId.includes("premium") ? "Premium Subscription" : "Basic Subscription",
           category: bundleId.includes("premium") ? "premium" : "basic",
           monthlyPrice: bundleId.includes("premium") ? 1999 : 999,
           quarterlyPrice: bundleId.includes("premium") ? 5997 : 2997,
           yearlyPrice: bundleId.includes("premium") ? 19999 : 9999,
-          description: [] // Will be populated from real bundle/portfolio data when available
+          description: []
         };
         
         const updatedLocalCart = localCartService.addBundleToLocalCart(
@@ -265,21 +540,33 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
           itemData
         );
         setLocalCart(updatedLocalCart);
-      } catch (error) {
-        console.error("Failed to add bundle to local cart:", error);
-        throw error;
+        console.log("Added bundle to local cart:", bundleId, subscriptionType);
       }
+    } catch (error) {
+      console.error("Failed to add bundle to cart:", error);
+      handleError(error, "add bundle to cart");
+      throw error;
     }
   };
 
+  // Enhanced update quantity
   const updateQuantity = async (portfolioId: string, newQuantity: number) => {
-    if (isAuthenticated) {
-      // Update server cart
-      try {
+    try {
+      setError(null);
+      
+      if (isAuthenticated) {
+        // Update server cart
         // Optimistically update the UI
         if (cart) {
           const optimisticCart = { ...cart };
-          const itemIndex = optimisticCart.items.findIndex(item => item.portfolio._id === portfolioId);
+          const itemIndex = optimisticCart.items.findIndex(item => {
+            try {
+              return item && item.portfolio && item.portfolio._id === portfolioId;
+            } catch (error) {
+              console.error("Error finding item in cart:", error, item);
+              return false;
+            }
+          });
           
           if (itemIndex >= 0) {
             if (newQuantity <= 0) {
@@ -296,130 +583,326 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
         const updatedCart = await cartService.updateQuantity(portfolioId, newQuantity);
         setCart(updatedCart);
-      } catch (error) {
-        console.error("Failed to update quantity:", error);
-        await refreshCart();
-        throw error;
-      }
-    } else {
-      // Update local cart
-      try {
+        console.log("Updated server cart quantity:", portfolioId, newQuantity);
+      } else {
+        // Update local cart
         const updatedLocalCart = localCartService.updateLocalCartQuantity(portfolioId, newQuantity);
         setLocalCart(updatedLocalCart);
-      } catch (error) {
-        console.error("Failed to update local cart quantity:", error);
-        throw error;
+        console.log("Updated local cart quantity:", portfolioId, newQuantity);
       }
+    } catch (error) {
+      console.error("Failed to update quantity:", error);
+      await refreshCart(); // Refresh to get correct state
+      handleError(error, "update quantity");
+      throw error;
     }
   };
 
+  // Enhanced set quantity
   const setQuantity = async (portfolioId: string, exactQuantity: number) => {
-    if (isAuthenticated) {
-      // Update server cart
-      try {
+    try {
+      setError(null);
+      
+      if (isAuthenticated) {
+        // Update server cart
         const updatedCart = await cartService.setQuantity(portfolioId, exactQuantity);
         setCart(updatedCart);
-      } catch (error) {
-        console.error("Failed to set quantity:", error);
-        await refreshCart();
-        throw error;
-      }
-    } else {
-      // Update local cart
-      try {
+        console.log("Set server cart quantity:", portfolioId, exactQuantity);
+      } else {
+        // Update local cart
         const updatedLocalCart = localCartService.updateLocalCartQuantity(portfolioId, exactQuantity);
         setLocalCart(updatedLocalCart);
-      } catch (error) {
-        console.error("Failed to set local cart quantity:", error);
-        throw error;
+        console.log("Set local cart quantity:", portfolioId, exactQuantity);
       }
+    } catch (error) {
+      console.error("Failed to set quantity:", error);
+      await refreshCart();
+      handleError(error, "set quantity");
+      throw error;
     }
   };
 
+  // Enhanced remove from cart
   const removeFromCart = async (portfolioId: string) => {
-    if (isAuthenticated) {
-      // Remove from server cart
-      try {
+    try {
+      setError(null);
+      
+      if (isAuthenticated) {
+        // Remove from server cart
         if (cart) {
           const optimisticCart = { ...cart };
-          optimisticCart.items = optimisticCart.items.filter(item => item.portfolio._id !== portfolioId);
+          optimisticCart.items = optimisticCart.items.filter(item => {
+            try {
+              return item && item.portfolio && item.portfolio._id !== portfolioId;
+            } catch (error) {
+              console.error("Error filtering cart item during removal:", error, item);
+              return false; // Remove invalid items
+            }
+          });
           setCart(optimisticCart);
         }
 
         const updatedCart = await cartService.removeFromCart(portfolioId);
         setCart(updatedCart);
-      } catch (error) {
-        console.error("Failed to remove from cart:", error);
-        await refreshCart();
-        throw error;
-      }
-    } else {
-      // Remove from local cart
-      try {
+        console.log("Removed from server cart:", portfolioId);
+      } else {
+        // Remove from local cart
         const updatedLocalCart = localCartService.removeFromLocalCart(portfolioId);
         setLocalCart(updatedLocalCart);
-      } catch (error) {
-        console.error("Failed to remove from local cart:", error);
-        throw error;
+        console.log("Removed from local cart:", portfolioId);
       }
+    } catch (error) {
+      console.error("Failed to remove from cart:", error);
+      await refreshCart();
+      handleError(error, "remove from cart");
+      throw error;
     }
   };
 
+  // Enhanced clear cart with validation cleanup
   const clearCart = async () => {
-    if (isAuthenticated) {
-      // Clear server cart
-      try {
+    try {
+      setError(null);
+      
+      if (isAuthenticated) {
+        // Clear server cart
         const result = await cartService.clearCart();
         setCart(result.cart);
-      } catch (error) {
-        console.error("Failed to clear cart:", error);
-        await refreshCart();
-        throw error;
-      }
-    } else {
-      // Clear local cart
-      try {
+        console.log("Cleared server cart");
+      } else {
+        // Clear local cart
         localCartService.clearLocalCart();
         setLocalCart({ items: [], lastUpdated: new Date().toISOString() });
-      } catch (error) {
-        console.error("Failed to clear local cart:", error);
-        throw error;
+        console.log("Cleared local cart");
       }
+      
+      // Force cleanup of any remaining invalid items
+      cleanupInvalidLocalItems();
+    } catch (error) {
+      console.error("Failed to clear cart:", error);
+      await refreshCart();
+      handleError(error, "clear cart");
+      throw error;
     }
   };
 
-  const getItemQuantity = (portfolioId: string): number => {
-    if (isAuthenticated && cart) {
-      const item = cart.items.find(item => item.portfolio._id === portfolioId);
-      return item?.quantity || 0;
-    } else {
-      return localCartService.getLocalItemQuantity(portfolioId);
-    }
-  };
-
-  const calculateTotal = (subscriptionType: "monthly" | "quarterly" | "yearly"): number => {
-    if (isAuthenticated && cart) {
-      return cartService.calculateCartTotal(cart, subscriptionType);
-    } else {
-      return localCartService.calculateLocalCartTotal(subscriptionType);
-    }
-  };
-
-  const isInCart = (itemId: string): boolean => {
-    if (isAuthenticated && cart) {
-      return cart.items.some(item => item.portfolio._id === itemId);
-    } else {
-      return localCartService.isInLocalCart(itemId);
-    }
-  };
-
-  const hasBundle = (bundleId: string): boolean => {
-    if (isAuthenticated && cart) {
-      return cart.items.some(item => {
-        return cartService.isBundle(item) && item.portfolio._id === bundleId;
+  // Force cleanup of invalid items (can be called manually)
+  const forceCleanupInvalidItems = useCallback(async () => {
+    try {
+      console.log("Force cleaning up invalid items...");
+      cleanupInvalidLocalItems();
+      
+      // Also clean up server cart items with null portfolios
+      if (isAuthenticated) {
+        try {
+          const cleanedCart = await cartService.cleanupInvalidItems();
+          setCart(cleanedCart);
+          console.log("Server cart cleaned successfully");
+        } catch (error) {
+          console.error("Failed to cleanup server cart:", error);
+          // Fallback to manual cleanup
+          if (cart) {
+            const invalidServerItems = cart.items.filter(item => {
+              try {
+                return !item || !item.portfolio || !item.portfolio._id || !item.quantity || item.quantity <= 0;
+              } catch (error) {
+                console.error("Error checking server item validity:", error, item);
+                return true; // Remove invalid items
+              }
+            });
+            
+            if (invalidServerItems.length > 0) {
+              console.log(`Found ${invalidServerItems.length} invalid server items, removing manually...`);
+              
+              for (const item of invalidServerItems) {
+                try {
+                  if (item.portfolio && item.portfolio._id) {
+                    await cartService.removeFromCart(item.portfolio._id);
+                  } else if (item._id) {
+                    await cartService.removeCartItemById(item._id);
+                  }
+                } catch (removeError) {
+                  console.error("Error removing invalid server item:", removeError, item);
+                }
+              }
+            }
+          }
+          
+          // Refresh the cart to ensure consistency
+          await refreshCart();
+        }
+      }
+      
+      toast({
+        title: "Cart Cleaned",
+        description: "Invalid items have been removed from your cart.",
       });
-    } else {
-      return localCartService.isInLocalCart(bundleId);
+    } catch (error) {
+      console.error("Failed to force cleanup:", error);
+      handleError(error, "cleanup invalid items");
+    }
+  }, [cleanupInvalidLocalItems, isAuthenticated, cart, refreshCart, toast, handleError]);
+
+  // Debug cart functionality
+  const debugCart = useCallback(async () => {
+    try {
+      console.log("=== CART CONTEXT DEBUG ===");
+      console.log("Authentication state:", { isAuthenticated, user: !!user, authLoading });
+      console.log("Cart state:", { cart, localCart, cartItemCount, loading, syncing, error });
+      
+      // Debug local cart
+      console.log("Local cart items:", localCart.items);
+      console.log("Local cart valid items:", localCart.items.filter(isValidLocalCartItem));
+      
+      // Debug server cart if authenticated
+      if (isAuthenticated) {
+        console.log("Server cart items:", cart?.items || []);
+        console.log("Server cart valid items:", cart?.items.filter(isValidServerCartItem) || []);
+        
+        // Call cart service debug
+        await cartService.debugCart();
+      }
+      
+      // Debug effective cart
+      const effectiveCart = getEffectiveCart();
+      console.log("Effective cart:", effectiveCart);
+      
+      console.log("=== END CART CONTEXT DEBUG ===");
+      
+      toast({
+        title: "Cart Debug",
+        description: "Debug information logged to console. Check browser console for details.",
+      });
+    } catch (error) {
+      console.error("Cart debug failed:", error);
+      handleError(error, "debug cart");
+    }
+  }, [isAuthenticated, user, authLoading, cart, localCart, cartItemCount, loading, syncing, error, isValidLocalCartItem, isValidServerCartItem, getEffectiveCart, toast, handleError]);
+
+  // Enhanced get item quantity using validated items
+  const getItemQuantity = (portfolioId: string): number => {
+    try {
+      const effectiveCart = getEffectiveCart();
+      
+      if (isAuthenticated && cart) {
+        const item = effectiveCart.items.find(item => {
+          try {
+            return item && item.portfolio && item.portfolio._id === portfolioId;
+          } catch (error) {
+            console.error("Error finding item quantity:", error, item);
+            return false;
+          }
+        });
+        return item?.quantity || 0;
+      } else {
+        // Find item in validated local cart items
+        const validLocalItems = localCart.items.filter(isValidLocalCartItem);
+        const item = validLocalItems.find(item => item.portfolioId === portfolioId);
+        return item?.quantity || 0;
+      }
+    } catch (error) {
+      console.error("Failed to get item quantity:", error);
+      return 0;
+    }
+  };
+
+  // Enhanced calculate total using validated items
+  const calculateTotal = (subscriptionType: "monthly" | "quarterly" | "yearly"): number => {
+    try {
+      const effectiveCart = getEffectiveCart();
+      
+      if (isAuthenticated && cart) {
+        // Use validated items from effective cart
+        const validatedCart = { ...cart, items: effectiveCart.items };
+        return cartService.calculateCartTotal(validatedCart, subscriptionType);
+      } else {
+        // Calculate total from valid local cart items
+        const validLocalItems = localCart.items.filter(isValidLocalCartItem);
+        let total = 0;
+        
+        validLocalItems.forEach(item => {
+          if (item.itemType === "bundle") {
+            // Bundle pricing logic
+            let price = 0;
+            if (item.itemData.subscriptionFee) {
+              const fee = item.itemData.subscriptionFee.find(f => f.type === subscriptionType);
+              price = fee?.price || 0;
+            } else {
+              // Fallback to direct pricing
+              switch (subscriptionType) {
+                case "yearly":
+                  price = item.itemData.yearlyPrice || 0;
+                  break;
+                case "quarterly":
+                  price = item.itemData.quarterlyPrice || 0;
+                  break;
+                default:
+                  price = item.itemData.monthlyPrice || 0;
+                  break;
+              }
+            }
+            total += price * item.quantity;
+          } else {
+            // Portfolio pricing logic
+            if (item.itemData.subscriptionFee) {
+              const fee = item.itemData.subscriptionFee.find(f => f.type === subscriptionType);
+              const price = fee?.price || 0;
+              total += price * item.quantity;
+            }
+          }
+        });
+        
+        return total;
+      }
+    } catch (error) {
+      console.error("Failed to calculate total:", error);
+      return 0;
+    }
+  };
+
+  // Enhanced is in cart using validated items
+  const isInCart = (itemId: string): boolean => {
+    try {
+      const effectiveCart = getEffectiveCart();
+      
+      if (isAuthenticated && cart) {
+        return effectiveCart.items.some(item => {
+          try {
+            return item && item.portfolio && item.portfolio._id === itemId;
+          } catch (error) {
+            console.error("Error checking if item is in cart:", error, item);
+            return false;
+          }
+        });
+      } else {
+        // Check in validated local cart items
+        const validLocalItems = localCart.items.filter(isValidLocalCartItem);
+        return validLocalItems.some(item => item.portfolioId === itemId);
+      }
+    } catch (error) {
+      console.error("Failed to check if item is in cart:", error);
+      return false;
+    }
+  };
+
+  // Enhanced has bundle
+  const hasBundle = (bundleId: string): boolean => {
+    try {
+      if (isAuthenticated && cart) {
+        return cart.items.some(item => {
+          try {
+            return item && item.portfolio && cartService.isBundle(item) && item.portfolio._id === bundleId;
+          } catch (error) {
+            console.error("Error checking if bundle is in cart:", error, item);
+            return false;
+          }
+        });
+      } else {
+        return localCartService.isInLocalCart(bundleId);
+      }
+    } catch (error) {
+      console.error("Failed to check if bundle is in cart:", error);
+      return false;
     }
   };
 
@@ -429,6 +912,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     cartItemCount,
     loading,
     syncing,
+    error,
     refreshCart,
     addToCart,
     addBundleToCart,
@@ -442,6 +926,9 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     hasBundle,
     syncLocalCartToServer,
     getEffectiveCart,
+    clearError,
+    forceCleanupInvalidItems,
+    debugCart,
   };
 
   return (

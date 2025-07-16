@@ -11,25 +11,24 @@ export const ImageTrailHero = () => {
         renderImageBuffer={50}
         rotationRange={25}
         images={[
-          "/imgs/active/1.jpg",
-          "/imgs/active/2.png",
-          "/imgs/active/3.png",
-          "/imgs/active/4.png",
-          "/imgs/active/5.jpg",
+          "/imgs/active/1.png",
+          "/imgs/active/2.jpg",
+          "/imgs/active/3.jpg",
+          "/imgs/active/4.jpg",
+          "/imgs/active/5.png",
           "/imgs/active/6.png",
           "/imgs/active/7.png",
           "/imgs/active/8.png",
           "/imgs/active/9.png",
           "/imgs/active/10.png",
           "/imgs/active/11.png",
-          "/imgs/active/12.png",
+          "/imgs/active/12.jpg",
           "/imgs/active/13.png",
           "/imgs/active/14.png",
           "/imgs/active/15.png",
-          "/imgs/active/16.png",
         ]}
       >
-        <section className="h-screen bg-slate-200 w-screen overflow-hidden">
+        <section className="h-screen bg-[#e5f4ff] op w-screen overflow-hidden">
           <Copy />
           <WatermarkWrapper />
         </section>
@@ -40,24 +39,27 @@ export const ImageTrailHero = () => {
 
 const Copy = () => {
   return (
-    <div className="absolute bottom-0 left-0 right-0 z-[40]">
+    <div className="absolute bottom-8 left-8 right-0 z-[40]">
       <div className="mx-auto flex max-w-7xl items-end justify-between p-4 md:p-8">
-        <div>
-          <p className="md:text-lg">
-            At Rangaone - Your Growth, Our Priority, So we are here to help you create wealth sustainably and
-            strategically.
+        <div className="relative">
+          {/* Simulated mist/fog glow */}
+          <div className="absolute -inset-10 bg-white blur-2xl rounded-full opacity-80 pointer-events-none z-[-1]" />
+
+          <p className="md:text-lg text-black font-medium mb-2">
+            At Rangaone – Your Growth, Our Priority. We are here to Create Wealth Sustainably & Strategically
           </p>
-          <h1 className="text-3xl md:text-8xl font-bold leading-tight font-serif">
-            <span className="text-blue-800">Wealth</span> Isn't Found,
+          <h1 className="text-3xl md:text-8xl font-bold leading-tight font-times-new-roman text-black drop-shadow-sm">
+            <span className="text-blue-900 drop-shadow-md">Wealth</span> Isn’t Found,
             <br />
-            <span className="text-xl md:text-5xl font-bold text-gray-900" style={{ verticalAlign: "super" }}>
+            <span className="text-xl md:text-5xl font-semibold text-black" style={{ verticalAlign: "super" }}>
               it is built with
-            </span>
-            <span className="text-blue-900 font-extrabold leading-0">Knowledge</span>
+            </span>{' '}
+            <span className="text-blue-900 font-extrabold drop-shadow-md">Knowledge</span>
           </h1>
         </div>
       </div>
     </div>
+
   )
 }
 

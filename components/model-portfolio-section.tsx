@@ -16,14 +16,16 @@ import { userPortfolioService, UserPortfolio } from "@/services/user-portfolio.s
 import { CheckoutModal } from "@/components/checkout-modal";
 import { SectionHeading } from "@/components/ui/section-heading";
 
-type SubscriptionType = "monthly" | "quarterly" | "yearly";
 
-// Updated colors to match the new design
+
+
+type SubscriptionType = "monthly" | "quarterly" | "yearly";
+// --- Constants ---
 const portfolioColors = [
-  "bg-blue-200",
-  "bg-orange-100", 
-  "bg-purple-200",
-  "bg-red-200",
+  "bg-[#0A9396]",
+  "bg-[#EE9B00]",
+  "bg-[#FFE627]",
+  "bg-[#3187CE]",
   "bg-green-200",
   "bg-yellow-100",
   "bg-indigo-200",
@@ -31,314 +33,236 @@ const portfolioColors = [
   "bg-teal-200",
   "bg-rose-200",
   "bg-cyan-200",
-  "bg-amber-100"
-];
+  "bg-amber-100",
+]
 
 const features = [
   {
-    icon: "/icons/simplicity.png",
+    icon: "/placeholder.svg?width=32&height=32",
     title: "Simplicity",
     description:
-      "Designed for busy professionals (salaried person, businessmen) our portfolios remove the hassle of stock analysis and simplify the investment process that fits your lifestyle.",
+      "Designed for busy professionals, our portfolios remove the hassle of stock analysis and simplify investing.",
   },
   {
-    icon: "/icons/rebalancing.png",
+    icon: "/placeholder.svg?width=32&height=32",
     title: "Rebalancing",
     description:
-      "We don't just give stock names and leave. Every quarter, we adjust based on market conditions—guiding you on exits, profit booking, upward averaging, and downward averaging.",
+      "Every quarter, we adjust based on market conditions—guiding you on exits, profit booking, and averaging.",
   },
   {
-    icon: "/icons/diversification.png",
+    icon: "/placeholder.svg?width=32&height=32",
     title: "Diversification",
     description:
-      "Your money won't sit in one basket. We spread it smartly—across large, mid and small cap stocks, multiple sectors, and even assets like ETFs and gold—balancing risk and maximizing opportunity.",
+      "We spread your money smartly across large, mid, and small-cap stocks to balance risk and maximize opportunity.",
   },
   {
-    icon: "/icons/goal-based.png",
+    icon: "/placeholder.svg?width=32&height=32",
     title: "Goal-Based Investing",
-    description:
-      "You choose the Goal, and the model portfolio provides an investment path that you can follow.",
+    description: "You choose the Goal, and the model portfolio provides an investment path that you can follow.",
   },
-];
+]
 
-export const ModelPortfolioSection = () => {
-  const [portfolios, setPortfolios] = useState<UserPortfolio[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showAll, setShowAll] = useState(false);
-  const [subscriptionType, setSubscriptionType] = useState<SubscriptionType>("monthly");
-
-  const { isAuthenticated } = useAuth();
-  const { addToCart } = useCart();
-  const { toast } = useToast();
+// --- Main Component ---
+export default function ModelPortfolioSection() {
+  const [portfolios, setPortfolios] = useState<UserPortfolio[]>([])
+  const [loading, setLoading] = useState(true)
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null)
+  const { isAuthenticated } = useAuth()
+  const { addToCart } = useCart()
+  const { toast } = useToast()
 
   useEffect(() => {
-    loadPortfolios();
-  }, []);
-
-  const loadPortfolios = async () => {
-    try {
-      setLoading(true);
-      const portfoliosData = await userPortfolioService.getAll();
-      setPortfolios(portfoliosData);
-    } catch (error) {
-      console.error("Failed to load portfolios:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load portfolios. Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+    const loadPortfolios = async () => {
+      try {
+        setLoading(true)
+        const portfoliosData = await userPortfolioService.getAll()
+        setPortfolios(portfoliosData)
+      } catch (error) {
+        console.error("Failed to load portfolios:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load portfolios. Please try again later.",
+          variant: "destructive",
+        })
+      } finally {
+        setLoading(false)
+      }
     }
-  };
+    loadPortfolios()
+  }, [toast])
 
   const handleBuyNow = async (portfolio: UserPortfolio) => {
     try {
-      await addToCart(portfolio._id);
+      if (!isAuthenticated) {
+        toast({
+          title: "Login Required",
+          description: "Please log in to add items to your cart.",
+          variant: "destructive",
+        })
+        return
+      }
+      await addToCart(portfolio._id)
       toast({
         title: "Added to Cart",
         description: `${portfolio.name} has been added to your cart.`,
-      });
-      
-      // Redirect to cart after adding
-      setTimeout(() => {
-        window.location.href = "/cart";
-      }, 1000);
+      })
     } catch (error: any) {
       toast({
         title: "Error",
         description: error.message || "Failed to add portfolio to cart.",
         variant: "destructive",
-      });
+      })
     }
-  };
-
-  const getPrice = (portfolio: UserPortfolio) => {
-    return userPortfolioService.getPriceByType(portfolio.subscriptionFee, subscriptionType);
-  };
-
-  const getHomeDescription = (portfolio: UserPortfolio) => {
-    return userPortfolioService.getDescriptionByKey(portfolio.description, "home card");
-  };
-
-  const getMethodologyLink = (portfolio: UserPortfolio) => {
-    return userPortfolioService.getDescriptionByKey(portfolio.description, "methodology PDF link");
-  };
-
-  const getPerformanceMetrics = (portfolio: UserPortfolio) => {
-    return userPortfolioService.getPerformanceMetrics(portfolio);
-  };
-
-  const getPortfolioDetails = (portfolio: UserPortfolio) => {
-    return userPortfolioService.getPortfolioDetails(portfolio);
-  };
-
-  const getPeriodLabel = () => {
-    switch (subscriptionType) {
-      case "yearly": return "year";
-      case "quarterly": return "quarter";
-      default: return "month";
-    }
-  };
-
-  const displayedPortfolios = showAll ? portfolios : portfolios.slice(0, 4);
+  }
 
   if (loading) {
     return (
-      <section className="py-12 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center py-8">
-            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading portfolios...</p>
-          </div>
+      <section className="py-12 bg-white dark:bg-black">
+        <div className="container mx-auto px-4 text-center">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading portfolios...</p>
         </div>
       </section>
-    );
+    )
   }
 
   return (
-    <>
-      <div className="py-4 sm:py-6 bg-[#fefcea]">
-        <div className="mb-4 sm:mb-6 relative z-10 container mx-auto px-3 sm:px-4">
-          <SectionHeading
-            title="Model Portfolios"
-            subtitle="Smart investment strategies for every investor"
-            className="mb-3 sm:mb-4"
-          />
-          <p className="text-center mx-auto text-sm sm:text-base mb-4 max-w-4xl">
-            Model portfolios offer a simpler way to invest in a market that's filled with options and increasingly
-            complex. You can consider a model portfolio as cost-efficient, diversified investment framework and a
-            roadmap, where you choose the destination, and the model portfolio provides an investment path that you can
-            follow.
-          </p>
-        </div>
-
-        <section className="py-4 sm:py-6 px-3 sm:px-4">
-          <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {features.map((feature, index) => (
+    <div className="bg-[#fefcea] dark:bg-gray-900">
+      {/* --- Features Section --- */}
+      <section className="py-8 sm:py-12">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-8 sm:mb-12">
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">Model Portfolios</h1>
+            <p className="mt-2 text-lg text-gray-600 dark:text-gray-300">
+              Smart investment strategies for every investor
+            </p>
+          </div>
+          <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {features.map((feature) => (
               <div
-                key={index}
-                className="bg-white rounded-2xl shadow-lg pt-8 pb-4 px-3 sm:px-4 relative border-t-4 border-[#2a2e86] hover:shadow-xl transition-shadow duration-300"
+                key={feature.title}
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 relative border-t-4 border-blue-800 dark:border-blue-500 hover:shadow-xl transition-shadow duration-300 flex flex-col text-center"
               >
-                <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-white p-2 rounded-full border-2 border-[#2a2e86] shadow-md">
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-white dark:bg-gray-800 p-2 rounded-full border-2 border-blue-800 dark:border-blue-500 shadow-md">
                   <img
-                    src={feature.icon}
+                    src={feature.icon || "/placeholder.svg"}
                     alt={feature.title}
-                    className="h-6 w-6 sm:h-8 sm:w-8 object-contain"
+                    className="h-8 w-8 object-contain"
                   />
                 </div>
-                <div className="flex flex-col justify-between h-full">
-                  <div>
-                    <h3 className="text-[#2a2e86] font-bold text-sm sm:text-base text-center mt-1 mb-2">
-                      {feature.title}
-                    </h3>
-                    <p className="text-xs text-gray-700 text-center leading-relaxed">
-                      {feature.description}
-                    </p>
-                  </div>
-                </div>
+                <h3 className="text-blue-900 dark:text-blue-300 font-bold text-lg mt-4 mb-2">{feature.title}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{feature.description}</p>
               </div>
             ))}
           </div>
-        </section>
-      </div>
-
-      <section className="bg-[#fefcea] px-3 sm:px-4 py-4 sm:py-6">
-        <div className="mx-auto container grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8">
-          {portfolios.map((portfolio, index) => (
-            <PortfolioCard
-              key={portfolio._id}
-              portfolio={portfolio}
-              colorClass={portfolioColors[index % portfolioColors.length]}
-              onBuyNow={() => handleBuyNow(portfolio)}
-            />
-          ))}
         </div>
       </section>
-    </>
-  );
-};
 
-interface PortfolioCardProps {
-  portfolio: UserPortfolio;
-  colorClass: string;
-  onBuyNow: () => void;
-}
+      {/* --- Portfolio Cards Section --- */}
+      <section className="bg-[#fefcea] dark:bg-gray-900 py-8 sm:py-12">
+        <div className="mx-auto container px-4 grid grid-cols-1 lg:grid-cols-2 gap-12">
+          {portfolios.map((portfolio, index) => {
+            const isHovered = hoveredCard === portfolio._id
+            const quarterlyFee = userPortfolioService.getPriceByType(portfolio.subscriptionFee, "quarterly")
+            const monthlyFee = userPortfolioService.getPriceByType(portfolio.subscriptionFee, "monthly")
+            const methodologyLink = userPortfolioService.getDescriptionByKey(
+              portfolio.description,
+              "methodology PDF link",
+            )
+            const homeDescription = userPortfolioService.getDescriptionByKey(portfolio.description, "home card")
+            const colorClass = portfolioColors[index % portfolioColors.length]
 
-const PortfolioCard = ({ portfolio, colorClass, onBuyNow }: PortfolioCardProps) => {
-  const [isHovered, setIsHovered] = useState(false);
+            return (
+              <motion.div
+                key={portfolio._id}
+                onHoverStart={() => setHoveredCard(portfolio._id)}
+                onHoverEnd={() => setHoveredCard(null)}
+                animate={isHovered ? "hovered" : "initial"}
+                initial="initial"
+                className="relative"
+              >
+                {/* Shadow Layers - these now have consistent borders and rounding */}
+                <motion.div
+                  variants={{
+                    initial: { x: 0, y: 0, boxShadow: "0 2px 8px 0 rgba(0,0,0,0.08)" },
+                    hovered: { x: 10, y: 10, boxShadow: "0 12px 32px 0 rgba(0,0,0,0.18)" },
+                  }}
+                  transition={{ type: "spring", stiffness: 180, damping: 18 }}
+                  className={`absolute inset-0 ${colorClass} border-2 border-black dark:border-gray-700 rounded-xl pointer-events-none z-0`}
+                />
+                <motion.div
+                  variants={{
+                    initial: { x: 0, y: 0, boxShadow: "0 1px 4px 0 rgba(0,0,0,0.06)" },
+                    hovered: { x: 5, y: 5, boxShadow: "0 8px 24px 0 rgba(0,0,0,0.12)" },
+                  }}
+                  transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                  className={`absolute inset-0 ${colorClass} border-2 border-black dark:border-gray-700 rounded-xl pointer-events-none z-[1]`}
+                />
 
-  // API data extraction using existing service methods
-  const quarterlyFee = userPortfolioService.getPriceByType(portfolio.subscriptionFee, "quarterly");
-  const monthlyFee = userPortfolioService.getPriceByType(portfolio.subscriptionFee, "monthly");
-  const methodologyLink = userPortfolioService.getDescriptionByKey(portfolio.description, "methodology PDF link");
-  const homeDescription = userPortfolioService.getDescriptionByKey(portfolio.description, "home card");
-  const metrics = userPortfolioService.getPerformanceMetrics(portfolio);
+                {/* Main Card - with consistent borders and rounding */}
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  className={`relative ${colorClass} border-2 border-black dark:border-gray-700 rounded-xl p-5 sm:p-6 flex flex-col h-full font-sans z-[2]`}
+                >
+                  <div className="flex-grow">
+                    <h2 className="font-serif text-3xl lg:text-4xl font-bold text-black dark:text-white">
+                      {portfolio.name}
+                    </h2>
+                    <p className="text-lg font-bold text-black dark:text-white mt-1">
+                      ₹{(quarterlyFee || monthlyFee || 0).toLocaleString()} / Quarter
+                    </p>
+                    <p className="text-sm text-gray-700 dark:text-gray-400">Annual, Billed Quarterly</p>
 
-  return (
-    <motion.div
-      onHoverStart={() => setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
-      animate={isHovered ? "hovered" : "initial"}
-      initial="initial"
-      className="relative"
-    >
-      {/* Back shadow layer */}
-      <motion.div
-        variants={{
-          initial: { x: 0, y: 0, boxShadow: "0 2px 8px 0 rgba(0,0,0,0.08)" },
-          hovered: { x: 16, y: 16, boxShadow: "0 12px 32px 0 rgba(0,0,0,0.18)" },
-        }}
-        transition={{ type: "spring", stiffness: 180, damping: 18 }}
-        className={`absolute inset-0 ${colorClass} border-2 border-black rounded-xl pointer-events-none`}
-        style={{ zIndex: 0 }}
-      />
-      
-      {/* Middle shadow layer */}
-      <motion.div
-        variants={{
-          initial: { x: 0, y: 0, boxShadow: "0 1px 4px 0 rgba(0,0,0,0.06)" },
-          hovered: { x: 8, y: 8, boxShadow: "0 8px 24px 0 rgba(0,0,0,0.12)" },
-        }}
-        transition={{ type: "spring", stiffness: 200, damping: 20 }}
-        className={`absolute inset-0 ${colorClass} border-2 border-black rounded-xl pointer-events-none`}
-        style={{ zIndex: 1 }}
-      />
-      
-      {/* Main card */}
-      <motion.div
-        whileHover={{ scale: 1.035, boxShadow: "0 16px 40px 0 rgba(0,0,0,0.18)" }}
-        className={`relative ${colorClass} border-2 border-black rounded-xl p-4 sm:p-5 flex flex-col h-full font-sans z-10`}
-        style={{ zIndex: 2 }}
-      >
-        <div className="flex-grow">
-          {/* Header section */}
-          <div className="flex flex-col sm:flex-row justify-between items-start mb-3">
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-black mb-2 sm:mb-0">
-              {portfolio.name}
-            </h2>
-            <div className="text-left sm:text-right flex-shrink-0 sm:ml-4">
-              <p className="text-lg sm:text-xl font-bold whitespace-nowrap">
-                ₹{(quarterlyFee || monthlyFee).toLocaleString()} / Qua
-              </p>
-              <p className="text-xs text-gray-700">Annual, Billed Quarterly</p>
-            </div>
-          </div>
+                    <p className="text-gray-800 dark:text-gray-300 my-4 text-base">{homeDescription}</p>
 
-          {/* Description */}
-          <p className="text-gray-800 mb-4 text-sm sm:text-base line-clamp-2">
-            {homeDescription}
-          </p>
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="text-blue-600 dark:text-blue-400 font-bold text-base">Methodology</h3>
+                        <div className="flex items-center space-x-3 mt-2">
+                          {methodologyLink && (
+                            <a
+                              href={methodologyLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="Read Methodology"
+                            >
+                              <div className="w-12 h-12 bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-600 rounded-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                <FileText className="w-6 h-6 text-black dark:text-white" />
+                              </div>
+                            </a>
+                          )}
+                          <a href="#" target="_blank" rel="noopener noreferrer" title="Watch Video">
+                            <div className="w-12 h-12 bg-black dark:bg-white rounded-lg flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
+                              <Play className="w-6 h-6 text-white dark:text-black" fill="currentColor" />
+                            </div>
+                          </a>
+                        </div>
+                      </div>
 
-          {/* Methodology and Min Investment Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start mb-4">
-            <div className="sm:pr-2">
-              <h3 className="text-blue-700 font-bold text-base">Methodology</h3>
-              <div className="flex items-center space-x-2 mt-2">
-                {methodologyLink && (
-                  <a
-                    href={methodologyLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block"
-                    title="Read Methodology"
-                  >
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white border-2 border-black rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors">
-                      <FileText className="w-7 h-7 sm:w-8 sm:h-8 text-black" />
+                      <div className="border-t border-gray-400 dark:border-gray-600 pt-4">
+                        <h3 className="font-bold text-base text-black dark:text-white">Min. Investment</h3>
+                        <div className="text-2xl font-bold text-black dark:text-white mt-1">
+                          ₹{portfolio.minInvestment?.toLocaleString() || (monthlyFee * 12).toLocaleString()}
+                        </div>
+                      </div>
                     </div>
-                  </a>
-                )}
-                <a href="#" target="_blank" rel="noopener noreferrer" className="block" title="Watch Video">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-black rounded-lg flex items-center justify-center hover:bg-gray-800 transition-colors">
-                    <Play className="w-7 h-7 sm:w-8 sm:h-8 text-white" fill="white" />
                   </div>
-                </a>
-              </div>
-            </div>
-            
-            <div className="sm:pl-2 border-t sm:border-t-0 sm:border-l border-gray-400 pt-3 sm:pt-0">
-              <h3 className="font-bold text-base text-black">Min. Investment</h3>
-              <div className="text-lg sm:text-xl font-bold text-black mt-1">
-                ₹{portfolio.minInvestment?.toLocaleString() || (monthlyFee * 12).toLocaleString()}
-              </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Single Buy Now Button */}
-        <div className="mt-auto">
-          <button
-            onClick={onBuyNow}
-            className="w-full border-2 border-black bg-amber-50 px-4 py-2.5 text-center font-bold text-black transition-all duration-300 ease-in-out rounded-lg hover:bg-amber-100 text-base flex items-center justify-center gap-2"
-          >
-            <ShoppingCart className="w-4 h-4" />
-            <span className={`transition-opacity duration-300 ease-in-out ${isHovered ? "inline" : "hidden"}`}>
-              Let's Go
-            </span>
-            Buy Now
-          </button>
+                  <div className="mt-6 pt-4">
+                    <button
+                      onClick={() => handleBuyNow(portfolio)}
+                      className="w-full border-2 border-black dark:border-gray-500 bg-black dark:bg-white px-4 py-3 text-center font-bold text-white dark:text-black transition-all duration-300 ease-in-out rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 text-base flex items-center justify-center gap-2"
+                    >
+                      <ShoppingCart className="w-5 h-5" />
+                      <span>Buy Now</span>
+                    </button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )
+          })}
         </div>
-      </motion.div>
-    </motion.div>
-  );
-};
+      </section>
+    </div>
+  )
+}

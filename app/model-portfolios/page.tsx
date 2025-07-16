@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useCart } from "@/components/cart/cart-context";
 
 // Extend the Portfolio type to include the message field from the API response
 interface PortfolioWithMessage extends Omit<Portfolio, 'subscriptionFee'> {
@@ -51,6 +52,7 @@ export default function ModelPortfoliosPage() {
   const { toast } = useToast();
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { addToCart } = useCart();
 
   // Helper function to safely render description
   const renderDescription = (desc: any): string => {
@@ -146,12 +148,39 @@ export default function ModelPortfoliosPage() {
     loadPortfolios();
   }, [toast, router, isAuthenticated, authLoading]);
 
-  const handleAddToCart = (portfolio: PortfolioWithMessage) => {
-    // TODO: Implement add to cart functionality
+  const handleAddToCart = async (portfolio: PortfolioWithMessage) => {
+    try {
+      console.log("Adding portfolio to cart:", portfolio._id, portfolio.name);
+      
+      // Check if user is authenticated
+      if (!isAuthenticated) {
+        console.log("User not authenticated, redirecting to login");
         toast({
-      title: "Add to Cart",
-      description: `${portfolio.name} will be added to cart`,
+          title: "Login Required",
+          description: "Please log in to add items to your cart.",
+          variant: "destructive",
+        });
+        // Redirect to login page
+        router.push("/login");
+        return;
+      }
+
+      await addToCart(portfolio._id);
+      
+      toast({
+        title: "Added to Cart",
+        description: `${portfolio.name} has been added to your cart.`,
       });
+      
+      console.log("Successfully added to cart");
+    } catch (error: any) {
+      console.error("Error adding to cart:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add portfolio to cart.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleViewDetails = (portfolioId: string) => {

@@ -120,7 +120,7 @@ export default function PricingSection() {
   const BASIC_SELECTED_STYLES =
     "text-white font-bold rounded-lg py-3 w-28 relative bg-[linear-gradient(295.3deg,_#131859_11.58%,_rgba(24,_101,_123,_0.8)_108.02%)]";
   const PREMIUM_SELECTED_STYLES =
-    "text-white font-bold rounded-lg py-3 w-28 relative bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]";
+    "text-slate-800 font-bold rounded-lg py-3 w-28 relative bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]";
   const DESELECTED_STYLES =
     "font-bold rounded-lg py-3 w-28 hover:bg-slate-100 transition-colors relative";
 
@@ -133,13 +133,13 @@ export default function PricingSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-4xl lg:text-6xl font-bold text-gray-900 mb-4 font-times">
+          <h2 className="text-4xl lg:text-8xl font-semibold text-gray-900 mb-4 font-times-new-roman">
             RANGAONE WEALTH
           </h2>
           <div className="w-24 h-1 bg-gradient-to-r from-blue-600 to-indigo-600 mx-auto rounded-full mb-6"></div>
-          <p className="text-lg lg:text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed mb-8">
+          <p className="text-lg lg:text-xl text-gray-700 max-w-4xl mx-auto leading-relaxed mb-8">
             Welcome to Rangaone Wealth – your way to smarter investing and bigger gains! 
-            Stay ahead and make every move impactful—join now and start building unstoppable wealth! 🚀
+            Stay ahead and make every move impactful—join now and start building unstoppable wealth! 
           </p>
           
           {/* Plan Selector */}
@@ -282,73 +282,53 @@ export default function PricingSection() {
                 initial={{ opacity: 0, y: 50 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.2 }}
-                className={`relative rounded-2xl p-8 shadow-xl border-2 transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] ${
+                className={`relative rounded-3xl p-8 shadow-2xl border-2 transition-all duration-300 hover:shadow-3xl hover:scale-[1.02] ${
                   plan.isPremium
-                    ? "bg-gradient-to-br from-gray-900 via-gray-800 to-black border-[#D4AF37]/30 text-white"
-                    : "bg-white border-gray-200/50 text-gray-900"
+                    ? "bg-gradient-to-br from-gray-900 via-gray-800 to-black border-gray-700"
+                    : "bg-white border-gray-200"
                 }`}
               >
-                {/* Popular Badge */}
-                {plan.badge && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <div className="bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)] text-black px-4 py-2 rounded-full text-sm font-bold shadow-lg flex items-center gap-1">
-                      <Star className="w-4 h-4" />
-                      {plan.badge}
-                    </div>
-                  </div>
-                )}
-
                 {/* Plan Header */}
                 <div className="text-center mb-8">
-                  <div className="flex items-center justify-center gap-2 mb-4">
-                    {plan.isPremium && <Crown className="w-6 h-6 text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" />}
-                    <h3 className={`text-2xl lg:text-3xl font-bold ${
-                      plan.isPremium ? "text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" : "text-gray-900"
-                    }`}>
-                      {plan.isPremium ? "✨Premium✨" : plan.planName}
-                    </h3>
-                  </div>
-                  <div className={`w-16 h-0.5 mx-auto rounded-full ${
-                    plan.isPremium
-                      ? "bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]"
-                      : "bg-gradient-to-r from-blue-500 to-blue-600"
-                  }`}></div>
+                  <h3 className={`text-4xl font-bold mb-2 ${
+                    plan.isPremium ? "text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600" : "text-gray-900"
+                  }`}>
+                    {plan.isPremium ? "✨Premium✨" : plan.planName}
+                  </h3>
                 </div>
 
                 {/* Features List */}
-                <div className="mb-8">
-                  <div className="space-y-4">
-                    {plan.benefits.map((benefit, benefitIndex) => (
-                      <motion.div
-                        key={benefitIndex}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.2 + benefitIndex * 0.1 }}
-                        className="flex items-start gap-3"
-                      >
-                        <div className="flex-shrink-0 mt-1">
-                          {benefit.checked ? (
-                            <div className={`w-6 h-6 rounded-full flex items-center justify-center shadow-md ${
-                              plan.isPremium
-                                ? "bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]"
-                                : "bg-gradient-to-r from-green-400 to-green-600"
-                            }`}>
-                              <Check className="w-4 h-4 text-white font-bold" strokeWidth={3} />
-                            </div>
-                          ) : (
-                            <div className="w-6 h-6 rounded-full flex items-center justify-center bg-gradient-to-r from-red-400 to-red-500 shadow-md">
-                              <X className="w-4 h-4 text-white font-bold" strokeWidth={3} />
-                            </div>
-                          )}
-                        </div>
-                        <span className={`text-base lg:text-lg ${
-                          plan.isPremium ? "text-gray-100" : "text-gray-700"
-                        }`}>
-                          {benefit.text}
-                        </span>
-                      </motion.div>
-                    ))}
-                  </div>
+                <div className="mb-8 space-y-4">
+                  {plan.benefits.map((benefit, benefitIndex) => (
+                    <motion.div
+                      key={benefitIndex}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.2 + benefitIndex * 0.1 }}
+                      className="flex items-center gap-3"
+                    >
+                      <div className="flex-shrink-0">
+                        {benefit.checked ? (
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                            plan.isPremium
+                              ? "bg-gradient-to-r from-yellow-400 to-yellow-600"
+                              : "bg-gradient-to-r from-green-500 to-green-600"
+                          }`}>
+                            <Check className="w-4 h-4 text-white font-bold" strokeWidth={3} />
+                          </div>
+                        ) : (
+                          <div className="w-6 h-6 rounded-full flex items-center justify-center bg-gradient-to-r from-red-500 to-red-600">
+                            <X className="w-4 h-4 text-white font-bold" strokeWidth={3} />
+                          </div>
+                        )}
+                      </div>
+                      <span className={`text-lg font-medium ${
+                        plan.isPremium ? "text-gray-100" : "text-gray-800"
+                      }`}>
+                        {benefit.text}
+                      </span>
+                    </motion.div>
+                  ))}
                 </div>
 
                 {/* Action Buttons */}
@@ -357,9 +337,9 @@ export default function PricingSection() {
                   <Link href={plan.href}>
                     <Button
                       variant="outline"
-                      className={`w-full py-4 text-base font-semibold rounded-xl border-2 transition-all hover:scale-[1.02] ${
+                      className={`w-full py-4 text-lg font-semibold rounded-2xl border-2 transition-all hover:scale-[1.02] ${
                         plan.isPremium
-                          ? "border-[#D4AF37] text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)] hover:bg-[#D4AF37] hover:text-black bg-transparent"
+                          ? "border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black bg-transparent"
                           : "border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white bg-transparent"
                       }`}
                     >
@@ -371,10 +351,10 @@ export default function PricingSection() {
                   {bundle ? (
                     <Button
                       onClick={() => handleBundlePurchase(bundle, "monthly")}
-                      className={`w-full py-4 text-base font-bold rounded-xl transition-all hover:scale-[1.02] shadow-lg ${
+                      className={`w-full py-4 text-lg font-bold rounded-2xl transition-all hover:scale-[1.02] shadow-lg ${
                         plan.isPremium
-                          ? "bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)] hover:bg-[linear-gradient(270deg,_#FFC107_0%,_#FFD700_50%,_#D4AF37_100%)] text-black"
-                          : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+                          ? "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-black"
+                          : "bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white"
                       }`}
                     >
                       BUY NOW
@@ -382,18 +362,18 @@ export default function PricingSection() {
                   ) : (
                     <Button
                       disabled
-                      className="w-full py-4 text-base font-bold rounded-xl bg-gray-300 text-gray-500 cursor-not-allowed"
+                      className="w-full py-4 text-lg font-bold rounded-2xl bg-gray-300 text-gray-500 cursor-not-allowed"
                     >
                       {loading ? "Loading..." : "Coming Soon"}
                     </Button>
                   )}
                 </div>
 
-                {/* Background Pattern for Premium */}
+                {/* Background Effects for Premium */}
                 {plan.isPremium && (
-                  <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
-                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)] opacity-10 rounded-full blur-xl"></div>
-                    <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)] opacity-5 rounded-full blur-2xl"></div>
+                  <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
+                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-r from-yellow-400 to-yellow-600 opacity-10 rounded-full blur-xl"></div>
+                    <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-r from-yellow-400 to-yellow-600 opacity-5 rounded-full blur-2xl"></div>
                   </div>
                 )}
               </motion.div>
@@ -445,17 +425,17 @@ const CTAArrow = () => (
     >
       <path
         d="M14.7705 15.8619C33.2146 15.2843 72.0772 22.1597 79.9754 54.2825"
-        stroke="#7D7BE5"
+        stroke="#FFC000"
         strokeWidth="3"
       />
       <path
         d="M17.7987 7.81217C18.0393 11.5987 16.4421 15.8467 15.5055 19.282C15.2179 20.3369 14.9203 21.3791 14.5871 22.4078C14.4728 22.7608 14.074 22.8153 13.9187 23.136C13.5641 23.8683 12.0906 22.7958 11.7114 22.5416C8.63713 20.4812 5.49156 18.3863 2.58664 15.9321C1.05261 14.6361 2.32549 14.1125 3.42136 13.0646C4.37585 12.152 5.13317 11.3811 6.22467 10.7447C8.97946 9.13838 12.7454 8.32946 15.8379 8.01289"
-        stroke="#7D7BE5"
+        stroke="#FFC000"
         strokeWidth="3"
         strokeLinecap="round"
       />
     </motion.svg>
-    <span className="block text-xs w-fit bg-indigo-500 text-white shadow px-1.5 py-0.5 rounded -mt-1 ml-4 -rotate-2 font-light italic">
+    <span className="block text-xs w-fit bg-[#FFC000] text-slate-800 shadow px-1.5 py-0.5 rounded -mt-1 ml-4 -rotate-2 font-light italic">
       Save &#8377;&#8377;&#8377;
     </span>
   </div>

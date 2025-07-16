@@ -38,7 +38,7 @@ const navigationItems = [
         label: "RangaOne Wealth",
         icon: <Briefcase className="h-4 w-4" />,
         href: "/rangaone-wealth",
-        badge: "Hot",
+        badge: null,
       },
       {
         label: "Model Portfolios",
@@ -273,7 +273,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           </div>
 
           {/* Footer */}
-          <div className="mt-8 pt-4 border-t border-gray-200/60">
+          {/* <div className="mt-8 pt-4 border-t border-gray-200/60">
             <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100/60">
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
@@ -285,7 +285,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 </div>
               </div>
             </div>
-          </div>
+          </div> */}
         </nav>
       </aside>
     </>
