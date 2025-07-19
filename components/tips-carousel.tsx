@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, useRef } from "react"
+import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { motion, useMotionValue, animate, type PanInfo } from "framer-motion"
 
 import { cn } from "@/lib/utils"
@@ -231,6 +231,9 @@ export default function TipsCarousel({
     containerPadding: 16
   })
 
+  // Add state to track if dimensions have been initialized
+  const [dimensionsInitialized, setDimensionsInitialized] = useState(false)
+
   useEffect(() => {
     setSubscriptionAccess(userSubscriptionAccess);
   }, [userSubscriptionAccess]);
@@ -253,7 +256,7 @@ export default function TipsCarousel({
           cardWidth: Math.min(260, width - 60),
           cardHeight: 140,
           gap: 12,
-          visibleCards: 1.0, // Changed from 1.1 to 1.0
+          visibleCards: 1.1,
           containerPadding: 12
         };
       } else if (width < 480) {
@@ -262,7 +265,7 @@ export default function TipsCarousel({
           cardWidth: Math.min(280, width - 60),
           cardHeight: 150,
           gap: 14,
-          visibleCards: 1.0, // Changed from 1.15 to 1.0
+          visibleCards: 1.15,
           containerPadding: 14
         };
       } else if (width < 640) {
@@ -271,7 +274,7 @@ export default function TipsCarousel({
           cardWidth: 300,
           cardHeight: 160,
           gap: 16,
-          visibleCards: 1.0, // Changed from 1.2 to 1.0
+          visibleCards: 1.2,
           containerPadding: 16
         };
       } else if (width < 768) {
@@ -280,7 +283,7 @@ export default function TipsCarousel({
           cardWidth: 320,
           cardHeight: 180,
           gap: 18,
-          visibleCards: 1.4, // Reduced from 1.6
+          visibleCards: 1.6,
           containerPadding: 18
         };
       } else if (width < 1024) {
@@ -289,7 +292,7 @@ export default function TipsCarousel({
           cardWidth: 340,
           cardHeight: 180,
           gap: 20,
-          visibleCards: 1.8, // Reduced from 2.0
+          visibleCards: 2.0,
           containerPadding: 20
         };
       } else if (width < 1280) {
@@ -298,7 +301,7 @@ export default function TipsCarousel({
           cardWidth: 360,
           cardHeight: 180,
           gap: 24,
-          visibleCards: 2.2, // Reduced from 2.5
+          visibleCards: 2.5,
           containerPadding: 24
         };
       } else if (width < 1536) {
@@ -307,7 +310,7 @@ export default function TipsCarousel({
           cardWidth: 380,
           cardHeight: 220,
           gap: 28,
-          visibleCards: 2.6, // Reduced from 3.0
+          visibleCards: 3.0,
           containerPadding: 28
         };
       } else {
@@ -316,12 +319,13 @@ export default function TipsCarousel({
           cardWidth: 400,
           cardHeight: 220,
           gap: 32,
-          visibleCards: 3.0, // Reduced from 3.5
+          visibleCards: 3.5,
           containerPadding: 32
         };
       }
       
       setDimensions(config);
+      setDimensionsInitialized(true);
     };
     
     updateDimensions();
@@ -368,59 +372,84 @@ export default function TipsCarousel({
     }
   };
 
-  // Calculate container width and positioning - FIXED
-  const containerWidth = Math.min(
-    typeof window !== 'undefined' ? window.innerWidth - (dimensions.containerPadding * 2) : 800,
-    dimensions.cardWidth * Math.floor(dimensions.visibleCards) + dimensions.gap * (Math.floor(dimensions.visibleCards) - 1)
-  );
+  // Calculate container width
+  const containerWidth = useMemo(() => {
+    if (!dimensionsInitialized) return 0;
+    return Math.min(
+      typeof window !== 'undefined' ? window.innerWidth - (dimensions.containerPadding * 2) : 800,
+      dimensions.cardWidth * dimensions.visibleCards + dimensions.gap * (Math.floor(dimensions.visibleCards))
+    );
+  }, [dimensions, dimensionsInitialized]);
 
-  const updateCurrentIndex = (xValue: number) => {
-    const centerPosition = containerWidth / 2;
-    const cardCenter = dimensions.cardWidth / 2;
-    const adjustedPosition = -xValue + centerPosition - cardCenter;
-    const cardStep = dimensions.cardWidth + dimensions.gap;
-    const newIndex = Math.max(0, Math.min(tips.length - 1, Math.round(adjustedPosition / cardStep)));
+  // Calculate card positions
+  const cardPositions = useMemo(() => {
+    return tips.map((_, index) => {
+      return index * (dimensions.cardWidth + dimensions.gap);
+    });
+  }, [tips, dimensions.cardWidth, dimensions.gap]);
+
+  // Get the x position to center a specific card
+  const getCenteredPosition = useCallback((index: number) => {
+    if (!containerWidth || cardPositions.length === 0) return 0;
+    const cardPosition = cardPositions[index] || 0;
+    const centerOffset = (containerWidth - dimensions.cardWidth) / 2;
+    return -cardPosition + centerOffset;
+  }, [containerWidth, cardPositions, dimensions.cardWidth]);
+
+  const updateCurrentIndex = useCallback((xValue: number) => {
+    if (cardPositions.length === 0) return;
     
-    if (newIndex !== currentIndex) {
-      setCurrentIndex(newIndex);
+    const centerOffset = (containerWidth - dimensions.cardWidth) / 2;
+    const currentPosition = -xValue + centerOffset;
+    
+    // Find the closest card
+    let closestIndex = 0;
+    let minDistance = Infinity;
+    
+    cardPositions.forEach((pos, index) => {
+      const distance = Math.abs(pos - currentPosition);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestIndex = index;
+      }
+    });
+    
+    if (closestIndex !== currentIndex) {
+      setCurrentIndex(closestIndex);
     }
-  };
+  }, [cardPositions, containerWidth, dimensions.cardWidth, currentIndex]);
 
   const onDragEnd = (e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    const centerPosition = containerWidth / 2;
-    const cardCenter = dimensions.cardWidth / 2;
-    const cardStep = dimensions.cardWidth + dimensions.gap;
+    const velocity = info.velocity.x;
+    const offset = info.offset.x;
     
-    const tipPosition = -x.get() + centerPosition - cardCenter;
-    const nearestIndex = Math.max(0, Math.min(tips.length - 1, Math.round(tipPosition / cardStep)));
+    // Determine target index based on velocity and offset
+    let targetIndex = currentIndex;
     
-    const targetX = -(nearestIndex * cardStep) + centerPosition - cardCenter;
+    if (Math.abs(velocity) > 500) {
+      // Fast swipe
+      targetIndex = velocity > 0 ? Math.max(0, currentIndex - 1) : Math.min(tips.length - 1, currentIndex + 1);
+    } else if (Math.abs(offset) > dimensions.cardWidth / 3) {
+      // Dragged more than 1/3 of card width
+      targetIndex = offset > 0 ? Math.max(0, currentIndex - 1) : Math.min(tips.length - 1, currentIndex + 1);
+    }
+    
+    goToTip(targetIndex);
+  };
+
+  const goToTip = useCallback((index: number) => {
+    const targetIndex = Math.max(0, Math.min(tips.length - 1, index));
+    const targetX = getCenteredPosition(targetIndex);
     
     animate(x, targetX, {
       type: "spring",
       stiffness: 300,
       damping: 30,
-      mass: 0.5,
-    });
-    
-    setCurrentIndex(nearestIndex);
-  };
-
-  const goToTip = (index: number) => {
-    const centerPosition = containerWidth / 2;
-    const cardCenter = dimensions.cardWidth / 2;
-    const cardStep = dimensions.cardWidth + dimensions.gap;
-    const targetX = -(index * cardStep) + centerPosition - cardCenter;
-    
-    animate(x, targetX, {
-      type: "spring",
-      stiffness: 400,
-      damping: 35,
       mass: 0.8,
     });
     
-    setCurrentIndex(index);
-  };
+    setCurrentIndex(targetIndex);
+  }, [tips.length, getCenteredPosition, x]);
 
   const goToPrevious = () => {
     if (currentIndex > 0) {
@@ -434,13 +463,20 @@ export default function TipsCarousel({
     }
   };
 
-  // Calculate drag constraints - FIXED
-  const centerPosition = containerWidth / 2;
-  const cardCenter = dimensions.cardWidth / 2;
-  const cardStep = dimensions.cardWidth + dimensions.gap;
-  
-  const maxX = centerPosition - cardCenter;
-  const minX = -(tips.length - 1) * cardStep + centerPosition - cardCenter;
+  // Calculate drag constraints
+  const dragConstraints = useMemo(() => {
+    if (!containerWidth || tips.length === 0) {
+      return { left: 0, right: 0 };
+    }
+    
+    const firstCardPosition = getCenteredPosition(0);
+    const lastCardPosition = getCenteredPosition(tips.length - 1);
+    
+    return {
+      left: lastCardPosition,
+      right: firstCardPosition,
+    };
+  }, [containerWidth, tips.length, getCenteredPosition]);
 
   useEffect(() => {
     const fetchTips = async () => {
@@ -529,16 +565,41 @@ export default function TipsCarousel({
     fetchSubscriptionAccess();
   }, []);
 
-  // Center the first tip on initial load
+  // Center the first tip on initial load with smooth animation
   useEffect(() => {
-    if (tips.length > 0 && containerWidth > 0) {
-      const centerPosition = containerWidth / 2;
-      const cardCenter = dimensions.cardWidth / 2;
-      const targetX = centerPosition - cardCenter;
+    if (tips.length > 0 && containerWidth > 0 && dimensionsInitialized) {
+      const targetX = getCenteredPosition(0);
+      // Set initial position instantly
       x.set(targetX);
       setCurrentIndex(0);
+      
+      // Add a subtle entrance animation
+      setTimeout(() => {
+        animate(x, targetX, {
+          type: "spring",
+          stiffness: 200,
+          damping: 25,
+          mass: 1,
+        });
+      }, 100);
     }
-  }, [tips.length, containerWidth, dimensions.cardWidth, x]);
+  }, [tips.length, containerWidth, dimensionsInitialized, getCenteredPosition, x]);
+
+  // Add keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        goToPrevious();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        goToNext();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentIndex, tips.length]);
 
   if (loading) {
     return (
@@ -569,28 +630,25 @@ export default function TipsCarousel({
         className="relative w-full overflow-hidden"
         style={{ padding: `20px ${dimensions.containerPadding}px` }}
       >
-
-        
         <div 
           ref={containerRef}
           className="relative mx-auto flex items-center justify-center"
           style={{ 
             width: `${containerWidth}px`,
-            height: `${dimensions.cardHeight + 20}px`
+            height: `${dimensions.cardHeight + 20}px`,
+            touchAction: 'pan-y pinch-zoom'
           }}
         >
           <motion.div
-            className="absolute left-0 top-0 flex items-center h-full"
+            className="absolute left-0 top-0 flex items-center h-full cursor-grab active:cursor-grabbing touch-pan-y"
             style={{ x }}
             drag="x"
-            dragConstraints={{
-              left: minX,
-              right: maxX,
-            }}
+            dragConstraints={dragConstraints}
             onDrag={(e, info) => updateCurrentIndex(x.get())}
             onDragEnd={onDragEnd}
-            dragElastic={0.1}
-            dragMomentum={false}
+            dragElastic={0.2}
+            dragTransition={{ bounceStiffness: 300, bounceDamping: 30 }}
+            whileTap={{ cursor: "grabbing" }}
           >
             {tips.map((tip, index) => {
               const isActive = index === currentIndex;
@@ -631,8 +689,9 @@ export default function TipsCarousel({
                 "absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center transition-all duration-200 z-10",
                 currentIndex === 0 
                   ? "opacity-50 cursor-not-allowed" 
-                  : "hover:bg-gray-50 hover:shadow-xl"
+                  : "hover:bg-gray-50 hover:shadow-xl hover:scale-110"
               )}
+              aria-label="Previous tip"
             >
               <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -646,8 +705,9 @@ export default function TipsCarousel({
                 "absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center transition-all duration-200 z-10",
                 currentIndex === tips.length - 1 
                   ? "opacity-50 cursor-not-allowed" 
-                  : "hover:bg-gray-50 hover:shadow-xl"
+                  : "hover:bg-gray-50 hover:shadow-xl hover:scale-110"
               )}
+              aria-label="Next tip"
             >
               <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -670,6 +730,7 @@ export default function TipsCarousel({
                   ? "bg-blue-600 w-6 sm:w-8" 
                   : "bg-gray-300 hover:bg-gray-400 w-2"
               )}
+              aria-label={`Go to tip ${index + 1}`}
             />
           ))}
         </div>
