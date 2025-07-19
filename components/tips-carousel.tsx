@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useMemo, useRef } from "react"
 import { motion, useMotionValue, animate, type PanInfo } from "framer-motion"
+import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns"
 
 import { cn } from "@/lib/utils"
 import { tipsService, type Tip } from "@/services/tip.service"
 import { subscriptionService, type SubscriptionAccess } from "@/services/subscription.service"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import DateTimelineSlider from "@/components/date-timeline-slider"
 
 type TipCardData = {
   id: string
@@ -202,6 +204,9 @@ interface TipsCarouselProps {
   isModelPortfolio?: boolean
   sliderSize?: 'default' | 'large'
   userSubscriptionAccess?: SubscriptionAccess;
+  enableDateFilter?: boolean
+  selectedDate?: Date
+  onDateChange?: (date: Date) => void
 }
 
 export default function TipsCarousel({ 
@@ -213,11 +218,16 @@ export default function TipsCarousel({
   isModelPortfolio = false,
   sliderSize = 'default',
   userSubscriptionAccess,
+  enableDateFilter = false,
+  selectedDate,
+  onDateChange,
 }: TipsCarouselProps) {
   const [tips, setTips] = useState<TipCardData[]>([])
+  const [allTips, setAllTips] = useState<TipCardData[]>([]) // Store all tips for filtering
   const [loading, setLoading] = useState(propLoading || false)
   const [subscriptionAccess, setSubscriptionAccess] = useState<SubscriptionAccess | undefined>(userSubscriptionAccess)
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [internalSelectedDate, setInternalSelectedDate] = useState<Date>(selectedDate || new Date())
   const containerRef = useRef<HTMLDivElement>(null)
   const x = useMotionValue(0)
   const router = useRouter()
@@ -234,6 +244,21 @@ export default function TipsCarousel({
   useEffect(() => {
     setSubscriptionAccess(userSubscriptionAccess);
   }, [userSubscriptionAccess]);
+
+  // Update internal selected date when prop changes
+  useEffect(() => {
+    if (selectedDate) {
+      setInternalSelectedDate(selectedDate)
+    }
+  }, [selectedDate])
+
+  // Handle date change
+  const handleDateChange = (date: Date) => {
+    setInternalSelectedDate(date)
+    if (onDateChange) {
+      onDateChange(date)
+    }
+  }
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -329,10 +354,48 @@ export default function TipsCarousel({
     return () => window.removeEventListener('resize', updateDimensions);
   }, []);
 
+  // Calculate date range from all available tips
+  const dateRange = useMemo(() => {
+    if (allTips.length === 0) {
+      const today = new Date()
+      return { min: today, max: today }
+    }
+    
+    const dates = allTips.map(tip => parseISO(tip.date))
+    const minDate = new Date(Math.min(...dates.map(d => d.getTime())))
+    const maxDate = new Date(Math.max(...dates.map(d => d.getTime())))
+    
+    return { min: minDate, max: maxDate }
+  }, [allTips])
+
+  // Filter tips based on selected date if date filtering is enabled
+  const filteredTips = useMemo(() => {
+    if (!enableDateFilter || allTips.length === 0) {
+      return allTips
+    }
+    
+    const selectedDateStart = startOfDay(internalSelectedDate)
+    const selectedDateEnd = endOfDay(internalSelectedDate)
+    
+    return allTips.filter(tip => {
+      const tipDate = parseISO(tip.date)
+      return isWithinInterval(tipDate, { start: selectedDateStart, end: selectedDateEnd })
+    })
+  }, [allTips, enableDateFilter, internalSelectedDate])
+
   const currentTipDate = useMemo(() => {
+    if (enableDateFilter) {
+      return internalSelectedDate
+    }
     if (tips.length === 0 || currentIndex >= tips.length) return new Date()
-    return new Date(tips[currentIndex].date)
-  }, [tips, currentIndex])
+    return parseISO(tips[currentIndex].date)
+  }, [tips, currentIndex, enableDateFilter, internalSelectedDate])
+
+  // Update tips when filtering changes
+  useEffect(() => {
+    setTips(filteredTips)
+    setCurrentIndex(0) // Reset to first tip when filtering changes
+  }, [filteredTips])
 
   const convertTipsToCarouselFormat = (apiTips: Tip[]): TipCardData[] => {
     return apiTips.map((tip, index) => {
@@ -452,6 +515,7 @@ export default function TipsCarousel({
         }
         
         const carouselTips = convertTipsToCarouselFormat(filteredTips)
+        setAllTips(carouselTips)
         setTips(carouselTips)
         setLoading(false)
         return
@@ -473,6 +537,7 @@ export default function TipsCarousel({
         }
         
         const carouselTips = convertTipsToCarouselFormat(apiTips)
+        setAllTips(carouselTips)
         setTips(carouselTips)
       } catch (error) {
         console.error("Failed to fetch tips:", error)
@@ -500,6 +565,7 @@ export default function TipsCarousel({
             title: "BLUESTARCO Premium Analysis"
           },
         ]
+        setAllTips(sampleTips)
         setTips(sampleTips)
       } finally {
         setLoading(false)
@@ -677,23 +743,32 @@ export default function TipsCarousel({
 
       {/* Current Date Display */}
       <div className="mt-6 text-center px-4">
-        <div className="inline-flex items-center relative overflow-hidden backdrop-blur-sm bg-white/80 border border-white/20 px-4 py-2 sm:px-6 sm:py-3 rounded-xl shadow-xl">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-50/50 via-transparent to-purple-50/50 rounded-xl" />
-          
-          <div className="relative flex items-center space-x-2">
-            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            
-            <span className="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 tracking-wide">
-              {currentTipDate.toLocaleDateString('en-GB', { 
-                day: '2-digit', 
-                month: 'long', 
-                year: 'numeric' 
-              })}
-            </span>
-          </div>
-        </div>
+                 {enableDateFilter && allTips.length > 0 ? (
+           <DateTimelineSlider
+             dateRange={dateRange}
+             selectedDate={currentTipDate}
+             onDateChange={handleDateChange}
+             className="mt-2"
+           />
+         ) : (
+           <div className="inline-flex items-center relative overflow-hidden backdrop-blur-sm bg-white/80 border border-white/20 px-4 py-2 sm:px-6 sm:py-3 rounded-xl shadow-xl">
+             <div className="absolute inset-0 bg-gradient-to-r from-blue-50/50 via-transparent to-purple-50/50 rounded-xl" />
+             
+             <div className="relative flex items-center space-x-2">
+               <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+               </svg>
+               
+               <span className="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 tracking-wide">
+                 {currentTipDate.toLocaleDateString('en-GB', { 
+                   day: '2-digit', 
+                   month: 'long', 
+                   year: 'numeric' 
+                 })}
+               </span>
+             </div>
+           </div>
+         )}
       </div>
     </div>
   )
