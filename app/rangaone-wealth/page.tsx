@@ -17,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import TipsCarousel from "@/components/tips-carousel";
+import { useAuth } from "@/components/auth/auth-context"; // Import useAuth
+import { subscriptionService, type SubscriptionAccess } from "@/services/subscription.service"; // Import subscriptionService and SubscriptionAccess
 
 // Helper function to format currency
 const formatCurrency = (value: number) => {
@@ -50,6 +52,9 @@ export default function RangaoneWealth() {
   const router = useRouter();
   const [mainFilter, setMainFilter] = useState<string>("all");
   const [closedFilter, setClosedFilter] = useState<string>("all");
+
+  const { isAuthenticated, isLoading: authLoading } = useAuth(); // Get auth state
+  const [subscriptionAccess, setSubscriptionAccess] = useState<SubscriptionAccess | undefined>(); // State for subscription access
 
   // Load and organize tips
   useEffect(() => {
@@ -85,6 +90,7 @@ export default function RangaoneWealth() {
         }
         
         console.log("Tips organized - Active:", active.length, "Closed:", closed.length);
+        console.log("All Tips data being passed:", sortedTips);
       } catch (error) {
         console.error("Failed to load tips:", error);
         toast({
@@ -102,7 +108,19 @@ export default function RangaoneWealth() {
       }
     }
 
+    // Load subscription access
+    async function loadSubscriptionAccess() {
+      try {
+        const access = await subscriptionService.getSubscriptionAccess(true);
+        setSubscriptionAccess(access);
+        console.log("Subscription access data being passed:", access);
+      } catch (error) {
+        console.error("Failed to load subscription access:", error);
+      }
+    }
+
     loadTips();
+    loadSubscriptionAccess();
   }, [toast]);
 
   // Memoized date ranges
@@ -235,6 +253,7 @@ export default function RangaoneWealth() {
             onTipClick={handleTipClick} 
             categoryFilter={mainFilter as 'basic' | 'premium' | 'all'}
             sliderSize="large"
+            userSubscriptionAccess={subscriptionAccess} // Pass subscription access
           />
         </CardContent>
       </Card>

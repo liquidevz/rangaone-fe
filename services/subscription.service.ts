@@ -1,23 +1,42 @@
 import { authService } from "./auth.service";
 import { get } from "@/lib/axios";
+import { bundleService } from "./bundle.service"; // Import bundleService
 
 export interface UserSubscription {
   _id: string;
-  user: string;
+  user: string | {
+    _id: string;
+    username: string;
+    email: string;
+    [key: string]: any;
+  };
   productType: 'Portfolio' | 'Bundle';
-  productId: string;
+  productId: string | {
+    _id: string;
+    name: string;
+    category?: string; // For bundles
+    PortfolioCategory?: string; // For portfolios
+    [key: string]: any;
+  };
   portfolio?: string | {
     _id: string;
     name: string;
+    PortfolioCategory?: string;
+    [key: string]: any;
   };
   bundle?: {
     _id: string;
     name: string;
+    category?: string;
   };
-  planType: "monthly" | "quarterly" | "yearly";
-  lastPaidAt: string | null;
-  missedCycles: number;
+  planType?: "monthly" | "quarterly" | "yearly";
+  lastPaidAt?: string | null;
+  lastRenewed?: string;
+  missedCycles?: number;
   isActive: boolean;
+  startDate?: string;
+  endDate?: string;
+  expiryDate?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -47,40 +66,6 @@ export const subscriptionService = {
   forceRefresh: async (): Promise<SubscriptionAccess> => {
     subscriptionService.clearCache();
     return await subscriptionService.getSubscriptionAccess();
-  },
-
-  // Emergency fix: Force premium access if user has any active subscriptions
-  // Use this if user paid for premium but system shows individual access
-  emergencyGrantPremium: async (): Promise<SubscriptionAccess> => {
-    try {
-      const subscriptions = await subscriptionService.getUserSubscriptions(true);
-      console.log("Emergency premium grant - checking subscriptions:", subscriptions);
-      
-      if (subscriptions.length > 0) {
-        console.log("✅ User has active subscriptions - granting premium access");
-        
-        // Override the normal logic and force premium
-        const emergencyAccess: SubscriptionAccess = {
-          hasBasic: false,
-          hasPremium: true,
-          portfolioAccess: [],
-          subscriptionType: 'premium'
-        };
-        
-        // Cache this emergency access
-        subscriptionService._accessCache = emergencyAccess;
-        subscriptionService._cacheExpiry = Date.now() + (5 * 60 * 1000); // 5 minutes
-        
-        console.log("Emergency premium access granted:", emergencyAccess);
-        return emergencyAccess;
-      } else {
-        console.log("❌ No subscriptions found - cannot grant premium");
-        return await subscriptionService.getSubscriptionAccess(true);
-      }
-    } catch (error) {
-      console.error("Emergency premium grant failed:", error);
-      return await subscriptionService.getSubscriptionAccess(true);
-    }
   },
 
   // Check what type of plan the user intended to purchase vs what they got
@@ -272,46 +257,73 @@ export const subscriptionService = {
       let hasPremium = false;
       const portfolioAccess: string[] = [];
 
-      // TEMPORARY FIX: If user has any active subscriptions, assume they should have premium access
-      // This helps identify whether the issue is in subscription detection or access logic
-      if (activeSubscriptions.length > 0) {
-        console.log("🔧 TEMPORARY FIX: User has active subscriptions - granting premium access");
-        hasPremium = true;
-      }
-
       for (const subscription of activeSubscriptions) {
         console.log("Processing subscription:", subscription);
         
         if (subscription.productType === 'Bundle') {
-          // ALL Bundle subscriptions are premium (as per your API docs)
-          hasPremium = true;
-          console.log("Bundle subscription detected - granting premium access:", {
-            name: subscription.bundle?.name,
-            id: subscription.productId,
-            planType: subscription.planType
-          });
+          // Extract bundle ID and check for category
+          let bundleId: string;
+          let bundleCategory: string | undefined;
           
-          // Special case: check if it's explicitly a basic bundle
-          const bundleName = subscription.bundle?.name?.toLowerCase() || '';
-          if (subscription.productId === 'basic-plan-id' || bundleName.includes('basic')) {
-            hasBasic = true;
-            hasPremium = false; // Override premium if it's basic
-            console.log("Basic bundle identified - overriding to basic access");
+          if (typeof subscription.productId === 'string') {
+            bundleId = subscription.productId;
+          } else if (subscription.productId && typeof subscription.productId === 'object') {
+            bundleId = subscription.productId._id;
+            bundleCategory = subscription.productId.category;
+          } else {
+            console.log("Invalid productId format for bundle subscription:", subscription.productId);
+            continue;
+          }
+          
+          // If we already have the category from the subscription object, use it
+          if (bundleCategory) {
+            if (bundleCategory === 'basic') {
+              hasBasic = true;
+              console.log("Basic bundle detected from subscription object - granting basic access");
+            } else if (bundleCategory === 'premium') {
+              hasPremium = true;
+              console.log("Premium bundle detected from subscription object - granting premium access");
+            }
+          } else {
+            // Fetch full bundle details to get the category
+            const fullBundle = await bundleService.getById(bundleId);
+            console.log("Full bundle fetched:", fullBundle); // Add this log
+
+            if (fullBundle) {
+              if (fullBundle.category === 'basic') {
+                hasBasic = true;
+                console.log("Basic bundle detected - granting basic access:", fullBundle.name);
+              } else if (fullBundle.category === 'premium') {
+                hasPremium = true;
+                console.log("Premium bundle detected - granting premium access:", fullBundle.name);
+              }
+            } else {
+              console.log("Could not fetch full bundle details for bundleId:", bundleId);
+              // Fallback to name-based check if bundle details can't be fetched
+              const bundleName = subscription.bundle?.name?.toLowerCase() || '';
+              if (bundleId === 'basic-plan-id' || bundleName.includes('basic')) {
+                hasBasic = true; 
+                console.log("Basic bundle (fallback) detected - granting basic access");
+              } else { // Assume premium if it's a bundle and not explicitly basic
+                hasPremium = true;
+                console.log("Premium bundle (fallback) detected - granting premium access");
+              }
+            }
           }
           
         } else if (subscription.productType === 'Portfolio') {
           // Individual portfolio subscription - gives access to specific portfolios
           let portfolioId: string | null = null;
           
-          if (typeof subscription.portfolio === 'string') {
-            // Portfolio is a string ID
+          // Extract portfolio ID from various possible locations
+          if (typeof subscription.productId === 'string') {
+            portfolioId = subscription.productId;
+          } else if (subscription.productId && typeof subscription.productId === 'object') {
+            portfolioId = subscription.productId._id;
+          } else if (typeof subscription.portfolio === 'string') {
             portfolioId = subscription.portfolio;
           } else if (subscription.portfolio?._id) {
-            // Portfolio is an object with _id
             portfolioId = subscription.portfolio._id;
-          } else if (subscription.productId) {
-            // Fallback: use productId if it exists
-            portfolioId = subscription.productId;
           }
           
           if (portfolioId) {
@@ -326,15 +338,7 @@ export const subscriptionService = {
         }
       }
 
-      // Special logic: If user has multiple portfolio subscriptions (2+), treat as premium
-      // This handles cases where bundle subscriptions might be recorded as individual portfolios
-      // TEMPORARY FIX: Since user expects premium but got individual portfolios
-      if (!hasPremium && portfolioAccess.length >= 2) {
-        console.log(`User has ${portfolioAccess.length} portfolio subscriptions - treating as premium access (likely intended bundle purchase)`);
-        hasPremium = true;
-      }
-
-      // Determine subscription type
+      // Determine subscription type hierarchically
       let subscriptionType: 'none' | 'basic' | 'premium' | 'individual' = 'none';
       if (hasPremium) {
         subscriptionType = 'premium';
@@ -404,4 +408,4 @@ export const subscriptionService = {
       return false;
     }
   }
-}; 
+};

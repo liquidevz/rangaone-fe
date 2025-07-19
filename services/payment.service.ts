@@ -12,11 +12,13 @@ export interface CreateOrderPayload {
   productType: "Portfolio" | "Bundle";
   productId: string;
   planType?: "monthly" | "quarterly" | "yearly";
+  subscriptionType?: "basic" | "premium" | "individual"; // Added for subscription type tracking
 }
 
 // Updated interface for cart checkout
 export interface CartCheckoutPayload {
   planType: "monthly" | "quarterly" | "yearly";
+  subscriptionType?: "basic" | "premium" | "individual"; // Added for subscription type tracking
 }
 
 export interface CreateOrderResponse {
@@ -80,17 +82,13 @@ export const paymentService = {
     );
   },
 
-  // Updated cart checkout to include planType
+  // Updated cart checkout to include planType and subscriptionType
   cartCheckout: async (
-    planType: "monthly" | "quarterly" | "yearly" = "monthly"
+    payload: CartCheckoutPayload
   ): Promise<CreateOrderResponse> => {
     const token = authService.getAccessToken();
 
-    console.log("Payment service - cart checkout with planType:", planType);
-
-    const payload: CartCheckoutPayload = {
-      planType,
-    };
+    console.log("Payment service - cart checkout with payload:", payload);
 
     return await post<CreateOrderResponse>(
       "/api/subscriptions/checkout",

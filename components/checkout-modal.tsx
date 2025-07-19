@@ -98,15 +98,15 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         if (bundle) {
           // Check if it's the basic plan (dummy ID)
           if (bundle._id === "basic-plan-id" || isBasicPlan) {
-            // Basic plan purchase - show message that it's not available yet
-            setPaymentStep("error");
-            toast({
-              title: "Basic Plan Coming Soon",
-              description:
-                "Basic plan payment integration is being set up. Please contact support for assistance.",
-              variant: "destructive",
+            // Basic plan purchase - pass 'basic' as subscriptionType
+            orderResponse = await paymentService.createOrder({
+              productType: "Bundle",
+              productId: bundle._id,
+              planType: subscriptionType,
+              subscriptionType: "basic",
             });
-            return;
+            console.log("Order created for basic plan:", orderResponse);
+
           } else {
             // Use regular order API for all subscription types (including yearly)
             // The eMandate endpoints are not available yet, so we'll use regular orders
@@ -115,6 +115,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               productType: "Bundle",
               productId: bundle._id,
               planType: subscriptionType,
+              subscriptionType: "premium", // Assuming all other bundles are premium
             });
             console.log("Order created:", orderResponse);
           }
@@ -124,12 +125,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             productType: "Portfolio",
             productId: portfolio._id,
             planType: subscriptionType,
+            subscriptionType: "individual",
           });
 
           orderResponse = await paymentService.createOrder({
             productType: "Portfolio",
             productId: portfolio._id,
             planType: subscriptionType,
+            subscriptionType: "individual",
           });
         } else {
           throw new Error("No product selected for purchase");
@@ -137,7 +140,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       } else if (type === "cart") {
         // Cart checkout - use regular checkout for all subscription types
         console.log("Creating cart checkout order with planType:", subscriptionType);
-        orderResponse = await paymentService.cartCheckout(subscriptionType);
+        // Determine cart subscription type based on items in cart, for now assume premium if it's not basic.
+        // A more robust solution might involve checking each item's category.
+        const cartSubscriptionType = isBasicPlan ? "basic" : "premium";
+
+        orderResponse = await paymentService.cartCheckout({
+          planType: subscriptionType,
+          subscriptionType: cartSubscriptionType,
+        });
         console.log("Cart checkout created:", orderResponse);
       } else {
         throw new Error("Invalid checkout configuration");

@@ -29,35 +29,35 @@ export default function SettingsPage() {
                 <TabsList className="bg-transparent p-0 h-auto flex w-full justify-start">
                   <TabsTrigger
                     value="profile"
-                    className="flex items-center py-4 px-6 data-[state=active]:border-b-2 data-[state=active]:border-indigo-900 data-[state=active]:text-indigo-900 data-[state=active]:font-medium rounded-none data-[state=active]:shadow-none data-[state=active]:bg-transparent"
+                    className="flex items-center py-4 px-2 sm:px-6 data-[state=active]:border-b-2 data-[state=active]:border-indigo-900 data-[state=active]:text-indigo-900 data-[state=active]:font-medium rounded-none data-[state=active]:shadow-none data-[state=active]:bg-transparent"
                   >
                     <User className="h-4 w-4 mr-2" />
                     Profile
                   </TabsTrigger>
                   <TabsTrigger
                     value="portfolios"
-                    className="flex items-center py-4 px-6 data-[state=active]:border-b-2 data-[state=active]:border-indigo-900 data-[state=active]:text-indigo-900 data-[state=active]:font-medium rounded-none data-[state=active]:shadow-none data-[state=active]:bg-transparent"
+                    className="flex items-center py-4 px-2 sm:px-6 data-[state=active]:border-b-2 data-[state=active]:border-indigo-900 data-[state=active]:text-indigo-900 data-[state=active]:font-medium rounded-none data-[state=active]:shadow-none data-[state=active]:bg-transparent"
                   >
                     <Briefcase className="h-4 w-4 mr-2" />
                     Portfolios
                   </TabsTrigger>
                   <TabsTrigger
                     value="subscriptions"
-                    className="flex items-center py-4 px-6 data-[state=active]:border-b-2 data-[state=active]:border-indigo-900 data-[state=active]:text-indigo-900 data-[state=active]:font-medium rounded-none data-[state=active]:shadow-none data-[state=active]:bg-transparent"
+                    className="flex items-center py-4 px-2 sm:px-6 data-[state=active]:border-b-2 data-[state=active]:border-indigo-900 data-[state=active]:text-indigo-900 data-[state=active]:font-medium rounded-none data-[state=active]:shadow-none data-[state=active]:bg-transparent"
                   >
                     <Settings className="h-4 w-4 mr-2" />
                     Subscriptions
                   </TabsTrigger>
                   <TabsTrigger
                     value="payments"
-                    className="flex items-center py-4 px-6 data-[state=active]:border-b-2 data-[state=active]:border-indigo-900 data-[state=active]:text-indigo-900 data-[state=active]:font-medium rounded-none data-[state=active]:shadow-none data-[state=active]:bg-transparent"
+                    className="flex items-center py-4 px-2 sm:px-6 data-[state=active]:border-b-2 data-[state=active]:border-indigo-900 data-[state=active]:text-indigo-900 data-[state=active]:font-medium rounded-none data-[state=active]:shadow-none data-[state=active]:bg-transparent"
                   >
                     <CreditCard className="h-4 w-4 mr-2" />
                     Payments
                   </TabsTrigger>
                   <TabsTrigger
                     value="notifications"
-                    className="flex items-center py-4 px-6 data-[state=active]:border-b-2 data-[state=active]:border-indigo-900 data-[state=active]:text-indigo-900 data-[state=active]:font-medium rounded-none data-[state=active]:shadow-none data-[state=active]:bg-transparent"
+                    className="flex items-center py-4 px-2 sm:px-6 data-[state=active]:border-b-2 data-[state=active]:border-indigo-900 data-[state=active]:text-indigo-900 data-[state=active]:font-medium rounded-none data-[state=active]:shadow-none data-[state=active]:bg-transparent"
                   >
                     <Bell className="h-4 w-4 mr-2" />
                     Notifications

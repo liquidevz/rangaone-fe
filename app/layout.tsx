@@ -5,7 +5,7 @@ import { AuthProvider } from "@/components/auth/auth-context";
 import { CartProvider } from "@/components/cart/cart-context";
 import AuthGuard from "@/components/auth/auth-guard";
 import { Toaster } from "@/components/ui/toaster";
-import { DebugCartButton } from "@/components/debug-cart-button";
+
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -25,11 +25,11 @@ export default function RootLayout({
         <AuthProvider>
           <CartProvider>
             <AuthGuard>
-              <div className="min-h-screen bg-gray-50">
+              <div className="min-h-screen bg-gray-50 overflow-x-hidden">
                 <main>
                   {children}
                 </main>
-                <DebugCartButton />
+
               </div>
               <Toaster />
             </AuthGuard>

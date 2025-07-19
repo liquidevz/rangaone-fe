@@ -98,7 +98,7 @@ export const cartService = {
   },
 
   // Add subscription bundle to cart - treating bundles as special portfolios
-  addBundleToCart: async (bundleId: string, subscriptionType: "monthly" | "quarterly" | "yearly" = "monthly"): Promise<Cart> => {
+  addBundleToCart: async (bundleId: string, subscriptionType: "monthly" | "quarterly" | "yearly" = "monthly", planCategory?: "basic" | "premium"): Promise<Cart> => {
     const token = authService.getAccessToken();
     
     // For bundles, we'll use a special payload format that the backend can handle
@@ -107,7 +107,8 @@ export const cartService = {
       portfolioId: bundleId, // Using portfolioId field but with bundle ID
       quantity: 1,
       itemType: "bundle", // Adding type indicator
-      subscriptionType
+      subscriptionType,
+      ...(planCategory && { planCategory }),
     };
 
     return await post<Cart>("/api/user/cart", payload, {

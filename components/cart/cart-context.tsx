@@ -16,7 +16,7 @@ interface CartContextType {
   error: string | null;
   refreshCart: () => Promise<void>;
   addToCart: (portfolioId: string, quantity?: number) => Promise<void>;
-  addBundleToCart: (bundleId: string, subscriptionType?: "monthly" | "quarterly" | "yearly") => Promise<void>;
+  addBundleToCart: (bundleId: string, subscriptionType?: "monthly" | "quarterly" | "yearly", planCategory?: "basic" | "premium") => Promise<void>;
   updateQuantity: (portfolioId: string, newQuantity: number) => Promise<void>;
   setQuantity: (portfolioId: string, exactQuantity: number) => Promise<void>;
   removeFromCart: (portfolioId: string) => Promise<void>;
@@ -133,9 +133,9 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         localCartService.clearLocalCart();
         validItems.forEach(item => {
           if (item.itemType === "bundle") {
-            localCartService.addBundleToLocalCart(item.bundleId!, item.subscriptionType, item.itemData);
+            localCartService.addBundleToLocalCart(item.bundleId!, item.subscriptionType, item.itemData, item.planCategory);
           } else {
-            localCartService.addPortfolioToLocalCart(item.portfolioId, item.quantity, item.subscriptionType, item.itemData);
+            localCartService.addPortfolioToLocalCart(item.portfolioId, item.quantity, item.subscriptionType, item.itemData, item.planCategory);
           }
         });
         setLocalCart(cleanedCart);
@@ -327,7 +327,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       for (const localItem of localCartData.items) {
         try {
           if (localItem.itemType === "bundle") {
-            await cartService.addBundleToCart(localItem.bundleId!, localItem.subscriptionType);
+            await cartService.addBundleToCart(localItem.bundleId!, localItem.subscriptionType, localItem.planCategory);
           } else {
             await cartService.addToCart({ 
               portfolioId: localItem.portfolioId, 
@@ -489,7 +489,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   };
 
   // Enhanced add bundle to cart with subscription check
-  const addBundleToCart = async (bundleId: string, subscriptionType: "monthly" | "quarterly" | "yearly" = "monthly") => {
+  const addBundleToCart = async (bundleId: string, subscriptionType: "monthly" | "quarterly" | "yearly" = "monthly", planCategory?: "basic" | "premium") => {
     try {
       setError(null);
       
@@ -520,7 +520,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         }
         
         // Add to server cart
-        const updatedCart = await cartService.addBundleToCart(bundleId, subscriptionType);
+        const updatedCart = await cartService.addBundleToCart(bundleId, subscriptionType, planCategory);
         setCart(updatedCart);
         console.log("Added bundle to server cart:", bundleId, subscriptionType);
       } else {
@@ -537,7 +537,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         const updatedLocalCart = localCartService.addBundleToLocalCart(
           bundleId,
           subscriptionType,
-          itemData
+          itemData,
+          planCategory
         );
         setLocalCart(updatedLocalCart);
         console.log("Added bundle to local cart:", bundleId, subscriptionType);

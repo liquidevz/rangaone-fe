@@ -44,7 +44,7 @@ export default function RecommendationSlider({ recommendations, date = "17 April
       <div className="text-right mb-2 text-sm text-gray-600 font-medium">+1.04% Since Inception</div>
       <div className="flex flex-wrap gap-4 justify-center">
         {recommendations.map((item) => (
-          <Card key={item.id} className={cn("border-2 overflow-hidden h-24 w-[280px]", getCardColor(item.type))}>
+          <Card key={item.id} className={cn("border-2 overflow-hidden h-24 w-full max-w-[280px] min-w-[260px]", getCardColor(item.type))}>
             <CardContent className="p-0">
               <div className="bg-gray-800 text-white text-xs font-medium py-1 px-2">{item.type}</div>
               <div className="p-3">

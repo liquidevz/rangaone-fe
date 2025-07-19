@@ -242,242 +242,142 @@ export class LocalCartService {
     portfolioId: string, 
     quantity: number = 1,
     subscriptionType: "monthly" | "quarterly" | "yearly" = "monthly",
-    itemData: LocalCartItem["itemData"]
+    itemData: LocalCartItem["itemData"],
+    planCategory?: "basic" | "premium" | "individual"
   ): LocalCart {
-    try {
-      if (!portfolioId || quantity <= 0) {
-        throw new Error("Invalid portfolio ID or quantity");
+    const currentCart = this.getLocalCart();
+    const existingItemIndex = currentCart.items.findIndex(
+      (item) => item.portfolioId === portfolioId && item.itemType === "portfolio"
+    );
+
+    if (existingItemIndex > -1) {
+      // Update quantity if item already exists
+      currentCart.items[existingItemIndex].quantity += quantity;
+      // Ensure latest itemData is used
+      currentCart.items[existingItemIndex].itemData = itemData;
+      currentCart.items[existingItemIndex].subscriptionType = subscriptionType;
+      if (planCategory) {
+        currentCart.items[existingItemIndex].planCategory = planCategory;
       }
-
-      const cart = this.getLocalCart();
-      const existingItemIndex = cart.items.findIndex(
-        item => item.portfolioId === portfolioId && item.itemType === "portfolio"
-      );
-
-      if (existingItemIndex >= 0) {
-        // Update existing item quantity
-        cart.items[existingItemIndex].quantity += quantity;
-        cart.items[existingItemIndex].subscriptionType = subscriptionType;
-        cart.items[existingItemIndex].itemData = { ...itemData }; // Update item data
-        console.log(`Updated existing portfolio ${portfolioId} quantity to ${cart.items[existingItemIndex].quantity}`);
-      } else {
-        // Add new item
-        const newItem: LocalCartItem = {
-          portfolioId,
-          quantity,
-          subscriptionType,
-          itemType: "portfolio",
-          addedAt: new Date().toISOString(),
-          itemData: { ...itemData }
-        };
-        cart.items.push(newItem);
-        console.log(`Added new portfolio ${portfolioId} with quantity ${quantity}`);
-      }
-
-      this.saveLocalCart(cart);
-      return cart;
-    } catch (error) {
-      console.error("Failed to add portfolio to local cart:", error);
-      throw error;
+    } else {
+      // Add new item
+      currentCart.items.push({
+        portfolioId,
+        quantity,
+        addedAt: new Date().toISOString(),
+        itemType: "portfolio",
+        subscriptionType,
+        itemData,
+        ...(planCategory && { planCategory }),
+      });
     }
+    this.saveLocalCart(currentCart);
+    return currentCart;
   }
 
   // Add bundle to local cart with enhanced error handling
   addBundleToLocalCart(
     bundleId: string,
     subscriptionType: "monthly" | "quarterly" | "yearly" = "monthly",
-    itemData: LocalCartItem["itemData"]
+    itemData: LocalCartItem["itemData"],
+    planCategory?: "basic" | "premium" | "individual"
   ): LocalCart {
-    try {
-      if (!bundleId) {
-        throw new Error("Invalid bundle ID");
+    const currentCart = this.getLocalCart();
+    const existingItemIndex = currentCart.items.findIndex(
+      (item) => item.bundleId === bundleId && item.itemType === "bundle"
+    );
+
+    if (existingItemIndex > -1) {
+      // Update quantity (bundles are typically quantity 1, but for consistency)
+      currentCart.items[existingItemIndex].quantity += 1;
+      // Ensure latest itemData is used
+      currentCart.items[existingItemIndex].itemData = itemData;
+      currentCart.items[existingItemIndex].subscriptionType = subscriptionType;
+      if (planCategory) {
+        currentCart.items[existingItemIndex].planCategory = planCategory;
       }
-
-      const cart = this.getLocalCart();
-      const existingItemIndex = cart.items.findIndex(
-        item => item.bundleId === bundleId && item.itemType === "bundle"
-      );
-
-      if (existingItemIndex >= 0) {
-        // Update existing bundle subscription type
-        cart.items[existingItemIndex].subscriptionType = subscriptionType;
-        cart.items[existingItemIndex].itemData = { ...itemData }; // Update item data
-        console.log(`Updated existing bundle ${bundleId} subscription type to ${subscriptionType}`);
-      } else {
-        // Add new bundle (quantity is always 1 for bundles)
-        const newItem: LocalCartItem = {
-          portfolioId: bundleId, // Using portfolioId for consistency
-          bundleId,
-          quantity: 1,
-          subscriptionType,
-          itemType: "bundle",
-          addedAt: new Date().toISOString(),
-          itemData: { ...itemData }
-        };
-        cart.items.push(newItem);
-        console.log(`Added new bundle ${bundleId} with subscription type ${subscriptionType}`);
-      }
-
-      this.saveLocalCart(cart);
-      return cart;
-    } catch (error) {
-      console.error("Failed to add bundle to local cart:", error);
-      throw error;
+    } else {
+      // Add new bundle
+      currentCart.items.push({
+        portfolioId: bundleId, // Use bundleId as portfolioId for consistent access
+        bundleId,
+        quantity: 1,
+        addedAt: new Date().toISOString(),
+        itemType: "bundle",
+        subscriptionType,
+        itemData,
+        ...(planCategory && { planCategory }),
+      });
     }
+    this.saveLocalCart(currentCart);
+    return currentCart;
   }
 
   // Remove item from local cart with enhanced error handling
   removeFromLocalCart(itemId: string): LocalCart {
-    try {
-      if (!itemId) {
-        throw new Error("Invalid item ID");
-      }
-
-      const cart = this.getLocalCart();
-      const initialLength = cart.items.length;
-      
-      cart.items = cart.items.filter(
-        item => item.portfolioId !== itemId && item.bundleId !== itemId
-      );
-
-      const removedCount = initialLength - cart.items.length;
-      console.log(`Removed ${removedCount} item(s) with ID ${itemId}`);
-
-      this.saveLocalCart(cart);
-      return cart;
-    } catch (error) {
-      console.error("Failed to remove from local cart:", error);
-      throw error;
-    }
+    const currentCart = this.getLocalCart();
+    currentCart.items = currentCart.items.filter(
+      (item) => item.portfolioId !== itemId && item.bundleId !== itemId
+    );
+    this.saveLocalCart(currentCart);
+    return currentCart;
   }
 
   // Update item quantity in local cart with enhanced error handling
   updateLocalCartQuantity(itemId: string, newQuantity: number): LocalCart {
-    try {
-      if (!itemId) {
-        throw new Error("Invalid item ID");
-      }
+    const currentCart = this.getLocalCart();
+    const itemIndex = currentCart.items.findIndex(
+      (item) => item.portfolioId === itemId || item.bundleId === itemId
+    );
 
-      const cart = this.getLocalCart();
-      const itemIndex = cart.items.findIndex(
-        item => item.portfolioId === itemId || item.bundleId === itemId
-      );
-
-      if (itemIndex >= 0) {
-        if (newQuantity <= 0) {
-          // Remove item if quantity is 0 or less
-          cart.items.splice(itemIndex, 1);
-          console.log(`Removed item ${itemId} (quantity was ${newQuantity})`);
-        } else {
-          cart.items[itemIndex].quantity = newQuantity;
-          console.log(`Updated item ${itemId} quantity to ${newQuantity}`);
-        }
+    if (itemIndex > -1) {
+      if (newQuantity <= 0) {
+        currentCart.items.splice(itemIndex, 1);
       } else {
-        console.warn(`Item ${itemId} not found in cart`);
+        currentCart.items[itemIndex].quantity = newQuantity;
       }
-
-      this.saveLocalCart(cart);
-      return cart;
-    } catch (error) {
-      console.error("Failed to update local cart quantity:", error);
-      throw error;
     }
+    this.saveLocalCart(currentCart);
+    return currentCart;
   }
 
   // Clear local cart with enhanced error handling
   clearLocalCart(): void {
-    try {
-      console.log("Clearing local cart");
-      
-      // Clear from storage
-      this.removeFromStorage(CART_STORAGE_KEY);
-      this.removeFromStorage(CART_BACKUP_KEY);
-      
-      // Clear fallback
-      this.fallbackCart = { items: [], lastUpdated: new Date().toISOString() };
-      
-      console.log("Local cart cleared successfully");
-    } catch (error) {
-      console.error("Failed to clear local cart:", error);
-      // Force clear fallback even if storage fails
-      this.fallbackCart = { items: [], lastUpdated: new Date().toISOString() };
-    }
+    this.removeFromStorage(CART_STORAGE_KEY);
+    this.removeFromStorage(CART_BACKUP_KEY);
+    this.fallbackCart = { items: [], lastUpdated: new Date().toISOString() };
+    console.log("Local cart cleared");
   }
 
   // Get local cart item count with error handling
   getLocalCartItemCount(): number {
-    try {
-      const cart = this.getLocalCart();
-      return cart.items.reduce((total, item) => total + item.quantity, 0);
-    } catch (error) {
-      console.error("Failed to get local cart item count:", error);
-      return 0;
-    }
+    return this.getLocalCart().items.reduce((count, item) => count + item.quantity, 0);
   }
 
   // Check if item is in local cart with error handling
   isInLocalCart(itemId: string): boolean {
-    try {
-      if (!itemId) return false;
-      
-      const cart = this.getLocalCart();
-      return cart.items.some(
-        item => item.portfolioId === itemId || item.bundleId === itemId
-      );
-    } catch (error) {
-      console.error("Failed to check if item is in local cart:", error);
-      return false;
-    }
+    return this.getLocalCart().items.some(
+      (item) => item.portfolioId === itemId || item.bundleId === itemId
+    );
   }
 
   // Get item quantity from local cart with error handling
   getLocalItemQuantity(itemId: string): number {
-    try {
-      if (!itemId) return 0;
-      
-      const cart = this.getLocalCart();
-      const item = cart.items.find(
-        item => item.portfolioId === itemId || item.bundleId === itemId
-      );
-      return item?.quantity || 0;
-    } catch (error) {
-      console.error("Failed to get local item quantity:", error);
-      return 0;
-    }
+    const item = this.getLocalCart().items.find(
+      (i) => i.portfolioId === itemId || i.bundleId === itemId
+    );
+    return item ? item.quantity : 0;
   }
 
   // Calculate local cart total for a subscription type with error handling
   calculateLocalCartTotal(subscriptionType: "monthly" | "quarterly" | "yearly"): number {
-    try {
-      const cart = this.getLocalCart();
-      return cart.items.reduce((total, item) => {
-        let price = 0;
-        
-        if (item.itemType === "bundle") {
-          // Bundle pricing
-          switch (subscriptionType) {
-            case "yearly":
-              price = item.itemData.yearlyPrice || 0;
-              break;
-            case "quarterly":
-              price = item.itemData.quarterlyPrice || 0;
-              break;
-            default:
-              price = item.itemData.monthlyPrice || 0;
-              break;
-          }
-        } else {
-          // Portfolio pricing
-          const fee = item.itemData.subscriptionFee?.find(f => f.type === subscriptionType);
-          price = fee?.price || 0;
-        }
-        
-        return total + (price * item.quantity);
-      }, 0);
-    } catch (error) {
-      console.error("Failed to calculate local cart total:", error);
-      return 0;
-    }
+    const cart = this.getLocalCart();
+    return cart.items.reduce((total, item) => {
+      const priceInfo = item.itemData.subscriptionFee?.find(
+        (fee: any) => fee.type === subscriptionType
+      );
+      return total + (priceInfo?.price || 0) * item.quantity;
+    }, 0);
   }
 
   // Convert local cart to server cart format for syncing
@@ -486,30 +386,21 @@ export class LocalCartService {
     quantity: number;
     itemType?: string;
     subscriptionType?: string;
+    planCategory?: string; // Add planCategory here
   }> {
-    try {
-      const cart = this.getLocalCart();
-      return cart.items.map(item => ({
-        portfolioId: item.bundleId || item.portfolioId,
-        quantity: item.quantity,
-        itemType: item.itemType,
-        subscriptionType: item.subscriptionType
-      }));
-    } catch (error) {
-      console.error("Failed to convert local cart to server format:", error);
-      return [];
-    }
+    const localCart = this.getLocalCart();
+    return localCart.items.map((item) => ({
+      portfolioId: item.itemType === "bundle" ? item.bundleId! : item.portfolioId,
+      quantity: item.quantity,
+      itemType: item.itemType,
+      subscriptionType: item.subscriptionType,
+      ...(item.planCategory && { planCategory: item.planCategory }), // Include planCategory if it exists
+    }));
   }
 
   // Check if local cart has any items with error handling
   hasItems(): boolean {
-    try {
-      const cart = this.getLocalCart();
-      return cart.items.length > 0;
-    } catch (error) {
-      console.error("Failed to check if cart has items:", error);
-      return false;
-    }
+    return this.getLocalCart().items.length > 0;
   }
 
   // Get local cart summary for display with error handling
@@ -523,23 +414,22 @@ export class LocalCartService {
       quantity: number;
     }>;
   } {
-    try {
-      const cart = this.getLocalCart();
-      const itemCount = this.getLocalCartItemCount();
-      const totalValue = this.calculateLocalCartTotal("monthly"); // Default to monthly for summary
-      
-      const items = cart.items.map(item => ({
-        id: item.bundleId || item.portfolioId,
-        name: item.itemData.name,
-        type: item.itemType,
-        quantity: item.quantity
-      }));
+    const cart = this.getLocalCart();
+    const itemCount = cart.items.reduce((sum, item) => sum + item.quantity, 0);
+    const totalValue = this.calculateLocalCartTotal("monthly"); // Or a more appropriate default/selected type
 
-      return { itemCount, totalValue, items };
-    } catch (error) {
-      console.error("Failed to get cart summary:", error);
-      return { itemCount: 0, totalValue: 0, items: [] };
-    }
+    const items = cart.items.map((item) => ({
+      id: item.itemType === "bundle" ? item.bundleId! : item.portfolioId,
+      name: item.itemData.name,
+      type: item.itemType,
+      quantity: item.quantity,
+    }));
+
+    return {
+      itemCount,
+      totalValue,
+      items,
+    };
   }
 
   // Get storage status information
@@ -548,21 +438,28 @@ export class LocalCartService {
     size: number;
     backupAvailable: boolean;
   } {
-    try {
-      const cartData = this.getFromStorage(CART_STORAGE_KEY);
-      const backupData = this.getFromStorage(CART_BACKUP_KEY);
-      
-      return {
-        available: this.storageAvailable,
-        size: cartData ? cartData.length : 0,
-        backupAvailable: !!backupData
-      };
-    } catch (error) {
-      console.error("Failed to get storage status:", error);
+    if (!this.isBrowser()) {
       return {
         available: false,
         size: 0,
-        backupAvailable: false
+        backupAvailable: false,
+      };
+    }
+
+    try {
+      const cartData = this.getFromStorage(CART_STORAGE_KEY);
+      const backupData = this.getFromStorage(CART_BACKUP_KEY);
+      return {
+        available: this.storageAvailable,
+        size: cartData ? new TextEncoder().encode(cartData).length : 0,
+        backupAvailable: !!backupData,
+      };
+    } catch (error) {
+      console.error("Error getting storage status:", error);
+      return {
+        available: false,
+        size: 0,
+        backupAvailable: false,
       };
     }
   }

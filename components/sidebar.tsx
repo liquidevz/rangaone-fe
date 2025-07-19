@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import {
   BarChart2,
   ChevronDown,
+  ChevronLeft,
   Home,
   LineChart,
   Play,
@@ -13,14 +14,17 @@ import {
   Briefcase,
   X,
   TrendingUp,
+  Menu,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 const navigationItems = [
@@ -68,8 +72,9 @@ const navigationItems = [
   },
 ];
 
-export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     Overview: true,
     Resources: true,
@@ -81,16 +86,23 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   }, []);
 
   const toggleSection = (section: string) => {
+    if (isCollapsed) return; // Don't allow section toggling when collapsed
     setExpandedSections((prev) => ({
       ...prev,
       [section]: !prev[section],
     }));
   };
 
-  const handleMobileNavClick = () => {
-    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
-      onClose();
+  const handleNavClick = (href: string) => {
+    // Close sidebar on mobile always, and on desktop when collapsed
+    if (typeof window !== 'undefined') {
+      if (window.innerWidth < 1024) {
+        onClose();
+      } else if (isCollapsed) {
+        onClose(); // This will actually just indicate navigation happened
+      }
     }
+    router.push(href);
   };
 
   const isActive = (href: string) => {
@@ -104,11 +116,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile overlay with blur effect */}
+      {/* Mobile overlay with enhanced blur effect */}
       {isOpen && (
         <div
-          data-sidebar-overlay="true"
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden transition-all duration-300"
+          className="fixed inset-0 bg-black/50 backdrop-blur-md z-40 lg:hidden transition-all duration-300"
           onClick={onClose}
         />
       )}
@@ -116,30 +127,56 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-br from-slate-50 via-white to-blue-50/30",
-          "border-r border-gray-200/60 shadow-2xl backdrop-blur-xl",
-          "transition-all duration-300 ease-out",
-          "lg:shadow-lg lg:translate-x-0 lg:z-0 lg:relative lg:w-64",
-          isOpen ? "translate-x-0" : "-translate-x-full"
+          // Base styles
+          "bg-gradient-to-br from-slate-50 via-white to-blue-50/40",
+          "border-r border-gray-200/80 shadow-2xl backdrop-blur-xl",
+          "transition-all duration-300 ease-out flex flex-col",
+          // Mobile styles
+          "fixed inset-y-0 left-0 z-50 lg:relative lg:z-10",
+          isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+          // Desktop styles - always visible and properly sized
+          "lg:translate-x-0 lg:h-screen lg:block",
+          // Width based on collapse state
+          isCollapsed ? "lg:w-20" : "w-80 lg:w-72"
         )}
       >
         {/* Header */}
-        <div className="h-16 border-b border-gray-200/60 bg-white/80 backdrop-blur-sm">
+        <div className="h-16 border-b border-gray-200/60 bg-white/90 backdrop-blur-sm flex-shrink-0">
           <div className="flex items-center justify-between px-4 h-full">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-lg flex items-center justify-center shadow-lg">
+            <div className={cn(
+              "flex items-center transition-all duration-300",
+              isCollapsed ? "lg:justify-center lg:w-full" : "space-x-3"
+            )}>
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg ring-2 ring-blue-100">
                 <TrendingUp className="h-4 w-4 text-white" />
               </div>
-              <div>
-                <h2 className="text-sm font-bold text-gray-900">RangaOne</h2>
-                <p className="text-xs text-gray-500">Investment Platform</p>
-              </div>
+              {!isCollapsed && (
+                <div className="lg:block">
+                  <h2 className="text-sm font-bold text-gray-900 tracking-tight">RangaOne</h2>
+                  <p className="text-xs text-gray-500">Investment Platform</p>
+                </div>
+              )}
             </div>
             
+            {/* Desktop collapse toggle */}
+            {onToggleCollapse && (
+              <button
+                onClick={onToggleCollapse}
+                className={cn(
+                  "hidden lg:flex p-2 rounded-xl hover:bg-gray-100/80 transition-colors",
+                  "ring-1 ring-gray-200/50 hover:ring-gray-300/50 backdrop-blur-sm",
+                  isCollapsed && "rotate-180"
+                )}
+                title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                <ChevronLeft className="h-4 w-4 text-gray-500" />
+              </button>
+            )}
+
             {/* Mobile close button */}
             <button
               onClick={onClose}
-              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="lg:hidden p-2 rounded-xl hover:bg-gray-100/80 transition-colors ring-1 ring-gray-200/50"
             >
               <X className="h-4 w-4 text-gray-500" />
             </button>
@@ -147,72 +184,92 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="p-4 space-y-2 overflow-y-auto h-[calc(100vh-4rem)] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+        <nav className={cn(
+          "flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent",
+          "p-4 space-y-6"
+        )}>
           {navigationItems.map((section, sectionIndex) => (
-            <div key={section.title} className="mb-6">
+            <div key={section.title} className="space-y-2">
               <button
                 onClick={() => toggleSection(section.title)}
                 className={cn(
-                  "flex items-center justify-between w-full px-3 py-2.5 text-xs font-semibold",
-                  "text-gray-600 uppercase tracking-wider rounded-lg",
-                  "hover:bg-white/60 transition-all duration-200",
-                  "border border-transparent hover:border-gray-200/50",
+                  "flex items-center justify-between w-full text-xs font-semibold",
+                  "text-gray-600 uppercase tracking-wider transition-all duration-200",
+                  "hover:text-gray-800",
+                  isCollapsed ? "lg:justify-center lg:px-2 lg:py-3" : "px-3 py-2.5 rounded-xl hover:bg-white/60",
+                  !isCollapsed && "border border-transparent hover:border-gray-200/60",
                   "group"
                 )}
+                disabled={isCollapsed}
               >
-                <div className="flex items-center space-x-2">
+                <div className={cn(
+                  "flex items-center transition-all duration-200",
+                  isCollapsed ? "lg:justify-center" : "space-x-2"
+                )}>
                   <span className="text-gray-400 group-hover:text-gray-600 transition-colors">
                     {section.icon}
                   </span>
-                  <span>{section.title}</span>
+                  {!isCollapsed && <span>{section.title}</span>}
                 </div>
-                <ChevronDown
-                  className={cn(
-                    "h-3 w-3 text-gray-400 transition-all duration-200",
-                    "group-hover:text-gray-600",
-                    expandedSections[section.title] && "rotate-180"
-                  )}
-                />
+                {!isCollapsed && (
+                  <ChevronDown
+                    className={cn(
+                      "h-3 w-3 text-gray-400 transition-all duration-200",
+                      "group-hover:text-gray-600",
+                      expandedSections[section.title] && "rotate-180"
+                    )}
+                  />
+                )}
               </button>
 
-              {expandedSections[section.title] && (
-                <div className="mt-2 space-y-1 animate-in slide-in-from-top-2 duration-200">
+              {(expandedSections[section.title] || isCollapsed) && (
+                <div className={cn(
+                  "space-y-1 transition-all duration-200",
+                  isCollapsed ? "lg:hidden" : "animate-in slide-in-from-top-2"
+                )}>
                   {section.items.map((item, itemIndex) => (
-                    <Link
+                    <button
                       key={item.href}
-                      href={item.href}
-                      onClick={handleMobileNavClick}
+                      onClick={() => handleNavClick(item.href)}
                       className={cn(
-                        "flex items-center justify-between px-4 py-3 text-sm rounded-xl",
+                        "flex items-center justify-between w-full text-sm rounded-xl",
                         "transition-all duration-200 group relative overflow-hidden",
                         isActive(item.href)
                           ? [
                               "bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium",
-                              "shadow-lg shadow-blue-500/25",
+                              "shadow-lg shadow-blue-500/30 transform translate-y-0",
+                              "ring-2 ring-blue-200/50",
                               "before:absolute before:inset-0 before:bg-gradient-to-r before:from-white/0 before:to-white/10"
                             ]
                           : [
-                              "text-gray-700 hover:bg-white/80 hover:shadow-md",
-                              "border border-transparent hover:border-gray-200/50",
+                              "text-gray-700 hover:bg-white/90 hover:shadow-md hover:transform hover:translate-y-[-1px]",
+                              "border border-transparent hover:border-gray-200/60",
                               "backdrop-blur-sm"
-                            ]
+                            ],
+                        isCollapsed ? "lg:w-12 lg:h-12 lg:p-0 lg:justify-center" : "px-4 py-3"
                       )}
+                      title={isCollapsed ? item.label : undefined}
                     >
-                      <div className="flex items-center space-x-3 relative z-10">
+                      <div className={cn(
+                        "flex items-center relative z-10 transition-all duration-200",
+                        isCollapsed ? "lg:justify-center" : "space-x-3"
+                      )}>
                         <span
                           className={cn(
                             "transition-all duration-200",
                             isActive(item.href) 
                               ? "text-white drop-shadow-sm" 
-                              : "text-gray-500 group-hover:text-gray-700"
+                              : "text-gray-500 group-hover:text-gray-700",
+                            isCollapsed && "lg:text-lg"
                           )}
                         >
                           {item.icon}
                         </span>
-                        <span className="font-medium">{item.label}</span>
+                        {!isCollapsed && <span className="font-medium">{item.label}</span>}
                       </div>
-                      
-                      {item.badge && (
+
+                      {/* Badge */}
+                      {item.badge && !isCollapsed && (
                         <span className={cn(
                           "px-2 py-0.5 text-xs font-bold rounded-full",
                           "bg-gradient-to-r from-orange-400 to-red-500 text-white",
@@ -224,9 +281,15 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
                       {/* Active indicator */}
                       {isActive(item.href) && (
-                        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-l-full opacity-80" />
+                        <div className={cn(
+                          "absolute top-1/2 -translate-y-1/2 bg-white rounded-l-full opacity-90",
+                          isCollapsed ? "right-0 w-1 h-8" : "right-0 w-1 h-10"
+                        )} />
                       )}
-                    </Link>
+
+                      {/* Hover glow effect */}
+                      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-600/0 via-blue-600/5 to-indigo-600/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    </button>
                   ))}
                 </div>
               )}
@@ -234,49 +297,59 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           ))}
 
           {/* Settings - Standalone */}
-          <div className="mt-8 pt-4 border-t border-gray-200/60">
-            <Link
-              href="/settings"
-              onClick={handleMobileNavClick}
+          <div className="pt-4 border-t border-gray-200/60">
+            <button
+              onClick={() => handleNavClick("/settings")}
               className={cn(
-                "flex items-center justify-between px-4 py-3 text-sm rounded-xl",
+                "flex items-center justify-between w-full text-sm rounded-xl",
                 "transition-all duration-200 group relative overflow-hidden",
                 isActive("/settings")
                   ? [
                       "bg-gradient-to-r from-gray-600 to-gray-700 text-white font-medium",
-                      "shadow-lg shadow-gray-500/25",
+                      "shadow-lg shadow-gray-500/30 ring-2 ring-gray-200/50",
                     ]
                   : [
-                      "text-gray-700 hover:bg-white/80 hover:shadow-md",
-                      "border border-transparent hover:border-gray-200/50",
+                      "text-gray-700 hover:bg-white/90 hover:shadow-md hover:transform hover:translate-y-[-1px]",
+                      "border border-transparent hover:border-gray-200/60",
                       "backdrop-blur-sm"
-                    ]
+                    ],
+                isCollapsed ? "lg:w-12 lg:h-12 lg:p-0 lg:justify-center" : "px-4 py-3"
               )}
+              title={isCollapsed ? "Settings" : undefined}
             >
-              <div className="flex items-center space-x-3">
+              <div className={cn(
+                "flex items-center transition-all duration-200",
+                isCollapsed ? "lg:justify-center" : "space-x-3"
+              )}>
                 <span
                   className={cn(
                     "transition-colors duration-200",
-                    isActive("/settings") ? "text-white" : "text-gray-500 group-hover:text-gray-700"
+                    isActive("/settings") ? "text-white" : "text-gray-500 group-hover:text-gray-700",
+                    isCollapsed && "lg:text-lg"
                   )}
                 >
                   <Settings className="h-4 w-4" />
                 </span>
-                <span className="font-medium">Settings</span>
+                {!isCollapsed && <span className="font-medium">Settings</span>}
               </div>
 
               {/* Active indicator */}
               {isActive("/settings") && (
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-l-full opacity-80" />
+                <div className={cn(
+                  "absolute top-1/2 -translate-y-1/2 bg-white rounded-l-full opacity-90",
+                  isCollapsed ? "right-0 w-1 h-8" : "right-0 w-1 h-10"
+                )} />
               )}
-            </Link>
+            </button>
           </div>
+        </nav>
 
-          {/* Footer */}
-          {/* <div className="mt-8 pt-4 border-t border-gray-200/60">
-            <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100/60">
+        {/* Footer */}
+        {/* {!isCollapsed && (
+          <div className="p-4 border-t border-gray-200/60 bg-gradient-to-r from-white/50 to-blue-50/50 backdrop-blur-sm flex-shrink-0">
+            <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100/80 shadow-sm">
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
                   <TrendingUp className="h-4 w-4 text-white" />
                 </div>
                 <div>
@@ -285,8 +358,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 </div>
               </div>
             </div>
-          </div> */}
-        </nav>
+          </div>
+        )} */}
       </aside>
     </>
   );

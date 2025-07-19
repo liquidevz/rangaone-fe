@@ -74,22 +74,52 @@ export interface Portfolio {
 }
 
 export interface TipDownloadLink {
-  link: string;
+  linkType: string;
+  linkUrl: string;
+  linkDiscription: string;
   createdAt: string;
+  _id: string;
+  name: string;
+  url: string;
 }
 
 export interface Tip {
   _id: string;
-  portfolio: string;
+  portfolio: string | {
+    name: string;
+    description: string;
+    _id: string;
+    [key: string]: any;
+  };
   title: string;
-  content: string;
+  stockId: string;
+  category?: 'basic' | 'premium';
+  content: string | { key: string; value: string; _id?: string; }[];
+  description: string;
   status: string;
+  action?: string;
   buyRange: string;
   targetPrice: string;
+  targetPercentage?: string;
   addMoreAt: string;
   tipUrl: string;
+  exitPrice?: string;
+  exitStatus?: string;
+  exitStatusPercentage?: string;
   horizon: string;
   downloadLinks: TipDownloadLink[];
   createdAt: string;
   updatedAt: string;
+  message?: string;
+}
+
+export interface LocalCartItem {
+  portfolioId: string;
+  quantity: number;
+  addedAt: string;
+  itemType: "portfolio" | "bundle";
+  bundleId?: string;
+  subscriptionType?: "monthly" | "quarterly" | "yearly";
+  itemData: any; // To store essential product details for display without fetching again
+  planCategory?: "basic" | "premium" | "individual"; // Added to track basic/premium status
 }

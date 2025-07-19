@@ -173,7 +173,7 @@ export default function VideosForYou() {
 
           <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
             <div className="px-4 pt-4">
-              <TabsList className="w-full flex justify-start bg-gray-100 p-1 h-auto overflow-x-auto">
+              <TabsList className="w-full flex flex-wrap justify-start bg-gray-100 p-1 h-auto gap-1">
                 {categories.map((category) => (
                   <TabsTrigger
                     key={category}

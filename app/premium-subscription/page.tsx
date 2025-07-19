@@ -65,12 +65,12 @@ export default function PremiumSubscriptionPage() {
     }
   }
 
-  const handleAddToCart = async (subscriptionType: "monthly" | "quarterly" = "monthly") => {
+  const handleAddToCart = async (subscriptionType: "monthly" | "quarterly" | "yearly" = "monthly") => {
     if (!premiumBundle) return
     
     // Remove authentication check - allow all users to add to cart
     try {
-      await addBundleToCart(premiumBundle._id, subscriptionType)
+      await addBundleToCart(premiumBundle._id, subscriptionType, "premium")
       toast({
         title: "Added to Cart",
         description: `Premium subscription (${subscriptionType}) has been added to your cart.`,

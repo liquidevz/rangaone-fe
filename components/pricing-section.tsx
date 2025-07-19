@@ -10,45 +10,12 @@ import { useAuth } from "@/components/auth/auth-context";
 import { useCart } from "@/components/cart/cart-context";
 import { bundleService, Bundle } from "@/services/bundle.service";
 import { CheckoutModal } from "./checkout-modal";
+import FeatureComparison from "./feature-comparison";
 import Link from "next/link";
 
 type SubscriptionType = "monthly" | "quarterly" | "yearly";
 
-const wealthPlans = [
-  {
-    id: 1,
-    planName: "Basic",
-    href: "/basic-subscription",
-    isPremium: false,
-    benefits: [
-      { text: "Get 10-12 Quality Stocks", checked: true },
-      { text: "Get 5 Short Term/Swing Trades", checked: true },
-      { text: "Timely Alert For Entry & Exit", checked: true },
-      { text: "Real Time Market Updates", checked: true },
-      { text: "2 Model Portfolios", checked: false },
-      { text: "IPO Recommendations", checked: false },
-      { text: "Call Support", checked: false },
-      { text: "Free Live Webinar", checked: false },
-    ],
-  },
-  {
-    id: 2,
-    planName: "Premium",
-    href: "/premium-subscription",
-    isPremium: true,
-    badge: "POPULAR",
-    benefits: [
-      { text: "Get 20-25 High Growth Stocks", checked: true },
-      { text: "Get 10 Short Term/Swing Trades", checked: true },
-      { text: "Timely Alert For Entry & Exit", checked: true },
-      { text: "Real Time Market Updates", checked: true },
-      { text: "2 Model Portfolios", checked: true },
-      { text: "IPO Recommendations", checked: true },
-      { text: "Call Support", checked: true },
-      { text: "Free Live Webinar", checked: true },
-    ],
-  },
-];
+
 
 export default function PricingSection() {
   const [bundles, setBundles] = useState<Bundle[]>([]);
@@ -260,127 +227,7 @@ export default function PricingSection() {
       </div>
 
       {/* Feature Comparison Cards */}
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-8 md:mb-12">
-          <h1 className="font-times font-bold text-3xl md:text-4xl lg:text-5xl leading-tight text-center uppercase mb-3">
-            <span className="bg-gradient-to-r from-[#131859] via-[#2563eb] to-[#131859] bg-clip-text text-transparent">
-              Which one to choose
-            </span>
-            <span className="block text-2xl md:text-3xl lg:text-4xl text-[#131859]">?</span>
-          </h1>
-          <div className="w-20 h-0.5 bg-gradient-to-r from-[#131859] to-[#7DCEFF] mx-auto rounded-full"></div>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
-          {wealthPlans.map((plan, index) => {
-            const bundle = bundles.find(b => b.category === plan.planName.toLowerCase());
-            const isInCart = bundle ? hasBundle(bundle._id) : false;
-            
-            return (
-              <motion.div
-                key={plan.id}
-                initial={{ opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.2 }}
-                className={`relative rounded-3xl p-8 shadow-2xl border-2 transition-all duration-300 hover:shadow-3xl hover:scale-[1.02] ${
-                  plan.isPremium
-                    ? "bg-gradient-to-br from-gray-900 via-gray-800 to-black border-gray-700"
-                    : "bg-white border-gray-200"
-                }`}
-              >
-                {/* Plan Header */}
-                <div className="text-center mb-8">
-                  <h3 className={`text-4xl font-bold mb-2 ${
-                    plan.isPremium ? "text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600" : "text-gray-900"
-                  }`}>
-                    {plan.isPremium ? "✨Premium✨" : plan.planName}
-                  </h3>
-                </div>
-
-                {/* Features List */}
-                <div className="mb-8 space-y-4">
-                  {plan.benefits.map((benefit, benefitIndex) => (
-                    <motion.div
-                      key={benefitIndex}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.2 + benefitIndex * 0.1 }}
-                      className="flex items-center gap-3"
-                    >
-                      <div className="flex-shrink-0">
-                        {benefit.checked ? (
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                            plan.isPremium
-                              ? "bg-gradient-to-r from-yellow-400 to-yellow-600"
-                              : "bg-gradient-to-r from-green-500 to-green-600"
-                          }`}>
-                            <Check className="w-4 h-4 text-white font-bold" strokeWidth={3} />
-                          </div>
-                        ) : (
-                          <div className="w-6 h-6 rounded-full flex items-center justify-center bg-gradient-to-r from-red-500 to-red-600">
-                            <X className="w-4 h-4 text-white font-bold" strokeWidth={3} />
-                          </div>
-                        )}
-                      </div>
-                      <span className={`text-lg font-medium ${
-                        plan.isPremium ? "text-gray-100" : "text-gray-800"
-                      }`}>
-                        {benefit.text}
-                      </span>
-                    </motion.div>
-                  ))}
-                </div>
-
-                {/* Action Buttons */}
-                <div className="space-y-4">
-                  {/* View Detailed Description Button */}
-                  <Link href={plan.href}>
-                    <Button
-                      variant="outline"
-                      className={`w-full py-4 text-lg font-semibold rounded-2xl border-2 transition-all hover:scale-[1.02] ${
-                        plan.isPremium
-                          ? "border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black bg-transparent"
-                          : "border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white bg-transparent"
-                      }`}
-                    >
-                      View Detailed Description
-                    </Button>
-                  </Link>
-
-                  {/* Buy Now Button */}
-                  {bundle ? (
-                    <Button
-                      onClick={() => handleBundlePurchase(bundle, "monthly")}
-                      className={`w-full py-4 text-lg font-bold rounded-2xl transition-all hover:scale-[1.02] shadow-lg ${
-                        plan.isPremium
-                          ? "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-black"
-                          : "bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white"
-                      }`}
-                    >
-                      BUY NOW
-                    </Button>
-                  ) : (
-                    <Button
-                      disabled
-                      className="w-full py-4 text-lg font-bold rounded-2xl bg-gray-300 text-gray-500 cursor-not-allowed"
-                    >
-                      {loading ? "Loading..." : "Coming Soon"}
-                    </Button>
-                  )}
-                </div>
-
-                {/* Background Effects for Premium */}
-                {plan.isPremium && (
-                  <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
-                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-r from-yellow-400 to-yellow-600 opacity-10 rounded-full blur-xl"></div>
-                    <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-r from-yellow-400 to-yellow-600 opacity-5 rounded-full blur-2xl"></div>
-                  </div>
-                )}
-              </motion.div>
-            );
-          })}
-        </div>
-      </div>
+      <FeatureComparison />
 
       {/* Background Elements */}
       <TopLeftCircle />

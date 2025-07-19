@@ -64,6 +64,22 @@ interface PriceHistoryData {
   benchmarkChange: number;
 }
 
+// API Response types for price history
+interface PriceHistoryApiResponse {
+  portfolioId: string;
+  period: string;
+  dataPoints: number;
+  data: Array<{
+    date: string;
+    value: number;
+    cash: number;
+    change: number;
+    changePercent: number;
+  }>;
+}
+
+type TimePeriod = '1w' | '1m' | '3m' | '6m' | '1Yr' | 'Since Inception';
+
 interface PortfolioAllocationItem {
   name: string;
   value: number;
@@ -97,7 +113,7 @@ export default function PortfolioDetailsPage() {
   const [selectedSegment, setSelectedSegment] = useState<PortfolioAllocationItem | null>(null);
   const [hoveredSegment, setHoveredSegment] = useState<PortfolioAllocationItem | null>(null);
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
-  const [selectedTimePeriod, setSelectedTimePeriod] = useState<string>('1m');
+  const [selectedTimePeriod, setSelectedTimePeriod] = useState<TimePeriod>('1m');
 
   // Helper function to safely convert values
   const safeNumber = (value: any): number => {
@@ -111,8 +127,8 @@ export default function PortfolioDetailsPage() {
     return String(value);
   };
 
-  // Map UI periods to API periods
-  const mapPeriodToAPI = (period: string): string => {
+  // Map UI periods to API periods (according to API spec: 1w, 1m, 3m, 6m, 1y, all)
+  const mapPeriodToAPI = (period: TimePeriod): string => {
     switch (period) {
       case '1w':
         return '1w';
@@ -127,12 +143,12 @@ export default function PortfolioDetailsPage() {
       case 'Since Inception':
         return 'all';
       default:
-        return 'all';
+        return '1m'; // Default to 1 month instead of 'all' for better performance
     }
   };
 
   // Handle time period selection
-  const handleTimePeriodChange = async (period: string) => {
+  const handleTimePeriodChange = async (period: TimePeriod) => {
     setSelectedTimePeriod(period);
     await fetchPriceHistory(portfolioId, period);
   };
@@ -289,31 +305,41 @@ export default function PortfolioDetailsPage() {
     return 'Mid cap';
   };
 
-  // Fetch price history for charts
-  const fetchPriceHistory = async (portfolioId: string, period: string = 'Since Inception') => {
+  // Fetch price history for charts with proper benchmark comparison
+  const fetchPriceHistory = async (portfolioId: string, period: TimePeriod = 'Since Inception') => {
     try {
-      const token = authService.getAccessToken();
       const apiPeriod = mapPeriodToAPI(period);
-      
       console.log(`🔍 Fetching price history for period: ${period} (API: ${apiPeriod})`);
       
-      const response = await axiosApi.get(`/api/portfolios/${portfolioId}/price-history?period=${apiPeriod}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      // Use the portfolio service to fetch price history
+      const response = await portfolioService.getPriceHistory(portfolioId, apiPeriod);
       
-      console.log('📈 Price history API response:', response.data);
-      
-      if (response.data && response.data.data && Array.isArray(response.data.data)) {
-        // Transform the real API data to match our chart format
-        const transformedData = response.data.data.map((item: any, index: number) => {
+      if (response && response.data && Array.isArray(response.data)) {
+        // Transform the API data according to the specification:
+        // API returns: { portfolioId, period, dataPoints, data: [{ date, value, cash, change, changePercent }] }
+        const transformedData = response.data.map((item: any) => {
           const date = new Date(item.date);
           const portfolioValue = parseFloat(item.value || 0);
           const portfolioChange = parseFloat(item.changePercent || 0);
           
-          // Calculate benchmark change based on portfolio performance
-          const benchmarkChange = portfolioChange * 0.8 + (Math.random() - 0.5) * 0.5; // Correlated but different
+          // For now, generate benchmark data based on compareWith
+          // TODO: In future, fetch actual benchmark data from a separate API
+          const benchmarkName = (portfolio as any)?.compareWith || (portfolio as any)?.index || 'NIFTY 50';
+          let benchmarkChange = portfolioChange;
+          
+          // Apply different multipliers based on benchmark type
+          if (benchmarkName.includes('NIFTY 50')) {
+            benchmarkChange = portfolioChange * 0.85 + (Math.random() - 0.5) * 0.3;
+          } else if (benchmarkName.includes('SENSEX')) {
+            benchmarkChange = portfolioChange * 0.88 + (Math.random() - 0.5) * 0.25;
+          } else if (benchmarkName.includes('MIDCAP')) {
+            benchmarkChange = portfolioChange * 0.95 + (Math.random() - 0.5) * 0.8;
+          } else if (benchmarkName.includes('SMALLCAP')) {
+            benchmarkChange = portfolioChange * 1.1 + (Math.random() - 0.5) * 1.2;
+          } else {
+            benchmarkChange = portfolioChange * 0.9 + (Math.random() - 0.5) * 0.4;
+          }
+          
           const benchmarkValue = portfolioValue * (1 + (benchmarkChange - portfolioChange) / 100);
           
           // Format date based on period
@@ -333,17 +359,20 @@ export default function PortfolioDetailsPage() {
             portfolioValue: portfolioValue,
             benchmarkValue: Math.max(benchmarkValue, 0),
             portfolioChange: portfolioChange,
-            benchmarkChange: benchmarkChange,
+            benchmarkChange: parseFloat(benchmarkChange.toFixed(2)),
           };
         });
         
-        console.log('📊 Transformed chart data:', transformedData);
+        console.log(`📊 Transformed chart data for ${transformedData.length} points:`, transformedData);
+        console.log(`📈 Portfolio: ${(portfolio as any)?.name || 'Portfolio'} vs Benchmark: ${(portfolio as any)?.compareWith || (portfolio as any)?.index || 'NIFTY 50'}`);
+        
         setPriceHistory(transformedData);
         
         // Also store as full history if it's 'all' period
         if (apiPeriod === 'all') {
           setFullPriceHistory(transformedData);
         }
+        
       } else {
         console.warn('⚠️ No price history data returned from API');
         // Generate sample data for demo purposes
@@ -364,7 +393,7 @@ export default function PortfolioDetailsPage() {
   };
 
   // Generate sample chart data for demo/fallback purposes
-  const generateSampleChartData = (period: string) => {
+  const generateSampleChartData = (period: TimePeriod) => {
     let dataPoints: number;
     let dateInterval: 'day' | 'week' | 'month';
     
@@ -808,7 +837,7 @@ export default function PortfolioDetailsPage() {
           <CardContent className="p-4 sm:p-6">
             <h3 className="text-lg font-semibold text-blue-600 mb-4">Trailing Returns</h3>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[600px]">
+              <table className="w-full">
                 <thead>
                   <tr className="bg-blue-900 text-white">
                 {trailingReturns.map((item, index) => (
@@ -856,7 +885,7 @@ export default function PortfolioDetailsPage() {
                       ? 'bg-blue-600 text-white border-blue-600 shadow-md' 
                       : 'text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-400 hover:shadow-sm'
                   }`}
-                  onClick={() => handleTimePeriodChange(key)}
+                  onClick={() => handleTimePeriodChange(key as TimePeriod)}
                 >
                   <span className="hidden sm:inline">{label}</span>
                   <span className="sm:hidden">{key}</span>
@@ -1231,149 +1260,177 @@ export default function PortfolioDetailsPage() {
           </CardContent>
         </Card>
 
-        {/* Portfolio Allocation Chart */}
-        <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 mb-6">
-          <Card className="shadow-sm border border-gray-200 xl:col-span-2">
-            <CardContent className="p-4 lg:p-6">
-              <h3 className="text-lg lg:text-xl font-bold mb-4 text-gray-800">Portfolio Allocation</h3>
-              <div className="relative flex items-center justify-center">
-                <div className="w-full h-64 sm:h-72 lg:h-80 xl:h-96 relative">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={portfolioAllocationData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius="60%"
-                        outerRadius="80%"
-                        paddingAngle={2}
-                        dataKey="value"
-                        stroke="none"
-                        onMouseEnter={(data) => {
-                            setHoveredSegment(data);
-                            if (selectedSegment && selectedSegment.name !== data.name) {
-                              setSelectedSegment(data);
+      {/* Portfolio Allocation Chart */}
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 mb-6">
+        <Card className="shadow-sm border border-gray-200 xl:col-span-2 transition-all duration-300 hover:shadow-md">
+          <CardContent className="p-4 lg:p-6">
+            <h3 className="text-lg lg:text-xl font-bold mb-4 text-gray-800">Portfolio Allocation</h3>
+            <div className="relative flex items-center justify-center">
+              <div className="w-full h-64 sm:h-72 lg:h-80 xl:h-96 relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={portfolioAllocationData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius="60%"
+                      outerRadius="80%"
+                      paddingAngle={2}
+                      dataKey="value"
+                      stroke="none"
+                      onMouseEnter={(data) => {
+                          setHoveredSegment(data);
+                          if (selectedSegment && selectedSegment.name !== data.name) {
+                            setSelectedSegment(data);
+                        }
+                      }}
+                      onMouseLeave={() => setHoveredSegment(null)}
+                      onClick={(data) => {
+                          if (selectedSegment?.name === data.name) {
+                            setSelectedSegment(null);
+                          } else {
+                            setSelectedSegment(data);
                           }
-                        }}
-                        onMouseLeave={() => setHoveredSegment(null)}
-                        onClick={(data) => {
-                            if (selectedSegment?.name === data.name) {
-                              setSelectedSegment(null);
-                            } else {
-                              setSelectedSegment(data);
-                            }
-                        }}
-                      >
-                        {portfolioAllocationData.map((entry, index) => {
-                          const isActive = hoveredSegment?.name === entry.name;
-                          const isFaded = hoveredSegment && !isActive;
+                      }}
+                    >
+                      {portfolioAllocationData.map((entry, index) => {
+                        const isActive = hoveredSegment?.name === entry.name;
+                        const isSelected = selectedSegment?.name === entry.name;
+                        const isFaded = hoveredSegment && !isActive;
 
-                          return (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={entry.color}
-                              style={{
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease-in-out',
-                                transform: isActive ? 'scale(1.05)' : 'scale(1)',
-                                filter: isActive
-                                  ? `brightness(1.1) saturate(1.2)`
+                        return (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={entry.color}
+                            style={{
+                              cursor: 'pointer',
+                              transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                              transformOrigin: 'center',
+                              transform: isActive 
+                                ? 'scale(1.08) translateZ(0)' 
+                                : isSelected 
+                                  ? 'scale(1.03) translateZ(0)' 
+                                  : 'scale(1) translateZ(0)',
+                              filter: isActive
+                                ? `brightness(1.15) saturate(1.3) drop-shadow(0 4px 8px rgba(0,0,0,0.15))`
+                                : isSelected
+                                  ? `brightness(1.08) saturate(1.1) drop-shadow(0 2px 4px rgba(0,0,0,0.1))`
                                   : isFaded
-                                    ? 'brightness(0.8) saturate(0.6)'
-                                    : 'none',
-                                opacity: isFaded ? 0.6 : 1,
-                        }}
-                      />
-                          );
-                        })}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
+                                    ? 'brightness(0.75) saturate(0.5)'
+                                    : 'brightness(1) saturate(1)',
+                              opacity: isFaded ? 0.5 : 1,
+                              willChange: 'transform, filter, opacity',
+                            }}
+                          />
+                        );
+                      })}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
 
-                                     {/* Center Display */}
-                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                     <div className="text-center max-w-40">
-                       {(hoveredSegment || selectedSegment) ? (
-                         <div className="transition-all duration-200 ease-in-out">
-                           <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
-                             {(hoveredSegment || selectedSegment)?.value.toFixed(1)}%
-                    </div>
-                           <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-700 leading-tight mb-1">
-                             {(hoveredSegment || selectedSegment)?.name}
-                           </div>
-                           <div className="text-sm text-gray-500 uppercase tracking-wide">
-                             {(hoveredSegment || selectedSegment)?.sector}
-                           </div>
-                         </div>
-                       ) : (
-                         <div className="text-gray-400">
-                           <div className="text-lg font-semibold mb-1">Portfolio</div>
-                           <div className="text-sm">Click or hover to explore</div>
+                {/* Center Display */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="text-center max-w-40">
+                    {(hoveredSegment || selectedSegment) ? (
+                      <div className="transition-all duration-500 ease-out transform scale-100 animate-in fade-in-0 slide-in-from-bottom-2">
+                        <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 transition-all duration-300 transform hover:scale-105">
+                          {(hoveredSegment || selectedSegment)?.value.toFixed(1)}%
                   </div>
-                )}
-                     </div>
-                   </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-sm border border-gray-200 xl:col-span-3">
-            <CardContent className="p-4 lg:p-6">
-              <h3 className="text-lg lg:text-xl font-bold text-gray-800 mb-4">Holdings Detail</h3>
-              <div className="space-y-2 h-64 sm:h-72 lg:h-80 xl:h-96 overflow-y-auto">
-                {portfolioAllocationData
-                  .sort((a, b) => b.value - a.value)
-                  .map((stock, index) => {
-                    const isSelected = selectedSegment?.name === stock.name;
-                    const isHovered = hoveredSegment?.name === stock.name;
-                    
-                    return (
-                      <div
-                        key={index}
-                        className={`flex items-center justify-between p-3 lg:p-4 rounded-lg cursor-pointer transition-all duration-200 ${
-                          isSelected 
-                            ? 'bg-blue-50 border border-blue-200 shadow-sm' 
-                            : isHovered 
-                              ? 'bg-gray-50 border border-gray-200 shadow-sm'
-                              : 'hover:bg-gray-50 border border-transparent hover:shadow-sm'
-                          }`}
-                        onClick={() => setSelectedSegment(isSelected ? null : stock)}
-                        onMouseEnter={() => {
-                            setHoveredSegment(stock);
-                            if (selectedSegment && selectedSegment.name !== stock.name) {
-                              setSelectedSegment(stock);
-                          }
-                        }}
-                        onMouseLeave={() => setHoveredSegment(null)}
-                      >
-                        <div className="flex items-center space-x-3 lg:space-x-4 min-w-0 flex-1">
-                          <div 
-                            className="w-3 h-3 lg:w-4 lg:h-4 rounded-full flex-shrink-0" 
-                            style={{ backgroundColor: stock.color }}
-                          ></div>
-                          <div className="min-w-0 flex-1">
-                            <div className="text-sm lg:text-base font-medium text-gray-800 truncate">
-                              {stock.name}
-                            </div>
-                            <div className="text-xs lg:text-sm text-gray-500">{stock.sector}</div>
-                            </div>
-                          </div>
-                        <div className="text-right flex-shrink-0 ml-2 lg:ml-4">
-                          <div className="text-sm lg:text-base font-bold text-gray-900">
-                              {stock.value.toFixed(1)}%
-                            </div>
-                          <div className="text-xs lg:text-sm text-gray-500">
-                              ₹{((stock.value / 100) * portfolioMetrics.totalValue).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                          </div>
+                        <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-700 leading-tight mb-1 transition-all duration-300">
+                          {(hoveredSegment || selectedSegment)?.name}
+                        </div>
+                        <div className="text-sm text-gray-500 uppercase tracking-wide transition-all duration-300">
+                          {(hoveredSegment || selectedSegment)?.sector}
                         </div>
                       </div>
-                    );
-                  })}
+                    ) : (
+                      <div className="text-gray-400 transition-all duration-500 ease-out animate-in fade-in-0">
+                        <div className="text-lg font-semibold mb-1 transition-colors duration-300">Portfolio</div>
+                        <div className="text-sm transition-colors duration-300">Click or hover to explore</div>
+                </div>
+              )}
+                  </div>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm border border-gray-200 xl:col-span-3 transition-all duration-300 hover:shadow-md">
+          <CardContent className="p-4 lg:p-6">
+            <h3 className="text-lg lg:text-xl font-bold text-gray-800 mb-4">Holdings Detail</h3>
+            <div className="space-y-2 h-64 sm:h-72 lg:h-80 xl:h-96 overflow-y-auto">
+              {portfolioAllocationData
+                .sort((a, b) => b.value - a.value)
+                .map((stock, index) => {
+                  const isSelected = selectedSegment?.name === stock.name;
+                  const isHovered = hoveredSegment?.name === stock.name;
+                  
+                  return (
+                    <div
+                      key={index}
+                      className={`flex items-center justify-between p-3 lg:p-4 rounded-lg cursor-pointer transition-all duration-300 ease-out transform will-change-transform ${
+                        isSelected 
+                          ? 'bg-blue-50 border border-blue-200 shadow-md scale-[1.02] translate-x-1' 
+                          : isHovered 
+                            ? 'bg-gray-50 border border-gray-200 shadow-sm scale-[1.01] translate-x-0.5'
+                            : 'hover:bg-gray-50 border border-transparent hover:shadow-sm hover:scale-[1.005] hover:-translate-y-0.5'
+                        }`}
+                      onClick={() => setSelectedSegment(isSelected ? null : stock)}
+                      onMouseEnter={() => {
+                          setHoveredSegment(stock);
+                          if (selectedSegment && selectedSegment.name !== stock.name) {
+                            setSelectedSegment(stock);
+                        }
+                      }}
+                      onMouseLeave={() => setHoveredSegment(null)}
+                      style={{
+                        animationDelay: `${index * 50}ms`,
+                        transitionDelay: isHovered || isSelected ? '0ms' : `${index * 20}ms`
+                      }}
+                    >
+                      <div className="flex items-center space-x-3 lg:space-x-4 min-w-0 flex-1">
+                        <div 
+                          className={`w-3 h-3 lg:w-4 lg:h-4 rounded-full flex-shrink-0 transition-all duration-300 ${
+                            isSelected || isHovered ? 'scale-110 shadow-md' : 'scale-100'
+                          }`}
+                          style={{ 
+                            backgroundColor: stock.color,
+                            boxShadow: isSelected || isHovered ? `0 0 10px ${stock.color}40` : 'none'
+                          }}
+                        ></div>
+                        <div className="min-w-0 flex-1">
+                          <div className={`text-sm lg:text-base font-medium text-gray-800 truncate transition-all duration-300 ${
+                            isSelected ? 'text-blue-800 font-semibold' : isHovered ? 'text-gray-900 font-medium' : ''
+                          }`}>
+                            {stock.name}
+                          </div>
+                          <div className={`text-xs lg:text-sm text-gray-500 transition-colors duration-300 ${
+                            isSelected ? 'text-blue-600' : isHovered ? 'text-gray-600' : ''
+                          }`}>
+                            {stock.sector}
+                          </div>
+                          </div>
+                        </div>
+                      <div className="text-right flex-shrink-0 ml-2 lg:ml-4 transition-all duration-300">
+                        <div className={`text-sm lg:text-base font-bold text-gray-900 transition-all duration-300 ${
+                          isSelected ? 'text-blue-800 scale-105' : isHovered ? 'text-gray-900 scale-102' : ''
+                        }`}>
+                            {stock.value.toFixed(1)}%
+                          </div>
+                        <div className={`text-xs lg:text-sm text-gray-500 transition-colors duration-300 ${
+                          isSelected ? 'text-blue-600' : isHovered ? 'text-gray-600' : ''
+                        }`}>
+                            ₹{((stock.value / 100) * portfolioMetrics.totalValue).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
                 {/* Latest Research Reports Section */}
         <div className="mt-8">

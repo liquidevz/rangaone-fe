@@ -1,44 +1,8 @@
 import axiosApi from "@/lib/axios";
+import { Tip, TipDownloadLink } from "@/lib/types";
 
-export interface TipDownloadLink {
-  linkType: string;
-  linkUrl: string;
-  linkDiscription: string;
-  createdAt: string;
-  _id: string;
-  name: string;
-  url: string;
-}
-
-export interface Tip {
-  _id: string;
-  portfolio: string | {
-    name: string;
-    description: string;
-    _id: string;
-    [key: string]: any;
-  };
-  title: string;
-  stockId: string;
-  category?: 'basic' | 'premium';
-  content: string | { key: string; value: string; }[];
-  description: string;
-  status: string;
-  action?: string;
-  buyRange: string;
-  targetPrice: string;
-  targetPercentage?: string; // API returns string like "20%"
-  addMoreAt: string;
-  tipUrl: string;
-  exitPrice?: string;
-  exitStatus?: string;
-  exitStatusPercentage?: string; // API returns string like "25%"
-  horizon: string;
-  downloadLinks: TipDownloadLink[];
-  createdAt: string;
-  updatedAt: string;
-  message?: string; // For subscription messages
-}
+// Re-export types for backward compatibility
+export type { Tip, TipDownloadLink };
 
 export interface TipsFilterParams {
   startDate?: string;
@@ -96,12 +60,31 @@ export const tipsService = {
 
   // Fetch tip by ID
   getById: async (id: string): Promise<Tip> => {
-    const response = await axiosApi.get<Tip>(`/api/user/tips/${id}`, {
-      headers: {
-        accept: "application/json",
-      },
-    });
-    return response.data;
+    console.log('🌐 Calling API endpoint:', `/api/user/tips/${id}`);
+    
+    try {
+      const response = await axiosApi.get<Tip>(`/api/user/tips/${id}`, {
+        headers: {
+          accept: "application/json",
+        },
+      });
+      
+      console.log('✅ API Response Status:', response.status);
+      console.log('📦 API Response Data:', response.data);
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ API Error:', error);
+      console.error('🔗 Request URL:', `/api/user/tips/${id}`);
+      console.error('📊 Error details:', {
+        status: error?.response?.status,
+        statusText: error?.response?.statusText,
+        data: error?.response?.data,
+        message: error?.message
+      });
+      
+      throw error;
+    }
   },
 
   // Fetch tips by portfolio ID (legacy method for backward compatibility)

@@ -3,7 +3,33 @@ import { Portfolio, Holding, DownloadLink } from "@/lib/types";
 import { authService } from "./auth.service";
 import { Tip } from "./tip.service";
 
-export const portfolioService = {
+export const portfolioService = {  
+  // Fetch portfolio price history
+  getPriceHistory: async (portfolioId: string, period: string = 'all'): Promise<any> => {
+    try {
+      const token = authService.getAccessToken();
+      
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+
+      console.log(`🔍 Fetching price history for portfolio ${portfolioId}, period: ${period}`);
+      
+      const response = await axiosApi.get(`/api/portfolios/${portfolioId}/price-history?period=${period}`, {
+        headers: {
+          accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log('📈 Price history API response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Failed to fetch price history:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
   // Debug portfolio API access
   debugPortfolioAccess: async (): Promise<void> => {
     const token = authService.getAccessToken();

@@ -65,12 +65,12 @@ export default function BasicSubscriptionPage() {
     }
   }
 
-  const handleAddToCart = async (subscriptionType: "monthly" | "quarterly" = "monthly") => {
+  const handleAddToCart = async (subscriptionType: "monthly" | "quarterly" | "yearly" = "monthly") => {
     if (!basicBundle) return
     
     // Remove authentication check - allow all users to add to cart
     try {
-      await addBundleToCart(basicBundle._id, subscriptionType)
+      await addBundleToCart(basicBundle._id, subscriptionType, "basic")
       toast({
         title: "Added to Cart",
         description: `Basic subscription (${subscriptionType}) has been added to your cart.`,
