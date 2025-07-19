@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react"
 import { motion, useMotionValue, animate, type PanInfo } from "framer-motion"
+import DateTimelineSlider from "./date-timeline-slider"
 
 import { cn } from "@/lib/utils"
 import { tipsService, type Tip } from "@/services/tip.service"
@@ -333,6 +334,42 @@ export default function TipsCarousel({
     if (tips.length === 0 || currentIndex >= tips.length) return new Date()
     return new Date(tips[currentIndex].date)
   }, [tips, currentIndex])
+
+  // Calculate date range for the timeline
+  const dateRange = useMemo(() => {
+    if (tips.length === 0) {
+      const today = new Date()
+      const thirtyDaysAgo = new Date(today)
+      thirtyDaysAgo.setDate(today.getDate() - 30)
+      return { min: thirtyDaysAgo, max: today }
+    }
+    
+    const dates = tips.map(tip => new Date(tip.date))
+    const minDate = new Date(Math.min(...dates.map(d => d.getTime())))
+    const maxDate = new Date(Math.max(...dates.map(d => d.getTime())))
+    
+    return { min: minDate, max: maxDate }
+  }, [tips])
+
+  // Handle date change from timeline slider
+  const handleDateChange = (newDate: Date) => {
+    // Find the tip closest to the selected date
+    let closestIndex = 0
+    let closestDiff = Math.abs(new Date(tips[0]?.date).getTime() - newDate.getTime())
+    
+    tips.forEach((tip, index) => {
+      const tipDate = new Date(tip.date)
+      const diff = Math.abs(tipDate.getTime() - newDate.getTime())
+      
+      if (diff < closestDiff) {
+        closestDiff = diff
+        closestIndex = index
+      }
+    })
+    
+    // Navigate to the closest tip
+    goToTip(closestIndex)
+  }
 
   const convertTipsToCarouselFormat = (apiTips: Tip[]): TipCardData[] => {
     return apiTips.map((tip, index) => {
@@ -675,26 +712,17 @@ export default function TipsCarousel({
         </div>
       )}
 
-      {/* Current Date Display */}
-      <div className="mt-6 text-center px-4">
-        <div className="inline-flex items-center relative overflow-hidden backdrop-blur-sm bg-white/80 border border-white/20 px-4 py-2 sm:px-6 sm:py-3 rounded-xl shadow-xl">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-50/50 via-transparent to-purple-50/50 rounded-xl" />
-          
-          <div className="relative flex items-center space-x-2">
-            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            
-            <span className="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 tracking-wide">
-              {currentTipDate.toLocaleDateString('en-GB', { 
-                day: '2-digit', 
-                month: 'long', 
-                year: 'numeric' 
-              })}
-            </span>
-          </div>
+      {/* Replace Current Date Display with DateTimelineSlider */}
+      {tips.length > 1 && (
+        <div className="mt-6 w-full px-4">
+          <DateTimelineSlider
+            dateRange={dateRange}
+            selectedDate={currentTipDate}
+            onDateChange={handleDateChange}
+            className="max-w-4xl"
+          />
         </div>
-      </div>
+      )}
     </div>
   )
 }
