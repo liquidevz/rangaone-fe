@@ -764,7 +764,7 @@ export default function PortfolioDetailsPage() {
             };
             
             return stockColorMap[symbol] || [
-              '#001219', '#005F73', '#0A9396', '#92D2BD', '#E9D8A6',
+              '#4B4B4C', '#005F73', '#0A9396', '#92D2BD', '#E9D8A6',
               '#EE9B00', '#CA6702', '#BB3E03', '#AE2012', '#9B2226'
             ][index % 10];
           };
@@ -810,12 +810,13 @@ export default function PortfolioDetailsPage() {
                   className="flex-1 sm:flex-none sm:min-w-[120px] flex items-center justify-center space-x-2 
                            border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-all duration-200
                            bg-white shadow-sm hover:shadow-md"
-                  onClick={() => {
-                    const downloadLinks = (portfolio as any)?.downloadLinks;
-                    if (downloadLinks && downloadLinks.length > 0) {
-                      window.open(downloadLinks[0].linkUrl || downloadLinks[0].url, '_blank');
-                    }
-                  }}
+                           onClick={() => {
+                            const sectionId = "research-reports"; // Replace with the actual ID of the section you want to navigate to
+                            const section = document.getElementById(sectionId);
+                            if (section) {
+                              section.scrollIntoView({ behavior: "smooth" });
+                            }
+                          }}
                 >
                   <FileText className="h-4 w-4 text-gray-600" />
                   <span className="text-sm font-medium text-gray-700">Reports</span>
@@ -908,7 +909,7 @@ export default function PortfolioDetailsPage() {
                 })()}
             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-4 border-t">
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-4 border-t">
             <div>
                   <p className="font-semibold text-gray-800">Time Horizon</p>
                   <p className="text-gray-600">{safeString((portfolio as any)?.timeHorizon || "Long term")}</p>
@@ -919,7 +920,7 @@ export default function PortfolioDetailsPage() {
             </div>
             <div>
                   <p className="font-semibold text-gray-800">Benchmark Index</p>
-                  <p className="text-gray-600">{safeString((portfolio as any)?.index || (portfolio as any)?.compareWith || "NIFTY 50")}</p>
+                  <p className="text-gray-600">{safeString((portfolio as any)?.index || (portfolio as any)?.compareWith )}</p>
               </div>
                 <div>
                   <p className="font-semibold text-gray-800">Portfolio Details</p>
@@ -930,6 +931,18 @@ export default function PortfolioDetailsPage() {
                     <p><strong>Min Investment:</strong> ₹{safeNumber((portfolio as any)?.minInvestment || 30000).toLocaleString()}</p>
             </div>
           </div>
+          <div>
+                  <p className="font-semibold text-gray-800">Monthly Contribution</p>
+                  <p className="text-gray-600">{safeString((portfolio as any)?.index || (portfolio as any)?.monthlyContribution )}</p>
+              </div>
+              <div>
+                  <p className="font-semibold text-gray-800">Last Rebalancing Date</p>
+                  <p className="text-gray-600">{(portfolio as any)?.lastRebalancingDate ? new Date((portfolio as any).lastRebalancingDate).toLocaleDateString() : "N/A"}</p>
+              </div>
+              <div>
+                  <p className="font-semibold text-gray-800">Next Rebalancing Date</p>
+                  <p className="text-gray-600">{(portfolio as any)?.nextRebalancingDate ? new Date((portfolio as any).nextRebalancingDate).toLocaleDateString() : "N/A"}</p>
+              </div>
         </div>
           </div>
           </CardContent>
@@ -1571,8 +1584,8 @@ export default function PortfolioDetailsPage() {
         </Card>
       </div>
 
-                {/* Latest Research Reports Section */}
-        <div className="mt-8">
+      {/* Latest Research Reports Section */}
+        <div className="mt-8" id="research-reports">
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 space-y-3 sm:space-y-0">
               <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-600 leading-tight">
@@ -1596,12 +1609,17 @@ export default function PortfolioDetailsPage() {
             </div>
 
             <div className="space-y-6">
+              
               {(portfolio as any)?.downloadLinks && (portfolio as any).downloadLinks.length > 0 ? (
                 (portfolio as any).downloadLinks.map((link: any, index: number) => (
                   <div key={index} className="border-b border-gray-100 pb-6 last:border-b-0">
+                    <p className="text-blue-600 font-medium pb-2">
+                      {link.linkType || 'Research document and analysis for portfolio subscribers.'}
+                    </p>
                     <h4 className="font-semibold text-gray-900 text-lg mb-2">
                       {link.name || link.linkDiscription || `${link.linkType?.charAt(0).toUpperCase() + link.linkType?.slice(1) || 'Document'} Report`}
                     </h4>
+
                     <div className="flex items-center text-sm text-gray-600 mb-2">
                       <span>Publish on {new Date(link.createdAt).toLocaleDateString('en-GB', {
                         day: 'numeric',
@@ -1609,9 +1627,6 @@ export default function PortfolioDetailsPage() {
                         year: 'numeric'
                       })}</span>
                     </div>
-                    <p className="text-gray-600 text-sm mb-3 leading-relaxed">
-                      {link.linkDiscription || 'Research document and analysis for portfolio subscribers.'}
-                    </p>
                     <a 
                       href={link.linkUrl || link.url} 
                       target="_blank" 

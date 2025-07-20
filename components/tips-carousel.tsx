@@ -31,7 +31,14 @@ const MarqueeText = ({ text, className = "" }: { text: string; className?: strin
     return () => window.removeEventListener('resize', checkScroll);
   }, [text]);
 
-  if (!shouldScroll) {
+  // Always show marquee for long text to ensure it works
+  const isLongText = text.length > 15; // Reduced threshold to trigger marquee more often
+  
+  // Debug log to see what text is being passed
+  console.log('MarqueeText debug:', { text, textLength: text.length, isLongText, shouldScroll });
+
+  // Force marquee for any text longer than 15 characters or if it should scroll
+  if (!shouldScroll && !isLongText) {
     return (
       <div ref={containerRef} className={cn("overflow-hidden", className)}>
         <div ref={textRef} className="whitespace-nowrap">
@@ -41,16 +48,18 @@ const MarqueeText = ({ text, className = "" }: { text: string; className?: strin
     );
   }
 
+  // Always show marquee with duplicated text
   return (
     <div ref={containerRef} className={cn("overflow-hidden", className)}>
       <div
         ref={textRef}
         className="whitespace-nowrap animate-marquee"
         style={{
-          animationDuration: `${Math.max(5, text.length * 0.1)}s`
+          animationDuration: `${Math.max(8, text.length * 0.15)}s`
         }}
       >
         {text}
+        <span className="ml-8">{text}</span>
       </div>
     </div>
   );
@@ -298,13 +307,15 @@ const TipCard = ({ tip, isActive, onClick, isModelPortfolio, subscriptionAccess 
              <div className="flex-1 min-w-0">
                <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
                                   {isModelPortfolio ? (
-                   <div className="relative bg-gradient-to-r from-[#00B7FF] to-[#85D437] p-[2px] rounded-lg">
-                     <div className="bg-black text-xs sm:text-sm font-bold rounded-md px-2 sm:px-3 py-0.5 sm:py-1">
+                   <div className="relative bg-gradient-to-r from-[#00B7FF] to-[#85D437] p-[2px] rounded-lg overflow-hidden">
+                     <div className="bg-black text-xs sm:text-sm font-bold rounded-md px-2 sm:px-3 py-0.5 sm:py-1 overflow-hidden ">
                        {tip.portfolioName ? (
-                         <MarqueeText 
-                           text={tip.portfolioName}
-                           className="bg-gradient-to-r from-[#00B7FF] to-[#85D437] bg-clip-text text-transparent font-bold"
-                         />
+                         <div className="overflow-hidden">
+                           <div className="whitespace-nowrap animate-marquee bg-gradient-to-r from-[#00B7FF] to-[#85D437] bg-clip-text text-transparent font-bold" style={{ animationDuration: '10s' }}>
+                             {tip.portfolioName}
+                             <span className="ml-8">{tip.portfolioName}</span>
+                           </div>
+                         </div>
                        ) : (
                          <span className="bg-gradient-to-r from-[#00B7FF] to-[#85D437] bg-clip-text text-transparent font-bold">
                            Model Portfolio

@@ -225,8 +225,8 @@ export default function RangaoneWealth() {
 
   return (
     <DashboardLayout userId="1">
-        <PageHeader
-          title="Rangaone Wealth"
+      <PageHeader
+          title="RANGAONE WEALTH"
         subtitle="Expert Model Portfolio & Stock Recommendations"
       />
 

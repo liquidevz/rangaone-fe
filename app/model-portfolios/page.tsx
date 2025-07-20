@@ -200,7 +200,7 @@ export default function ModelPortfoliosPage() {
       <DashboardLayout>
         <div className="max-w-6xl mx-auto">
           <PageHeader 
-            title="Model Portfolios" 
+            title="MODEL PORTFOLIOS" 
             subtitle="Discover our expertly crafted investment strategies" 
           />
           <div className="flex justify-center items-center h-64">
@@ -215,7 +215,7 @@ export default function ModelPortfoliosPage() {
     <DashboardLayout>
       <div className="max-w-6xl mx-auto">
         <PageHeader 
-          title="Model Portfolios" 
+          title="MODEL PORTFOLIOS" 
           subtitle="Discover our expertly crafted investment strategies" 
         />
         {loading ? (

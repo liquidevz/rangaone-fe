@@ -663,7 +663,7 @@ function StockCard({ stock, cardColor, badgeColor, closed = false, onClick, isSe
                 }}
               >
                 {stock.name}
-                {shouldSlide && isHovering && <span className="invisible pl-4">{stock.name}</span>}
+                {shouldSlide && isHovering && <span className="ml-8">{stock.name}</span>}
               </h3>
             </div>
             <div className="flex items-center gap-2 mt-1">

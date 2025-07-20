@@ -163,7 +163,8 @@
   .animate-marquee {
     display: inline-block;
     white-space: nowrap;
-    animation: marquee 20s linear infinite;
+    animation: marquee 15s linear infinite;
+    will-change: transform;
   }
 
   @keyframes marquee {
