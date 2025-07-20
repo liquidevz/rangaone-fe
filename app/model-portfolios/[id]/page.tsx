@@ -791,7 +791,7 @@ export default function PortfolioDetailsPage() {
               const homeCardDesc = portfolio.description.find((item: any) => item.key === "home card");
               if (homeCardDesc && homeCardDesc.value) {
                 const textContent = homeCardDesc.value.replace(/<[^>]*>/g, '');
-                return textContent.length > 100 ? textContent.substring(0, 100) + '...' : textContent;
+                return textContent.length > 400 ? textContent.substring(0, 400) + '...' : textContent;
               }
             }
             return safeString(portfolio.description);
