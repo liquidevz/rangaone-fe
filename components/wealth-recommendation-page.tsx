@@ -46,7 +46,7 @@ export default function WealthRecommendationPage({
       <div className="w-full max-w-md mx-auto px-2 md:px-6 py-2 md:py-4 md:max-w-6xl">
 
         {/* Premium Stock Card (Small) - Matching TipCard Design */}
-        <div className="w-full mb-4 md:mb-6 md:mx-auto max-w-xs md:max-w-md px-7">
+        <div className="w-full mb-4 md:mb-6 md:mx-auto max-w-xs md:max-w-sm">
           <div
             className="relative w-full h-full rounded-xl transition-all duration-500 cursor-pointer flex-shrink-0 shadow-md"
             style={{

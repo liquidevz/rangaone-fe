@@ -14,9 +14,7 @@ import {
   Briefcase,
   X,
   TrendingUp,
-  Menu,
 } from "lucide-react";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
@@ -94,14 +92,10 @@ export default function Sidebar({ isOpen, onClose, isCollapsed = false, onToggle
   };
 
   const handleNavClick = (href: string) => {
-    if (typeof window !== "undefined") {
-      if (window.innerWidth < 1024) {
-        onClose();
-      } else if (isCollapsed) {
-        onClose();
-      }
-    }
     router.push(href);
+    if (window.innerWidth < 1024) {
+      onClose();
+    }
   };
 
   const isActive = (href: string) => {
@@ -132,7 +126,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed = false, onToggle
           "fixed inset-y-0 left-0 z-50 lg:relative lg:z-10",
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           "w-80 lg:w-auto",
-          isCollapsed ? "lg:w-24" : "lg:w-72" // Increased collapsed width to 24 units
+          isCollapsed ? "lg:w-24" : "lg:w-72"
         )}
       >
         {/* Header */}
@@ -153,7 +147,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed = false, onToggle
               )}
             </div>
 
-            {/* Desktop collapse toggle */}
+            {/* Desktop collapse toggle
             {onToggleCollapse && (
               <button
                 onClick={onToggleCollapse}
@@ -166,7 +160,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed = false, onToggle
               >
                 <ChevronLeft className="h-4 w-4 text-gray-500" />
               </button>
-            )}
+            )} */}
 
             {/* Mobile close button */}
             <button
@@ -183,7 +177,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed = false, onToggle
           "flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent",
           "p-4 space-y-6"
         )}>
-          {navigationItems.map((section, sectionIndex) => (
+          {navigationItems.map((section) => (
             <div key={section.title} className="space-y-2">
               {/* Section Header */}
               <button
@@ -219,7 +213,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed = false, onToggle
                 "space-y-1 transition-all duration-200",
                 isCollapsed ? "lg:block" : expandedSections[section.title] ? "block" : "hidden"
               )}>
-                {section.items.map((item, itemIndex) => (
+                {section.items.map((item) => (
                   <button
                     key={item.href}
                     onClick={() => handleNavClick(item.href)}
@@ -238,7 +232,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed = false, onToggle
                             "border border-transparent hover:border-gray-200/60",
                             "backdrop-blur-sm"
                           ],
-                      isCollapsed ? "lg:w-20 lg:h-20 lg:p-0 lg:justify-center" : "px-4 py-3" // Increased button size
+                      isCollapsed ? "lg:w-16 lg:h-16 lg:p-0 lg:justify-center" : "px-4 py-3"
                     )}
                     title={isCollapsed ? item.label : undefined}
                   >
@@ -252,7 +246,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed = false, onToggle
                           isActive(item.href)
                             ? "text-white drop-shadow-sm"
                             : "text-gray-600 group-hover:text-gray-800",
-                          isCollapsed && "lg:text-2xl"
+                          isCollapsed && "lg:text-xl"
                         )}
                       >
                         {item.icon}
@@ -265,22 +259,11 @@ export default function Sidebar({ isOpen, onClose, isCollapsed = false, onToggle
                       </span>
                     </div>
 
-                    {/* Badge */}
-                    {item.badge && (
-                      <span className={cn(
-                        "px-2 py-0.5 text-xs font-bold rounded-full",
-                        "bg-gradient-to-r from-orange-400 to-red-500 text-white",
-                        "shadow-sm animate-pulse"
-                      )}>
-                        {item.badge}
-                      </span>
-                    )}
-
                     {/* Active indicator */}
                     {isActive(item.href) && (
                       <div className={cn(
                         "absolute top-1/2 -translate-y-1/2 bg-white rounded-l-full opacity-90",
-                        isCollapsed ? "right-0 w-1 h-16" : "right-0 w-1 h-10" // Adjusted height for larger size
+                        isCollapsed ? "right-0 w-1 h-12" : "right-0 w-1 h-10"
                       )} />
                     )}
 
@@ -309,7 +292,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed = false, onToggle
                       "border border-transparent hover:border-gray-200/60",
                       "backdrop-blur-sm"
                     ],
-                isCollapsed ? "lg:w-20 lg:h-20 lg:p-0 lg:justify-center" : "px-4 py-3" // Increased button size
+                isCollapsed ? "lg:w-16 lg:h-16 lg:p-0 lg:justify-center" : "px-4 py-3"
               )}
               title={isCollapsed ? "Settings" : undefined}
             >
@@ -321,7 +304,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed = false, onToggle
                   className={cn(
                     "transition-colors duration-200",
                     isActive("/settings") ? "text-white" : "text-gray-600 group-hover:text-gray-800",
-                    isCollapsed && "lg:text-2xl"
+                    isCollapsed && "lg:text-xl"
                   )}
                 >
                   <Settings className="h-6 w-6" />
@@ -338,7 +321,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed = false, onToggle
               {isActive("/settings") && (
                 <div className={cn(
                   "absolute top-1/2 -translate-y-1/2 bg-white rounded-l-full opacity-90",
-                  isCollapsed ? "right-0 w-1 h-16" : "right-0 w-1 h-10" // Adjusted height for larger size
+                  isCollapsed ? "right-0 w-1 h-12" : "right-0 w-1 h-10"
                 )} />
               )}
             </button>

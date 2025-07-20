@@ -23,8 +23,11 @@ const MarqueeText = ({ text, className = "" }: { text: string; className?: strin
     return () => window.removeEventListener('resize', checkScroll);
   }, [text]);
 
-  // Only show marquee if text is actually too long for container
-  if (!shouldScroll) {
+  // Always show marquee for long text to ensure it works
+  const isLongText = text.length > 50; // Threshold for subtitle marquee
+  
+  // Force marquee for any text longer than 50 characters or if it should scroll
+  if (!shouldScroll && !isLongText) {
     return (
       <div ref={containerRef} className={`overflow-hidden ${className}`}>
         <div ref={textRef} className="whitespace-nowrap">
@@ -34,7 +37,7 @@ const MarqueeText = ({ text, className = "" }: { text: string; className?: strin
     );
   }
 
-  // Show marquee only when text is too long
+  // Always show marquee with duplicated text
   return (
     <div ref={containerRef} className={`overflow-hidden ${className}`}>
       <div

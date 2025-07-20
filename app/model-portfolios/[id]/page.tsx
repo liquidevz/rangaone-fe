@@ -933,15 +933,15 @@ export default function PortfolioDetailsPage() {
           </div>
           <div>
                   <p className="font-semibold text-gray-800">Monthly Contribution</p>
-                  <p className="text-gray-600">{safeString((portfolio as any)?.index || (portfolio as any)?.monthlyContribution )}</p>
+                  <p className="text-gray-600">{safeString((portfolio as any)?.index || (portfolio as any)?.createdAt )}</p>
               </div>
               <div>
                   <p className="font-semibold text-gray-800">Last Rebalancing Date</p>
-                  <p className="text-gray-600">{(portfolio as any)?.lastRebalancingDate ? new Date((portfolio as any).lastRebalancingDate).toLocaleDateString() : "N/A"}</p>
+                  <p className="text-gray-600">{(portfolio as any)?.createdAt ? new Date((portfolio as any).createdAt).toLocaleDateString() : "N/A"}</p>
               </div>
               <div>
                   <p className="font-semibold text-gray-800">Next Rebalancing Date</p>
-                  <p className="text-gray-600">{(portfolio as any)?.nextRebalancingDate ? new Date((portfolio as any).nextRebalancingDate).toLocaleDateString() : "N/A"}</p>
+                  <p className="text-gray-600">{(portfolio as any)?.createdAt ? new Date((portfolio as any).createdAt).toLocaleDateString() : "N/A"}</p>
               </div>
         </div>
           </div>
