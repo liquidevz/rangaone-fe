@@ -36,8 +36,19 @@ export interface Holding {
   symbol: string;
   weight: number;
   sector: string;
+  stockCapType: string;
   status: string;
-  price: number;
+  buyPrice: number;
+  minimumInvestmentValueStock: number;
+  quantity: number;
+  // Additional fields that may come from backend
+  currentPrice?: number;
+  previousPrice?: number;
+  change?: number;
+  changePercent?: number;
+  currentValue?: number;
+  remainingCash?: number;
+  allocatedAmount?: number;
 }
 
 export interface DownloadLink {

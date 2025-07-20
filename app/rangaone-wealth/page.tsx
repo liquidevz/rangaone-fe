@@ -168,19 +168,30 @@ export default function RangaoneWealth() {
     setDate(newDate);
   }, []);
 
-  // Filtering logic for carousels
-  const filteredMainTips = useMemo(() =>
-    mainFilter === "all"
-      ? allTips
-      : allTips.filter(tip => tip.category?.toLowerCase() === mainFilter),
-    [allTips, mainFilter]
-  );
-  const filteredClosedTips = useMemo(() =>
-    closedFilter === "all"
-      ? closedTips
-      : closedTips.filter(tip => tip.category?.toLowerCase() === closedFilter),
-    [closedTips, closedFilter]
-  );
+  // Filtering logic for carousels - filter by status AND category
+  const filteredMainTips = useMemo(() => {
+    // First filter by status (Active tips only)
+    const activeOnly = activeTips;
+    
+    // Then filter by category if needed
+    if (mainFilter === "all") {
+      return activeOnly;
+    } else {
+      return activeOnly.filter(tip => tip.category?.toLowerCase() === mainFilter);
+    }
+  }, [activeTips, mainFilter]);
+  
+  const filteredClosedTips = useMemo(() => {
+    // First filter by status (Closed tips only)
+    const closedOnly = closedTips;
+    
+    // Then filter by category if needed
+    if (closedFilter === "all") {
+      return closedOnly;
+    } else {
+      return closedOnly.filter(tip => tip.category?.toLowerCase() === closedFilter);
+    }
+  }, [closedTips, closedFilter]);
 
   // Navigation handler for tips
   const handleTipClick = (tipId: string) => {
@@ -248,7 +259,7 @@ export default function RangaoneWealth() {
             </Button>
           </div>
           <TipsCarousel 
-            tips={allTips} 
+            tips={filteredMainTips} 
             loading={loading} 
             onTipClick={handleTipClick} 
             categoryFilter={mainFilter as 'basic' | 'premium' | 'all'}
@@ -285,10 +296,11 @@ export default function RangaoneWealth() {
             </Button>
           </div>
           <TipsCarousel 
-            tips={closedTips} 
+            tips={filteredClosedTips} 
             loading={loading} 
             onTipClick={handleTipClick} 
             categoryFilter={closedFilter as 'basic' | 'premium' | 'all'}
+            userSubscriptionAccess={subscriptionAccess} // Pass subscription access
           />
         </CardContent>
       </Card>

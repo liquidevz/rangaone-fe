@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react"
 import { motion, useMotionValue, animate, type PanInfo } from "framer-motion"
+import { format, differenceInDays, addDays, isSameDay } from "date-fns"
 
 import { cn } from "@/lib/utils"
 import { tipsService, type Tip } from "@/services/tip.service"
@@ -9,9 +10,56 @@ import { subscriptionService, type SubscriptionAccess } from "@/services/subscri
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 
+// MarqueeText component for scrolling long text
+const MarqueeText = ({ text, className = "" }: { text: string; className?: string }) => {
+  const [shouldScroll, setShouldScroll] = useState(false);
+  const textRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const checkScroll = () => {
+      if (textRef.current && containerRef.current) {
+        const textWidth = textRef.current.scrollWidth;
+        const containerWidth = containerRef.current.clientWidth;
+        setShouldScroll(textWidth > containerWidth + 10); // Add small buffer
+      }
+    };
+
+    checkScroll();
+    // Re-check on window resize
+    window.addEventListener('resize', checkScroll);
+    return () => window.removeEventListener('resize', checkScroll);
+  }, [text]);
+
+  if (!shouldScroll) {
+    return (
+      <div ref={containerRef} className={cn("overflow-hidden", className)}>
+        <div ref={textRef} className="whitespace-nowrap">
+          {text}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={containerRef} className={cn("overflow-hidden", className)}>
+      <div
+        ref={textRef}
+        className="whitespace-nowrap animate-marquee"
+        style={{
+          animationDuration: `${Math.max(5, text.length * 0.1)}s`
+        }}
+      >
+        {text}
+      </div>
+    </div>
+  );
+};
+
 type TipCardData = {
   id: string
   portfolioId?: string
+  portfolioName?: string
   date: string
   stockName: string
   exchange: string
@@ -60,6 +108,139 @@ const getTipColorScheme = (category: "basic" | "premium", isModelPortfolio: bool
   }
 }
 
+interface DateTimelineSliderProps {
+  dateRange: {
+    min: Date
+    max: Date
+  }
+  selectedDate: Date
+  onDateChange: (date: Date) => void
+  className?: string
+}
+
+function DateTimelineSlider({
+  dateRange,
+  selectedDate,
+  onDateChange,
+  className,
+}: DateTimelineSliderProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [containerWidth, setContainerWidth] = useState(0)
+  const [tickSpacing] = useState(28) // Space between each day's tick
+
+  const x = useMotionValue(0)
+
+  const totalDays = useMemo(() => differenceInDays(dateRange.max, dateRange.min) + 1, [dateRange.min, dateRange.max])
+  const timelineWidth = useMemo(() => totalDays * tickSpacing, [totalDays, tickSpacing])
+  const currentPosition = useMemo(() => differenceInDays(selectedDate, dateRange.min), [selectedDate, dateRange.min])
+
+  // Measure the width of the container
+  useEffect(() => {
+    if (containerRef.current) {
+      const updateWidth = () => setContainerWidth(containerRef.current?.offsetWidth ?? 0)
+      updateWidth()
+      window.addEventListener("resize", updateWidth)
+      return () => window.removeEventListener("resize", updateWidth)
+    }
+  }, [])
+
+  // Center the selected date when it changes externally or on initial load
+  useEffect(() => {
+    if (containerWidth > 0) {
+      const targetX = containerWidth / 2 - currentPosition * tickSpacing
+      animate(x, targetX, { type: "spring", stiffness: 400, damping: 40 })
+    }
+  }, [selectedDate, containerWidth, currentPosition, tickSpacing, x])
+
+  const handleDragEnd = () => {
+    const finalX = x.get()
+    const centeredPositionInTimeline = containerWidth / 2 - finalX
+    const dayIndex = Math.round(centeredPositionInTimeline / tickSpacing)
+    const clampedDayIndex = Math.max(0, Math.min(totalDays - 1, dayIndex))
+
+    const newDate = addDays(dateRange.min, clampedDayIndex)
+
+    // Snap to the new date
+    const snapX = containerWidth / 2 - clampedDayIndex * tickSpacing
+    animate(x, snapX, { type: "spring", stiffness: 500, damping: 30 })
+
+    if (!isSameDay(newDate, selectedDate)) {
+      onDateChange(newDate)
+    }
+  }
+
+  const dragConstraints = {
+    right: containerWidth / 2,
+    left: containerWidth / 2 - timelineWidth,
+  }
+
+  const formatDisplayDate = (date: Date) => format(date, "dd MMM yyyy")
+
+  const ticks = useMemo(() => {
+    const heightPattern = ["h-8", "h-4", "h-4", "h-4", "h-4", "h-6", "h-4", "h-4", "h-4", "h-4"]
+    return Array.from({ length: totalDays }).map((_, i) => {
+      const tickDate = addDays(dateRange.min, i)
+      const isDateWithTip = isSameDay(tickDate, selectedDate)
+      
+      // Check if this date has any tips
+      const hasTipOnThisDate = false // This could be enhanced to check actual tip dates
+      
+      return {
+        heightClass: heightPattern[i % heightPattern.length],
+        position: i * tickSpacing,
+        isHighlighted: isDateWithTip,
+        hasTip: hasTipOnThisDate,
+        date: tickDate
+      }
+    })
+  }, [totalDays, tickSpacing, dateRange.min, selectedDate])
+
+  return (
+    <div
+      ref={containerRef}
+      className={cn(
+        "relative w-full max-w-2xl h-24 mx-auto overflow-hidden cursor-grab active:cursor-grabbing transition-all duration-300",
+        className,
+      )}
+    >
+      {/* Static Date Indicator */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+        <div className="bg-white text-gray-800 px-4 py-2 rounded-full text-sm sm:text-base font-semibold shadow-lg border border-gray-200 whitespace-nowrap">
+          {formatDisplayDate(selectedDate)}
+        </div>
+      </div>
+
+      {/* Static Center Pointer */}
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-8 bg-blue-600 z-10 pointer-events-none" />
+
+      {/* Draggable Timeline */}
+      <motion.div
+        className="absolute top-0 left-0 h-full"
+        style={{ x }}
+        drag="x"
+        dragConstraints={dragConstraints}
+        onDragEnd={handleDragEnd}
+        dragElastic={0.1}
+        dragMomentum={false}
+      >
+        <div className="relative h-full flex items-end" style={{ width: `${timelineWidth}px` }}>
+          {ticks.map((tick, i) => (
+            <div
+              key={i}
+              className={cn(
+                "absolute bottom-0 w-0.5 transition-colors duration-200", 
+                tick.heightClass,
+                tick.isHighlighted ? "bg-blue-600" : tick.hasTip ? "bg-green-500" : "bg-gray-400"
+              )}
+              style={{ left: `${tick.position}px` }}
+            />
+          ))}
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
 const TipCard = ({ tip, isActive, onClick, isModelPortfolio, subscriptionAccess }: { 
   tip: TipCardData; 
   isActive: boolean; 
@@ -99,8 +280,8 @@ const TipCard = ({ tip, isActive, onClick, isModelPortfolio, subscriptionAccess 
       className={cn(
         "relative w-full h-full",
         "rounded-xl transition-all duration-500 cursor-pointer flex-shrink-0",
-        isActive ? "scale-105 sm:scale-110 shadow-2xl z-20" : "scale-95 sm:scale-90 opacity-70 shadow-md",
-        onClick && "hover:scale-100 sm:hover:scale-105 hover:shadow-xl"
+        isActive ? "scale-105 sm:scale-110 lg:scale-105 shadow-2xl z-20" : "scale-95 sm:scale-90 lg:scale-95 opacity-70 shadow-md",
+        onClick && "hover:scale-100 sm:hover:scale-105 lg:hover:scale-100 hover:shadow-xl"
       )}
       style={{
         background: colorScheme.gradient,
@@ -108,20 +289,27 @@ const TipCard = ({ tip, isActive, onClick, isModelPortfolio, subscriptionAccess 
       }}
       onClick={canAccessTip ? onClick : undefined}
     >
-              <div className="w-full h-full bg-white rounded-[10px] p-2.5 sm:p-3 md:p-4 lg:p-5 flex flex-col justify-between relative overflow-hidden">
+              <div className="w-full h-full bg-white rounded-[10px] p-2 sm:p-3 md:p-4 lg:p-5 flex flex-col justify-between relative overflow-hidden">
         <div className={cn(
           "w-full h-full flex flex-col justify-between relative z-10",
           shouldBlurContent && "blur-sm"
         )}>
                      <div className="flex justify-between items-start gap-2 sm:gap-3">
              <div className="flex-1 min-w-0">
-               <div className="flex items-center gap-2 mb-2 sm:mb-3">
-                 {isModelPortfolio ? (
+               <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
+                                  {isModelPortfolio ? (
                    <div className="relative bg-gradient-to-r from-[#00B7FF] to-[#85D437] p-[2px] rounded-lg">
-                     <div className="bg-black text-xs sm:text-sm font-bold rounded-md px-2.5 sm:px-3 py-0.5 sm:py-1 whitespace-nowrap">
-                       <span className="bg-gradient-to-r from-[#00B7FF] to-[#85D437] bg-clip-text text-transparent font-bold">
-                         Model Portfolio
-                       </span>
+                     <div className="bg-black text-xs sm:text-sm font-bold rounded-md px-2 sm:px-3 py-0.5 sm:py-1">
+                       {tip.portfolioName ? (
+                         <MarqueeText 
+                           text={tip.portfolioName}
+                           className="bg-gradient-to-r from-[#00B7FF] to-[#85D437] bg-clip-text text-transparent font-bold"
+                         />
+                       ) : (
+                         <span className="bg-gradient-to-r from-[#00B7FF] to-[#85D437] bg-clip-text text-transparent font-bold">
+                           Model Portfolio
+                         </span>
+                       )}
                      </div>
                    </div>
                  ) : (
@@ -136,20 +324,28 @@ const TipCard = ({ tip, isActive, onClick, isModelPortfolio, subscriptionAccess 
                    </div>
                  )}
                </div>
-               <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-black mt-1 mb-1 sm:mb-1.5 line-clamp-1">{tip.stockName}</h3>
+               
+               
+               <MarqueeText 
+                 text={tip.stockName}
+                 className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-black mt-0.5 mb-0.5 sm:mb-1"
+               />
                <p className="text-xs sm:text-sm text-gray-500">{tip.exchange}</p>
              </div>
              <div className="relative bg-gradient-to-r from-[#00B7FF] to-[#85D437] p-[2px] rounded-lg flex-shrink-0">
-               <div className="bg-cyan-50 rounded-md px-2 sm:px-2.5 md:px-3 py-1 sm:py-1.5 text-center min-w-[44px] sm:min-w-[50px] md:min-w-[60px]">
-                 <p className="text-[9px] sm:text-[10px] md:text-xs text-gray-700 mb-0 leading-tight font-medium">Weightage</p>
-                 <p className="text-sm sm:text-base md:text-lg font-bold text-black leading-tight">{tip.weightage}%</p>
+               <div className="bg-cyan-50 rounded-md px-1.5 sm:px-2 md:px-2.5 py-1 sm:py-1.5 text-center min-w-[40px] sm:min-w-[44px] md:min-w-[50px]">
+                 <p className="text-[8px] sm:text-[9px] md:text-[10px] text-gray-700 mb-0 leading-tight font-medium">Weightage</p>
+                 <p className="text-xs sm:text-sm md:text-base font-bold text-black leading-tight">{tip.weightage}%</p>
                </div>
              </div>
            </div>
-                     <div className="flex justify-between items-end mt-2 sm:mt-3 md:mt-4 gap-2 sm:gap-3">
+                     <div className="flex justify-between items-end mt-1.5 sm:mt-2 md:mt-3 gap-2 sm:gap-3">
              <div className="min-w-0 flex-1">
                <p className="text-[10px] sm:text-xs md:text-sm text-gray-500 mb-0.5 sm:mb-1 leading-tight font-medium">Buy Range</p>
-               <p className="text-xs sm:text-sm md:text-base font-semibold text-black line-clamp-1">{tip.buyRange}</p>
+               <MarqueeText 
+                 text={tip.buyRange}
+                 className="text-xs sm:text-sm md:text-base font-semibold text-black"
+               />
              </div>
              <div className="flex-shrink-0">
                <p className="text-[10px] sm:text-xs md:text-sm text-gray-500 mb-0.5 sm:mb-1 leading-tight font-medium">Action</p>
@@ -159,8 +355,11 @@ const TipCard = ({ tip, isActive, onClick, isModelPortfolio, subscriptionAccess 
              </div>
            </div>
                      {tip.message && (
-             <div className="mt-2 sm:mt-3 p-2 sm:p-2.5 md:p-3 bg-gray-100 rounded">
-               <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 line-clamp-2 leading-tight">{tip.message}</p>
+             <div className="mt-1.5 sm:mt-2 p-1.5 sm:p-2 md:p-2.5 bg-gray-100 rounded">
+               <MarqueeText 
+                 text={tip.message}
+                 className="text-[10px] sm:text-xs md:text-sm text-gray-600 leading-tight"
+               />
              </div>
            )}
         </div>
@@ -251,72 +450,72 @@ export default function TipsCarousel({
         // Very small mobile
         config = {
           cardWidth: Math.min(260, width - 60),
-          cardHeight: 140,
+          cardHeight: 160,
           gap: 12,
-          visibleCards: 1.0, // Changed from 1.1 to 1.0
+          visibleCards: 1.0,
           containerPadding: 12
         };
       } else if (width < 480) {
         // Small mobile
         config = {
           cardWidth: Math.min(280, width - 60),
-          cardHeight: 150,
+          cardHeight: 170,
           gap: 14,
-          visibleCards: 1.0, // Changed from 1.15 to 1.0
+          visibleCards: 1.0,
           containerPadding: 14
         };
       } else if (width < 640) {
         // Large mobile
         config = {
           cardWidth: 300,
-          cardHeight: 160,
+          cardHeight: 180,
           gap: 16,
-          visibleCards: 1.0, // Changed from 1.2 to 1.0
+          visibleCards: 1.0,
           containerPadding: 16
         };
       } else if (width < 768) {
         // Small tablet
         config = {
-          cardWidth: 320,
-          cardHeight: 180,
+          cardWidth: Math.min(320, width - 80),
+          cardHeight: 200,
           gap: 18,
-          visibleCards: 1.4, // Reduced from 1.6
+          visibleCards: 1.2,
           containerPadding: 18
         };
       } else if (width < 1024) {
         // Large tablet
         config = {
-          cardWidth: 340,
-          cardHeight: 180,
+          cardWidth: Math.min(340, width - 100),
+          cardHeight: 200,
           gap: 20,
-          visibleCards: 1.8, // Reduced from 2.0
+          visibleCards: 1.5,
           containerPadding: 20
         };
       } else if (width < 1280) {
         // Small desktop
         config = {
-          cardWidth: 360,
-          cardHeight: 180,
+          cardWidth: Math.min(360, width - 120),
+          cardHeight: 200,
           gap: 24,
-          visibleCards: 2.2, // Reduced from 2.5
+          visibleCards: 1.8,
           containerPadding: 24
         };
       } else if (width < 1536) {
         // Large desktop
         config = {
-          cardWidth: 380,
+          cardWidth: Math.min(380, width - 140),
           cardHeight: 220,
           gap: 28,
-          visibleCards: 2.6, // Reduced from 3.0
+          visibleCards: 2.0,
           containerPadding: 28
         };
       } else {
         // Extra large desktop
         config = {
-          cardWidth: 400,
+          cardWidth: Math.min(400, width - 160),
           cardHeight: 220,
           gap: 32,
-          visibleCards: 3.0, // Reduced from 3.5
+          visibleCards: 2.2,
           containerPadding: 32
         };
       }
@@ -333,6 +532,42 @@ export default function TipsCarousel({
     if (tips.length === 0 || currentIndex >= tips.length) return new Date()
     return new Date(tips[currentIndex].date)
   }, [tips, currentIndex])
+  
+  // Calculate date range for the timeline slider
+  const dateRange = useMemo(() => {
+    if (tips.length === 0) return { min: new Date(), max: new Date() }
+    
+    const dates = tips.map(tip => new Date(tip.date)).sort((a, b) => a.getTime() - b.getTime())
+    const minDate = dates[0]
+    const maxDate = dates[dates.length - 1]
+    
+    // Add some padding to the date range for better UX
+    const paddingDays = 2
+    const paddedMinDate = addDays(minDate, -paddingDays)
+    const paddedMaxDate = addDays(maxDate, paddingDays)
+    
+    console.log('📅 Timeline Date Range:', {
+      tipsCount: tips.length,
+      minDate: format(minDate, 'dd MMM yyyy'),
+      maxDate: format(maxDate, 'dd MMM yyyy'),
+      paddedMin: format(paddedMinDate, 'dd MMM yyyy'),
+      paddedMax: format(paddedMaxDate, 'dd MMM yyyy')
+    })
+    
+    return { min: paddedMinDate, max: paddedMaxDate }
+  }, [tips])
+
+  // Update current tip date when carousel index changes
+  useEffect(() => {
+    if (tips.length > 0 && currentIndex < tips.length) {
+      const newTipDate = new Date(tips[currentIndex].date)
+      console.log('🔄 Carousel Index Changed:', {
+        currentIndex,
+        newTipDate: format(newTipDate, 'dd MMM yyyy'),
+        currentTipDate: format(currentTipDate, 'dd MMM yyyy')
+      })
+    }
+  }, [currentIndex, tips, currentTipDate])
 
   const convertTipsToCarouselFormat = (apiTips: Tip[]): TipCardData[] => {
     return apiTips.map((tip, index) => {
@@ -340,9 +575,20 @@ export default function TipsCarousel({
       if (!stockName) {
         stockName = tip.stockId || `Stock ${index + 1}`;
       }
+      
+      // Extract portfolio name
+      let portfolioName: string | undefined;
+      if (typeof tip.portfolio === 'string') {
+        // If portfolio is just an ID, we'll need to fetch the name separately
+        portfolioName = undefined;
+      } else if (tip.portfolio && typeof tip.portfolio === 'object') {
+        portfolioName = tip.portfolio.name;
+      }
+      
       return {
         id: tip._id,
         portfolioId: typeof tip.portfolio === 'string' ? tip.portfolio : tip.portfolio?._id,
+        portfolioName,
         date: tip.createdAt,
         stockName,
         exchange: "NSE",
@@ -368,7 +614,7 @@ export default function TipsCarousel({
     }
   };
 
-  // Calculate container width and positioning - FIXED
+  // Calculate container width and positioning - RESPONSIVE
   const containerWidth = Math.min(
     typeof window !== 'undefined' ? window.innerWidth - (dimensions.containerPadding * 2) : 800,
     dimensions.cardWidth * Math.floor(dimensions.visibleCards) + dimensions.gap * (Math.floor(dimensions.visibleCards) - 1)
@@ -486,7 +732,8 @@ export default function TipsCarousel({
             buyRange: "₹ 1000 - 1050",
             action: "SELL",
             category: "basic",
-            title: "ZAGGLE Analysis"
+            title: "ZAGGLE Analysis",
+            portfolioName: isModelPortfolio ? "Growth Portfolio" : undefined
           },
           {
             id: "2",
@@ -497,7 +744,8 @@ export default function TipsCarousel({
             buyRange: "₹ 1000 - 1050",
             action: "HOLD",
             category: "premium",
-            title: "BLUESTARCO Premium Analysis"
+            title: "BLUESTARCO Premium Analysis",
+            portfolioName: isModelPortfolio ? "Premium Portfolio" : undefined
           },
         ]
         setTips(sampleTips)
@@ -622,13 +870,13 @@ export default function TipsCarousel({
         </div>
 
         {/* Navigation Arrows */}
-        {containerWidth > 480 && tips.length > 1 && (
+        {containerWidth > 640 && tips.length > 1 && (
           <>
             <button
               onClick={goToPrevious}
               disabled={currentIndex === 0}
               className={cn(
-                "absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center transition-all duration-200 z-10",
+                "absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center transition-all duration-200 z-10",
                 currentIndex === 0 
                   ? "opacity-50 cursor-not-allowed" 
                   : "hover:bg-gray-50 hover:shadow-xl"
@@ -643,7 +891,7 @@ export default function TipsCarousel({
               onClick={goToNext}
               disabled={currentIndex === tips.length - 1}
               className={cn(
-                "absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center transition-all duration-200 z-10",
+                "absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center transition-all duration-200 z-10",
                 currentIndex === tips.length - 1 
                   ? "opacity-50 cursor-not-allowed" 
                   : "hover:bg-gray-50 hover:shadow-xl"
@@ -657,44 +905,53 @@ export default function TipsCarousel({
         )}
       </div>
 
-      {/* Dots Indicator */}
+      {/* Dots Indicator - Removed in favor of DateTimelineSlider */}
+
+      {/* Date Timeline Slider */}
       {tips.length > 1 && (
-        <div className="flex items-center justify-center space-x-2 mt-4">
-          {tips.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => goToTip(index)}
-              className={cn(
-                "h-2 rounded-full transition-all duration-200",
-                index === currentIndex 
-                  ? "bg-blue-600 w-6 sm:w-8" 
-                  : "bg-gray-300 hover:bg-gray-400 w-2"
-              )}
-            />
-          ))}
+        <div className="mt-4 w-full max-w-2xl mx-auto px-4">
+          <DateTimelineSlider
+            dateRange={dateRange}
+            selectedDate={currentTipDate}
+            onDateChange={(date) => {
+              console.log('📅 Timeline Date Selected:', format(date, 'dd MMM yyyy'))
+              
+              // Find the tip with the closest date to the selected date
+              let closestTipIndex = 0;
+              let minDiff = Infinity;
+              
+              tips.forEach((tip, index) => {
+                const tipDate = new Date(tip.date);
+                const diff = Math.abs(tipDate.getTime() - date.getTime());
+                
+                if (diff < minDiff) {
+                  minDiff = diff;
+                  closestTipIndex = index;
+                }
+              });
+              
+              // Only navigate if we found a significantly close tip (within 1 day)
+              const closestTipDate = new Date(tips[closestTipIndex].date);
+              const dayDiff = Math.abs(differenceInDays(date, closestTipDate));
+              
+              console.log('🎯 Timeline Navigation:', {
+                selectedDate: format(date, 'dd MMM yyyy'),
+                closestTipDate: format(closestTipDate, 'dd MMM yyyy'),
+                closestTipIndex,
+                dayDiff,
+                willNavigate: dayDiff <= 1
+              })
+              
+              if (dayDiff <= 1) {
+                goToTip(closestTipIndex);
+              }
+            }}
+            className=""
+          />
         </div>
       )}
-
-      {/* Current Date Display */}
-      <div className="mt-6 text-center px-4">
-        <div className="inline-flex items-center relative overflow-hidden backdrop-blur-sm bg-white/80 border border-white/20 px-4 py-2 sm:px-6 sm:py-3 rounded-xl shadow-xl">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-50/50 via-transparent to-purple-50/50 rounded-xl" />
-          
-          <div className="relative flex items-center space-x-2">
-            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            
-            <span className="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 tracking-wide">
-              {currentTipDate.toLocaleDateString('en-GB', { 
-                day: '2-digit', 
-                month: 'long', 
-                year: 'numeric' 
-              })}
-            </span>
-          </div>
-        </div>
-      </div>
+      
+      {/* No legacy dots indicator - completely replaced by DateTimelineSlider */}
     </div>
   )
-}
+} 

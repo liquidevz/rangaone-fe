@@ -236,9 +236,8 @@ export default function PortfolioDetailsPage() {
         
         // Calculate base allocation value with exact precision - NO ROUNDING
         const exactWeight = holding.weight; // Use exact weight value (e.g., 7.44 instead of 7)
-        const allocationValue = (exactWeight / 100) * minInvestment;
+        const allocationValue = parseFloat(((exactWeight / 100) * minInvestment).toFixed(2));
         
-        let currentValue = allocationValue;
         let currentPrice: number | undefined;
         let previousPrice: number | undefined;
         let change: number | undefined;
@@ -251,14 +250,8 @@ export default function PortfolioDetailsPage() {
           previousPrice = priceData.previousPrice;
           change = priceData.change;
           changePercent = priceData.changePercent;
-          
-          // Calculate current value based on live price change with exact precision
-          if (changePercent !== undefined) {
-            const changeDecimal = changePercent / 100;
-            currentValue = allocationValue * (1 + changeDecimal);
-          }
             
-          console.log(`✅ Applied exact live price for ${holding.symbol}: ₹${currentPrice}, Change: ${changePercent}%, Weight: ${exactWeight}%, Value: ₹${currentValue}`);
+          console.log(`✅ Applied exact live price for ${holding.symbol}: ₹${currentPrice}, Change: ${changePercent}%, Weight: ${exactWeight}%`);
         } else {
           console.warn(`⚠️ Failed to get price for ${holding.symbol}:`, priceResponse?.error || "No data");
         }
@@ -269,7 +262,7 @@ export default function PortfolioDetailsPage() {
           previousPrice,
           change,
           changePercent,
-          value: currentValue,
+          value: allocationValue,
           marketCap: (holding as any).stockCapType || getMarketCapCategory(holding.symbol),
           priceData,
         };
@@ -303,6 +296,72 @@ export default function PortfolioDetailsPage() {
     if (midCap.some(stock => symbol.includes(stock))) return 'Mid cap';
     if (smallCap.some(stock => symbol.includes(stock))) return 'Small cap';
     return 'Mid cap';
+  };
+
+  // Validate and clean holdings data from backend
+  const validateHoldingsData = (holdings: any[], portfolioId: string): Holding[] => {
+    console.log(`🔍 Validating holdings data for portfolio ${portfolioId}`);
+    console.log("📊 Raw holdings data structure:", holdings);
+    
+    if (!holdings || !Array.isArray(holdings)) {
+      console.warn("⚠️ Invalid holdings data structure:", holdings);
+      return [];
+    }
+
+    // Log each holding for debugging
+    holdings.forEach((holding: any, index: number) => {
+      console.log(`📋 Holding ${index + 1}:`, {
+        symbol: holding.symbol,
+        weight: holding.weight,
+        sector: holding.sector,
+        status: holding.status,
+        price: holding.price,
+        portfolioId: holding.portfolioId, // Check if this field exists
+        _id: holding._id // Check if this field exists
+      });
+    });
+
+    const validHoldings: Holding[] = holdings
+      .filter((holding: any) => {
+        // Validate required fields
+        if (!holding.symbol || !holding.weight || !holding.sector) {
+          console.warn("⚠️ Invalid holding data:", holding);
+          return false;
+        }
+        
+        // Ensure weight is a valid number
+        if (isNaN(holding.weight) || holding.weight <= 0) {
+          console.warn("⚠️ Invalid weight for holding:", holding);
+          return false;
+        }
+        
+        return true;
+      })
+      .map((holding: any) => ({
+        symbol: holding.symbol,
+        weight: parseFloat(holding.weight),
+        sector: holding.sector,
+        stockCapType: holding.stockCapType || 'Mid cap',
+        status: holding.status || 'FRESH-BUY',
+        buyPrice: holding.buyPrice || 0,
+        minimumInvestmentValueStock: holding.minimumInvestmentValueStock || 0,
+        quantity: holding.quantity || 0
+      }));
+
+    console.log(`✅ Validated ${validHoldings.length} holdings out of ${holdings.length} total`);
+    
+    // Check for potential data mixing issues
+    const totalWeight = validHoldings.reduce((sum, holding) => sum + holding.weight, 0);
+    console.log(`📊 Total weight across all holdings: ${totalWeight.toFixed(2)}%`);
+    
+    if (totalWeight > 100) {
+      console.warn("⚠️ WARNING: Total weight exceeds 100% - possible data mixing from different portfolios!");
+      console.warn("📊 This could indicate holdings from multiple portfolios are being mixed together.");
+    } else if (totalWeight < 50) {
+      console.warn("⚠️ WARNING: Total weight is very low - possible incomplete data!");
+    }
+    
+    return validHoldings;
   };
 
   // Fetch price history for charts with proper benchmark comparison
@@ -516,13 +575,27 @@ export default function PortfolioDetailsPage() {
           portfolioData = portfolioResponse.portfolio;
         }
         
+        // Verify that we got the correct portfolio data
+        if (portfolioData._id && portfolioData._id !== portfolioId) {
+          console.warn(`⚠️ WARNING: Portfolio ID mismatch! Expected: ${portfolioId}, Got: ${portfolioData._id}`);
+        }
+        
         setPortfolio(portfolioData);
         
         // Check for holdings and fetch live prices
         if (portfolioData.holdings && portfolioData.holdings.length > 0) {
           console.log("Holdings found:", portfolioData.holdings.length, "holdings");
-          const holdingsWithLivePrices = await fetchStockPrices(portfolioData.holdings, portfolioData);
-          setHoldingsWithPrices(holdingsWithLivePrices);
+          
+          // Validate and clean holdings data from backend
+          const validatedHoldings = validateHoldingsData(portfolioData.holdings, portfolioId);
+          
+          if (validatedHoldings.length > 0) {
+            const holdingsWithLivePrices = await fetchStockPrices(validatedHoldings, portfolioData);
+            setHoldingsWithPrices(holdingsWithLivePrices);
+          } else {
+            console.warn("⚠️ No valid holdings found after validation");
+            setHoldingsWithPrices([]);
+          }
         }
         
         // Fetch price history for initial load
@@ -574,50 +647,79 @@ export default function PortfolioDetailsPage() {
     );
   }
 
+  // Use backend calculated values from the exact backend structure
+  const useBackendCalculatedValues = (holdings: HoldingWithPrice[], minInvestment: number) => {
+    return holdings.map(holding => {
+      // Use exact backend field names
+      const quantity = holding.quantity || 0;
+      const actualInvestment = holding.minimumInvestmentValueStock || 0;
+      const remainingCash = holding.remainingCash || 0;
+      const allocatedAmount = holding.allocatedAmount || 
+        parseFloat(((holding.weight / 100) * minInvestment).toFixed(2));
+      const currentValue = holding.currentValue || 0;
+      const marketCap = holding.stockCapType || 'Mid cap';
+      
+      console.log(`📊 ${holding.symbol}: Backend values - Quantity: ${quantity}, Investment: ₹${actualInvestment}, Current Value: ₹${currentValue}, Market Cap: ${marketCap}`);
+      
+      return {
+        ...holding,
+        quantity,
+        actualInvestment,
+        remainingCash,
+        allocatedAmount,
+        currentValue,
+        marketCap
+      };
+    });
+  };
+
   // Calculate portfolio metrics based on live pricing with EXACT precision
   const calculatePortfolioMetrics = () => {
     const minInvestment = (portfolio as any)?.minInvestment || 30000;
     
     console.log(`📊 Calculating exact portfolio metrics for min investment: ₹${minInvestment}`);
     
-    // Calculate actual holdings value using live prices with EXACT precision
-    const actualHoldingsValue = holdingsWithPrices.reduce((sum, holding) => {
-      // Use exact weight value (e.g., 7.44 instead of 7) - NO ROUNDING
-      const exactWeight = holding.weight;
-      const allocatedAmount = (exactWeight / 100) * minInvestment;
-      
-      console.log(`💰 ${holding.symbol}: Weight: ${exactWeight}%, Allocated: ₹${allocatedAmount}`);
-      
-      if (holding.currentPrice && holding.previousPrice && holding.previousPrice > 0) {
-        const priceChangeFactor = holding.currentPrice / holding.previousPrice;
-        const currentValue = allocatedAmount * priceChangeFactor;
-        console.log(`📈 ${holding.symbol}: Current Price: ₹${holding.currentPrice}, Previous: ₹${holding.previousPrice}, Current Value: ₹${currentValue}`);
-        return sum + currentValue;
-      } else if (holding.currentPrice && holding.changePercent !== undefined) {
-        const changeDecimal = holding.changePercent / 100;
-        const currentValue = allocatedAmount * (1 + changeDecimal);
-        console.log(`📊 ${holding.symbol}: Change: ${holding.changePercent}%, Current Value: ₹${currentValue}`);
-        return sum + currentValue;
+    // Use backend calculated values instead of frontend calculations
+    const holdingsWithQuantities = useBackendCalculatedValues(holdingsWithPrices, minInvestment);
+    
+    // Use backend current values if available, otherwise calculate from holdings
+    const actualHoldingsValue = holdingsWithQuantities.reduce((sum: number, holding: any) => {
+      if (holding.currentValue !== undefined && holding.currentValue > 0) {
+        // Use backend current value
+        console.log(`📈 ${holding.symbol}: Backend Current Value: ₹${holding.currentValue}`);
+        return parseFloat((sum + holding.currentValue).toFixed(2));
+      } else if (holding.currentPrice && holding.quantity > 0) {
+        // Fallback: calculate based on quantity * current price
+        const currentValue = parseFloat((holding.quantity * holding.currentPrice).toFixed(2));
+        console.log(`📈 ${holding.symbol}: Calculated Current Value: ₹${currentValue}`);
+        return parseFloat((sum + currentValue).toFixed(2));
       } else {
-        console.log(`📉 ${holding.symbol}: No live price, using allocated amount: ₹${allocatedAmount}`);
-        return sum + allocatedAmount;
+        console.log(`📉 ${holding.symbol}: No current value available`);
+        return parseFloat((sum + 0).toFixed(2));
       }
     }, 0);
     
+    // Calculate total remaining cash from all stocks
+    const totalRemainingCash = holdingsWithQuantities.reduce((sum: number, holding: any) => {
+      return parseFloat((sum + (holding.remainingCash || 0)).toFixed(2));
+    }, 0);
+    
     // Cash balance calculation with EXACT precision
-    const totalStockAllocation = holdingsWithPrices.reduce((sum, holding) => sum + holding.weight, 0);
-    const exactCashPercentage = Math.max(0, 100 - totalStockAllocation);
-    const exactCashBalance = (exactCashPercentage / 100) * minInvestment;
+    const totalStockAllocation = parseFloat(holdingsWithQuantities.reduce((sum: number, holding: any) => sum + holding.weight, 0).toFixed(2));
+    const exactCashPercentage = parseFloat(Math.max(0, 100 - totalStockAllocation).toFixed(2));
+    const baseCashBalance = parseFloat(((exactCashPercentage / 100) * minInvestment).toFixed(2));
+    const exactCashBalance = parseFloat((baseCashBalance + totalRemainingCash).toFixed(2));
     
     // Total portfolio value with EXACT precision
-    const exactTotalPortfolioValue = actualHoldingsValue + exactCashBalance;
+    const exactTotalPortfolioValue = parseFloat((actualHoldingsValue + exactCashBalance).toFixed(2));
     
     console.log(`📋 Portfolio Metrics (EXACT):`, {
       holdingsValue: actualHoldingsValue,
       cashBalance: exactCashBalance,
       totalValue: exactTotalPortfolioValue,
       cashPercentage: exactCashPercentage,
-      totalStockAllocation: totalStockAllocation
+      totalStockAllocation: totalStockAllocation,
+      totalRemainingCash: totalRemainingCash
     });
     
     return {
@@ -626,8 +728,9 @@ export default function PortfolioDetailsPage() {
       totalValue: exactTotalPortfolioValue,
       cashPercentage: exactCashPercentage,
       minInvestment: minInvestment,
-      pnl: exactTotalPortfolioValue - minInvestment,
-      pnlPercentage: ((exactTotalPortfolioValue - minInvestment) / minInvestment) * 100
+      pnl: parseFloat((exactTotalPortfolioValue - minInvestment).toFixed(2)),
+      pnlPercentage: parseFloat((((exactTotalPortfolioValue - minInvestment) / minInvestment) * 100).toFixed(2)),
+      holdingsWithQuantities
     };
   };
   
@@ -1027,7 +1130,7 @@ export default function PortfolioDetailsPage() {
                 </tr>
               </thead>
                 <tbody className="text-xs">
-                  {holdingsWithPrices.length > 0 ? holdingsWithPrices.map((holding, index) => (
+                  {portfolioMetrics.holdingsWithQuantities.length > 0 ? portfolioMetrics.holdingsWithQuantities.map((holding, index) => (
                     <React.Fragment key={index}>
                       <tr 
                         className={`cursor-pointer transition-all duration-200 ${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-blue-50`}
@@ -1038,7 +1141,7 @@ export default function PortfolioDetailsPage() {
                           <div className="text-gray-500 text-xs">NSE : {holding.symbol}</div>
                     </td>
                         <td className="px-2 py-2 text-center text-gray-700">{holding.marketCap || 'Mid cap'}</td>
-                        <td className="px-2 py-2 text-center font-medium">{holding.weight}</td>
+                        <td className="px-2 py-2 text-center font-medium">{holding.weight.toFixed(2)}%</td>
                         <td className="px-2 py-2 text-center">
                           {holding.currentPrice ? (
                             <div>
@@ -1067,9 +1170,27 @@ export default function PortfolioDetailsPage() {
                                 <div className="text-gray-800">{holding.sector}</div>
                               </div>
                               <div>
-                                <span className="text-gray-600 font-medium">Investment Value:</span>
+                                <span className="text-gray-600 font-medium">Quantity:</span>
+                                <div className="text-gray-800 font-medium">{holding.quantity || 0}</div>
+                                {(holding.remainingCash || 0) > 0 && (
+                                  <div className="text-xs text-gray-500">+₹{(holding.remainingCash || 0).toFixed(2)} cash</div>
+                                )}
+                              </div>
+                              <div>
+                                <span className="text-gray-600 font-medium">Investment:</span>
                                 <div className="text-gray-800 font-medium">
-                                  ₹{holding.value ? holding.value.toLocaleString('en-IN', { maximumFractionDigits: 0 }) : 'N/A'}
+                                  ₹{(holding.minimumInvestmentValueStock || holding.actualInvestment || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                                </div>
+                              </div>
+                              <div>
+                                <span className="text-gray-600 font-medium">Current Value:</span>
+                                <div className="text-gray-800 font-medium">
+                                  {holding.currentValue !== undefined && holding.currentValue > 0
+                                    ? `₹${holding.currentValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`
+                                    : holding.currentPrice && holding.quantity > 0 
+                                    ? `₹${(holding.quantity * holding.currentPrice).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`
+                                    : `₹0.00`
+                                  }
                                 </div>
                               </div>
                             </div>
@@ -1112,11 +1233,13 @@ export default function PortfolioDetailsPage() {
                         </button>
                       </div>
                     </th>
-                    <th className="px-2 py-2 text-center font-medium">Value</th>
+                    <th className="px-2 py-2 text-center font-medium">Quantity</th>
+                    <th className="px-2 py-2 text-center font-medium">Investment</th>
+                    <th className="px-2 py-2 text-center font-medium">Current Value</th>
                 </tr>
                 </thead>
                 <tbody className="text-xs">
-                  {holdingsWithPrices.length > 0 ? holdingsWithPrices.map((holding, index) => (
+                  {portfolioMetrics.holdingsWithQuantities.length > 0 ? portfolioMetrics.holdingsWithQuantities.map((holding, index) => (
                     <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                       <td className="px-2 py-2">
                         <div className="font-medium text-blue-600">{holding.symbol}</div>
@@ -1124,7 +1247,7 @@ export default function PortfolioDetailsPage() {
                   </td>
                       <td className="px-2 py-2 text-center text-gray-700">{holding.marketCap || 'Mid cap'}</td>
                       <td className="px-2 py-2 text-center text-gray-700">{holding.sector}</td>
-                      <td className="px-2 py-2 text-center font-medium">{holding.weight.toFixed(1)}%</td>
+                      <td className="px-2 py-2 text-center font-medium">{holding.weight.toFixed(2)}%</td>
                       <td className="px-2 py-2 text-center">
                         <span className="px-1 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
                           {holding.status?.toUpperCase() || 'FRESH-BUY'}
@@ -1153,14 +1276,30 @@ export default function PortfolioDetailsPage() {
                         )}
                   </td>
                       <td className="px-2 py-2 text-center">
+                        <div className="font-medium text-blue-600">{holding.quantity || 0}</div>
+                        {(holding.remainingCash || 0) > 0 && (
+                          <div className="text-xs text-gray-500">+₹{(holding.remainingCash || 0).toFixed(2)}</div>
+                        )}
+                  </td>
+                      <td className="px-2 py-2 text-center">
                         <span className="font-medium">
-                          {holding.value ? `₹${holding.value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : '-'}
+                          ₹{(holding.minimumInvestmentValueStock || holding.actualInvestment || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        </span>
+                  </td>
+                      <td className="px-2 py-2 text-center">
+                        <span className="font-medium">
+                          {holding.currentValue !== undefined && holding.currentValue > 0
+                            ? `₹${holding.currentValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`
+                            : holding.currentPrice && holding.quantity > 0 
+                            ? `₹${(holding.quantity * holding.currentPrice).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`
+                            : `₹0.00`
+                          }
                         </span>
                   </td>
                 </tr>
                   )) : (
                     <tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                      <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                         No holdings data available
                   </td>
                 </tr>
@@ -1192,7 +1331,7 @@ export default function PortfolioDetailsPage() {
                           <span className="text-xs font-medium text-slate-700">Holdings</span>
                         </div>
                     <div className="text-base font-bold text-slate-900">
-                        ₹{portfolioMetrics.holdingsValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        ₹{portfolioMetrics.holdingsValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </div>
                     <div className="text-xs text-slate-500">Total Value</div>
                   </div>
@@ -1205,7 +1344,7 @@ export default function PortfolioDetailsPage() {
                       </span>
                         </div>
                     <div className="text-base font-bold text-blue-900">
-                        ₹{portfolioMetrics.cashBalance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        ₹{portfolioMetrics.cashBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </div>
                     <div className="text-xs text-blue-600">Available</div>
                   </div>
@@ -1215,7 +1354,7 @@ export default function PortfolioDetailsPage() {
                           <span className="text-xs font-medium text-indigo-700">Portfolio</span>
                         </div>
                     <div className="text-base font-bold text-indigo-900">
-                        ₹{portfolioMetrics.totalValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        ₹{portfolioMetrics.totalValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </div>
                     <div className="text-xs text-indigo-600">Total Value</div>
                   </div>
@@ -1421,7 +1560,7 @@ export default function PortfolioDetailsPage() {
                         <div className={`text-xs lg:text-sm text-gray-500 transition-colors duration-300 ${
                           isSelected ? 'text-blue-600' : isHovered ? 'text-gray-600' : ''
                         }`}>
-                            ₹{((stock.value / 100) * portfolioMetrics.totalValue).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                            ₹{parseFloat(((stock.value / 100) * portfolioMetrics.totalValue).toFixed(2)).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                         </div>
                       </div>
                     </div>
@@ -1462,7 +1601,7 @@ export default function PortfolioDetailsPage() {
                   <div key={index} className="border-b border-gray-100 pb-6 last:border-b-0">
                     <h4 className="font-semibold text-gray-900 text-lg mb-2">
                       {link.name || link.linkDiscription || `${link.linkType?.charAt(0).toUpperCase() + link.linkType?.slice(1) || 'Document'} Report`}
-                  </h4>
+                    </h4>
                     <div className="flex items-center text-sm text-gray-600 mb-2">
                       <span>Publish on {new Date(link.createdAt).toLocaleDateString('en-GB', {
                         day: 'numeric',
