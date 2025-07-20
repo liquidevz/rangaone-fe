@@ -764,8 +764,8 @@ export default function PortfolioDetailsPage() {
             };
             
             return stockColorMap[symbol] || [
-              '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6366F1',
-              '#14B8A6', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'
+              '#001219', '#005F73', '#0A9396', '#92D2BD', '#E9D8A6',
+              '#EE9B00', '#CA6702', '#BB3E03', '#AE2012', '#9B2226'
             ][index % 10];
           };
           
