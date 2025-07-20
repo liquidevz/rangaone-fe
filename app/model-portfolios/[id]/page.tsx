@@ -926,8 +926,6 @@ export default function PortfolioDetailsPage() {
                   <p className="font-semibold text-gray-800">Portfolio Details</p>
                   <div className="text-xs sm:text-sm text-gray-600 space-y-1">
                     <p><strong>Created:</strong> {(portfolio as any)?.createdAt ? new Date((portfolio as any).createdAt).toLocaleDateString() : "N/A"}</p>
-                    <p><strong>Expiry:</strong> {(portfolio as any)?.expiryDate ? new Date((portfolio as any).expiryDate).toLocaleDateString() : "N/A"}</p>
-                    <p><strong>Duration:</strong> {safeNumber((portfolio as any)?.durationMonths || 12)} months</p>
                     <p><strong>Min Investment:</strong> ₹{safeNumber((portfolio as any)?.minInvestment || 30000).toLocaleString()}</p>
             </div>
           </div>
