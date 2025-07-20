@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
+import {PageHeader} from "@/components/page-header";
 
 export default function PortfolioTipDetailsPage() {
   const params = useParams();
@@ -176,27 +177,10 @@ export default function PortfolioTipDetailsPage() {
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-6xl mx-auto">
           {/* Header Section with Blue Background */}
-          <div 
-            className="text-white p-4 sm:p-6"
-            style={{
-              background: "linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%)"
-            }}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <Link
-                href={`/model-portfolios/${portfolioId}`}
-                className="inline-flex items-center text-sm text-white/80 hover:text-white transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Back to Portfolio Details
-        </Link>
-            </div>
-            <div className="text-center">
-              <h1 className="text-2xl sm:text-4xl font-bold text-white tracking-wide">
-                MODEL PORTFOLIO
-              </h1>
-            </div>
-          </div>
+          <PageHeader 
+            title="MODEL PORTFOLIO TIPS" 
+            subtitle="Discover our expertly crafted investment strategies" 
+          />
 
           {/* Main Content Area */}
           <div className="px-4 sm:px-6 pb-6">
