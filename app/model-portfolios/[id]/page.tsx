@@ -23,7 +23,7 @@ import {
   ExternalLink,
   Clock,
 } from "lucide-react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import {
   LineChart,
@@ -46,56 +46,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { PageHeader } from '@/components/page-header';
-
-interface StockPrice {
-  _id: string;
-  symbol: string;
-  exchange: string;
-  name: string;
-  currentPrice: string;
-  previousPrice: string;
-}
-
-interface PriceHistoryData {
-  date: string;
-  portfolioValue: number;
-  benchmarkValue: number;
-  portfolioChange: number;
-  benchmarkChange: number;
-}
-
-// API Response types for price history
-interface PriceHistoryApiResponse {
-  portfolioId: string;
-  period: string;
-  dataPoints: number;
-  data: Array<{
-    date: string;
-    value: number;
-    cash: number;
-    change: number;
-    changePercent: number;
-  }>;
-}
-
-type TimePeriod = '1w' | '1m' | '3m' | '6m' | '1Yr' | 'Since Inception';
-
-interface PortfolioAllocationItem {
-  name: string;
-  value: number;
-  color: string;
-  sector: string;
-}
-
-interface HoldingWithPrice extends Holding {
-  currentPrice?: number;
-  previousPrice?: number;
-  change?: number;
-  changePercent?: number;
-  value?: number;
-  marketCap?: string;
-  priceData?: StockPriceData;
-}
+import { useRouter } from "next/navigation";
 
 export default function PortfolioDetailsPage() {
   const params = useParams();
@@ -114,6 +65,86 @@ export default function PortfolioDetailsPage() {
   const [hoveredSegment, setHoveredSegment] = useState<PortfolioAllocationItem | null>(null);
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [selectedTimePeriod, setSelectedTimePeriod] = useState<TimePeriod>('1m');
+
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  useEffect(() => {
+    console.log("[ScrollEffect] useEffect triggered", {
+      hash: window.location.hash,
+      search: searchParams.toString(),
+      loading
+    });
+    if (
+      (window.location.hash === "#research-reports" || searchParams.get("scrollTo") === "reports") &&
+      !loading &&
+      typeof window !== "undefined"
+    ) {
+      const tryScroll = () => {
+        const target = document.getElementById("research-reports");
+        console.log("[ScrollEffect] tryScroll", { target, hash: window.location.hash });
+        if (target) {
+          console.log("[ScrollEffect] Found target, scrolling!");
+          target.scrollIntoView({ behavior: "smooth" });
+        } else {
+          requestAnimationFrame(tryScroll);
+        }
+      };
+      requestAnimationFrame(tryScroll);
+    }
+  }, [searchParams, loading]);
+
+
+
+  interface StockPrice {
+    _id: string;
+    symbol: string;
+    exchange: string;
+    name: string;
+    currentPrice: string;
+    previousPrice: string;
+  }
+
+  interface PriceHistoryData {
+    date: string;
+    portfolioValue: number;
+    benchmarkValue: number;
+    portfolioChange: number;
+    benchmarkChange: number;
+  }
+
+  // API Response types for price history
+  interface PriceHistoryApiResponse {
+    portfolioId: string;
+    period: string;
+    dataPoints: number;
+    data: Array<{
+      date: string;
+      value: number;
+      cash: number;
+      change: number;
+      changePercent: number;
+    }>;
+  }
+
+  type TimePeriod = '1w' | '1m' | '3m' | '6m' | '1Yr' | 'Since Inception';
+
+  interface PortfolioAllocationItem {
+    name: string;
+    value: number;
+    color: string;
+    sector: string;
+  }
+
+  interface HoldingWithPrice extends Holding {
+    currentPrice?: number;
+    previousPrice?: number;
+    change?: number;
+    changePercent?: number;
+    value?: number;
+    marketCap?: string;
+    priceData?: StockPriceData;
+  }
 
   // Helper function to safely convert values
   const safeNumber = (value: any): number => {
@@ -224,6 +255,8 @@ export default function PortfolioDetailsPage() {
         marketCap: (holding as any).stockCapType || getMarketCapCategory(holding.symbol),
       }));
     }
+
+    
 
     try {
       // Fetch prices for all symbols using the stock price service
@@ -931,7 +964,7 @@ export default function PortfolioDetailsPage() {
           </div>
           <div>
                   <p className="font-semibold text-gray-800">Monthly Contribution</p>
-                  <p className="text-gray-600">{safeString((portfolio as any)?.index || (portfolio as any)?.createdAt )}</p>
+                  <p className="text-gray-600">{safeString((portfolio as any)?.index || (portfolio as any)?.monthlyContribution )}</p>
               </div>
               <div>
                   <p className="font-semibold text-gray-800">Last Rebalancing Date</p>

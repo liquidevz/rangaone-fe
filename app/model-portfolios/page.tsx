@@ -227,151 +227,188 @@ export default function ModelPortfoliosPage() {
             {portfolios.map((portfolio) => {
               const hasAccess = hasPortfolioAccess(portfolio);
               const isLocked = !hasAccess;
-              
+              // Find methodology PDF link in description array
+              let methodologyLink: string | undefined = undefined;
+              if (Array.isArray(portfolio.description)) {
+                const methodologyItem = portfolio.description.find((item: any) => item.key === 'methodology PDF link');
+                if (methodologyItem && methodologyItem.value) {
+                  methodologyLink = methodologyItem.value;
+                }
+              }
               return (
-              <Card key={portfolio._id} className="overflow-hidden">
-                <CardContent className="p-4 sm:p-6">
-                  {/* Mobile-responsive header section */}
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3 sm:mb-4 space-y-3 sm:space-y-0">
-                    <div className="flex items-start space-x-3 sm:space-x-4">
-                      <div className="bg-blue-100 p-2 sm:p-3 rounded-lg flex-shrink-0">
-                        <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-lg sm:text-xl font-semibold leading-tight">{portfolio.name}</h3>
-                          {isLocked && <Lock className="h-4 w-4 text-gray-400" />}
-                        </div>
-                          <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">
-                            {renderDescription(portfolio.description)}
-                          </p>
-                      </div>
-                    </div>
-                    
-                      {/* Methodology button */}
-                    <div className="flex flex-row gap-2 w-full sm:w-auto">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center justify-center space-x-1 flex-1 sm:flex-none sm:w-auto"
-                        onClick={() => handleMethodologyClick(portfolio._id, portfolio.name)}
-                      >
-                        <FileText className="h-4 w-4" />
-                        <span className="text-xs sm:text-sm">Methodology</span>
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Mobile-responsive metrics grid */}
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
-                    <div className={`p-2 sm:p-4 bg-gray-50 rounded-lg relative ${isLocked ? 'overflow-hidden' : ''}`}>
-                      <p className="text-xs sm:text-sm text-gray-600 mb-1">Monthly Gains</p>
-                      <div className="relative">
-                          <p className={`text-lg sm:text-xl font-semibold ${isLocked ? 'blur-md text-green-600' : safeNumber(portfolio.monthlyGains) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {isLocked ? `+${Math.floor(Math.random() * 20) + 5}.${Math.floor(Math.random() * 99)}%` : `${safeString(portfolio.monthlyGains)}%`}
-                        </p>
-                        {isLocked && (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <Lock className="h-4 w-4 text-gray-500" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className={`p-2 sm:p-4 bg-gray-50 rounded-lg relative ${isLocked ? 'overflow-hidden' : ''}`}>
-                      <p className="text-xs sm:text-sm text-gray-600 mb-1">1 Year Gains</p>
-                      <div className="relative">
-                          <p className={`text-lg sm:text-xl font-semibold ${isLocked ? 'blur-md text-green-600' : safeNumber(portfolio.oneYearGains) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {isLocked ? `+${Math.floor(Math.random() * 15) + 2}.${Math.floor(Math.random() * 99)}%` : `${safeString(portfolio.oneYearGains)}%`}
-                        </p>
-                        {isLocked && (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <Lock className="h-4 w-4 text-gray-500" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className={`p-2 sm:p-4 bg-gray-50 rounded-lg relative ${isLocked ? 'overflow-hidden' : ''}`}>
-                      <p className="text-xs sm:text-sm text-gray-600 mb-1">CAGR Since Inception</p>
-                      <div className="relative">
-                          <p className={`text-lg sm:text-xl font-semibold ${isLocked ? 'blur-md text-green-600' : safeNumber(portfolio.CAGRSinceInception) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {isLocked ? `+${Math.floor(Math.random() * 25) + 10}.${Math.floor(Math.random() * 99)}%` : `${safeString(portfolio.CAGRSinceInception)}%`}
-                        </p>
-                        {isLocked && (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <Lock className="h-4 w-4 text-gray-500" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className={`p-2 sm:p-4 bg-gray-50 rounded-lg relative ${isLocked ? 'overflow-hidden' : ''}`}>
-                        <p className="text-xs sm:text-sm text-gray-600 mb-1">Min. Investment</p>
-                      <div className="relative">
-                          <p className={`text-lg sm:text-xl font-semibold ${isLocked ? 'blur-md text-gray-900' : 'text-gray-900'}`}>
-                          {isLocked ? `₹${Math.floor(Math.random() * 50000) + 10000}` : `₹${safeString(portfolio.minInvestment)}`}
-                        </p>
-                        {isLocked && (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <Lock className="h-4 w-4 text-gray-500" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Action section */}
-                    {hasAccess ? (
-                      <div className="flex flex-row gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center justify-center space-x-1 flex-1"
-                          onClick={() => handleViewDetails(portfolio._id)}
-                        >
-                          <Eye className="h-4 w-4" />
-                          <span className="text-xs sm:text-sm">View Details</span>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center justify-center space-x-1 flex-1"
-                          onClick={() => handleViewDetails(portfolio._id)}
-                        >
-                          <ClipboardList className="h-4 w-4" />
-                          <span className="text-xs sm:text-sm">Reports</span>
-                        </Button>
-                      </div>
-                    ) : (
-                    <div className="flex items-center justify-between bg-blue-50 p-3 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <Lock className="h-4 w-4 text-blue-600" />
-                        <p className="text-sm text-blue-900">
-                            {portfolio.message || "Subscribe to view complete details"}
-                        </p>
-                      </div>
-                      <Button
-                        size="sm"
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
-                          onClick={() => handleAddToCart(portfolio)}
-                      >
-                          <ShoppingCart className="h-4 w-4 mr-1" />
-                          Add to Cart
-                      </Button>
+                <Card key={portfolio._id} className="overflow-hidden relative">
+                  {isLocked && (
+                    <div className="absolute inset-0 flex items-center justify-center z-10 bg-white bg-opacity-10">
+                      <img src="/icons/LOCK 4.png" alt="Locked" className="h-20 w-20 opacity-80" />
                     </div>
                   )}
-                </CardContent>
-              </Card>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                  <CardContent className="p-4 sm:p-6">
+                    {/* Mobile-responsive header section */}
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3 sm:mb-4 space-y-3 sm:space-y-0">
+                      <div className="flex items-start space-x-3 sm:space-x-4">
+                        <div className="bg-blue-100 p-2 sm:p-3 rounded-lg flex-shrink-0">
+                          <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="text-lg sm:text-xl font-semibold leading-tight">{portfolio.name}</h3>
+                            {isLocked && <Lock className="h-4 w-4 text-gray-400" />}
+                          </div>
+                            <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">
+                              {renderDescription(portfolio.description)}
+                            </p>
+                        </div>
+                      </div>
+                      {/* Methodology button */}
+                      <div className="flex flex-row gap-2 w-full sm:w-auto">
+                        {methodologyLink ? (
+                          <a
+                            href={methodologyLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center space-x-1 flex-1 sm:flex-none sm:w-auto"
+                          >
+                            <Button variant="outline" size="sm">
+                              <FileText className="h-4 w-4" />
+                              <span className="text-xs sm:text-sm">View Methodology</span>
+                            </Button>
+                          </a>
+                        ) : null}
+                      </div>
+                    </div>
 
-      <MethodologyModal
-        isOpen={methodologyModal.isOpen}
-        onClose={() => setMethodologyModal({ isOpen: false, portfolioId: "", portfolioName: "" })}
-        portfolioId={methodologyModal.portfolioId}
-        portfolioName={methodologyModal.portfolioName}
-      />
-    </DashboardLayout>
-  );
-}
+                    {/* Mobile-responsive metrics grid */}
+                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-4 mb-4 sm:mb-6">
+                      <div className={`p-2 sm:p-4 bg-gray-50 rounded-lg relative group ${isLocked ? 'overflow-hidden' : ''}`}>
+                        <p className="text-xs sm:text-sm text-gray-600 mb-1">Monthly Gains</p>
+                        <div className="relative">
+                          <p className={`text-lg sm:text-xl font-semibold ${isLocked ? 'blur-sm text-green-600' : safeNumber(portfolio.monthlyGains) >= 0 ? 'text-green-600' : 'text-red-600'} ${safeNumber(portfolio.monthlyGains) === 0 ? 'cursor-help' : ''}`}>
+                            {isLocked ? `+${Math.floor(Math.random() * 20) + 5}.${Math.floor(Math.random() * 99)}%` : safeNumber(portfolio.monthlyGains) === 0 ? "-" : `${safeString(portfolio.monthlyGains)}%`}
+                            {safeNumber(portfolio.monthlyGains) === 0 && (
+                              <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-20">
+                                will change
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <div className={`p-2 sm:p-4 bg-gray-50 rounded-lg relative group ${isLocked ? 'overflow-hidden' : ''}`}>
+                        <p className="text-xs sm:text-sm text-gray-600 mb-1">1 Year Gains</p>
+                        <div className="relative">
+                          <p className={`text-lg sm:text-xl font-semibold ${isLocked ? 'blur-sm text-green-600' : safeNumber(portfolio.oneYearGains) >= 0 ? 'text-green-600' : 'text-red-600'} ${safeNumber(portfolio.oneYearGains) === 0 ? 'cursor-help' : ''}`}>
+                            {isLocked ? `+${Math.floor(Math.random() * 15) + 2}.${Math.floor(Math.random() * 99)}%` : safeNumber(portfolio.oneYearGains) === 0 ? "-" : `${safeString(portfolio.oneYearGains)}%`}
+                            {safeNumber(portfolio.oneYearGains) === 0 && (
+                              <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-20">
+                                will change
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <div className={`p-2 sm:p-4 bg-gray-50 rounded-lg relative group ${isLocked ? 'overflow-hidden' : ''}`}>
+                        <p className="text-xs sm:text-sm text-gray-600 mb-1">CAGR Since Inception</p>
+                        <div className="relative">
+                          <p className={`text-lg sm:text-xl font-semibold ${isLocked ? 'blur-sm text-green-600' : safeNumber(portfolio.CAGRSinceInception) >= 0 ? 'text-green-600' : 'text-red-600'} ${safeNumber(portfolio.CAGRSinceInception) === 0 ? 'cursor-help' : ''}`}>
+                            {isLocked ? `+${Math.floor(Math.random() * 25) + 10}.${Math.floor(Math.random() * 99)}%` : safeNumber(portfolio.CAGRSinceInception) === 0 ? "-" : `${safeString(portfolio.CAGRSinceInception)}%`}
+                            {safeNumber(portfolio.CAGRSinceInception) === 0 && (
+                              <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-20">
+                                will change
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="p-2 sm:p-4 bg-gray-50 rounded-lg group">
+                        <p className="text-xs sm:text-sm text-gray-600 mb-1">Monthly Contribution</p>
+                        <div className="relative">
+                          <p className={`text-lg sm:text-xl font-semibold text-blue-600 ${(() => {
+                            const monthlyFee = portfolio.subscriptionFee?.find(fee => fee.type === "monthly");
+                            return monthlyFee && monthlyFee.price === 0 ? 'cursor-help' : '';
+                          })()}`}>
+                            {(() => {
+                              const monthlyFee = portfolio.subscriptionFee?.find(fee => fee.type === "monthly");
+                              return monthlyFee && monthlyFee.price === 0 ? "-" : monthlyFee ? `₹${monthlyFee.price}` : "N/A";
+                            })()}
+                            {(() => {
+                              const monthlyFee = portfolio.subscriptionFee?.find(fee => fee.type === "monthly");
+                              return monthlyFee && monthlyFee.price === 0 ? (
+                                <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-20">
+                                  will change
+                                </span>
+                              ) : null;
+                            })()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="p-2 sm:p-4 bg-gray-50 rounded-lg group">
+                        <p className="text-xs sm:text-sm text-gray-600 mb-1">Min. Investment</p>
+                        <div className="relative">
+                          <p className={`text-lg sm:text-xl font-semibold text-gray-900 ${safeNumber(portfolio.minInvestment) === 0 ? 'cursor-help' : ''}`}>
+                            {safeNumber(portfolio.minInvestment) === 0 ? "-" : `₹${safeString(portfolio.minInvestment)}`}
+                            {safeNumber(portfolio.minInvestment) === 0 && (
+                              <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-20">
+                                will change
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action section */}
+                      {hasAccess ? (
+                        <div className="flex flex-row gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center justify-center space-x-1 flex-1"
+                            onClick={() => handleViewDetails(portfolio._id)}
+                          >
+                            <Eye className="h-4 w-4" />
+                            <span className="text-xs sm:text-sm">View Details</span>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center justify-center space-x-1 flex-1"
+                            onClick={() => router.push(`/model-portfolios/${portfolio._id}#reports`)}
+                          >
+                            <ClipboardList className="h-4 w-4" />
+                            <span className ="text-xs sm:text-sm" id="reports-section">Reports</span>
+                          </Button>
+                        </div>
+                      ) : (
+                      <div className="flex items-center justify-between bg-blue-50 p-3 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <Lock className="h-4 w-4 text-blue-600" />
+                          <p className="text-sm text-blue-900">
+                              {portfolio.message || "Subscribe to view complete details"}
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                            onClick={() => handleAddToCart(portfolio)}
+                        >
+                            <ShoppingCart className="h-4 w-4 mr-1" />
+                            Subscribe Now
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <MethodologyModal
+          isOpen={methodologyModal.isOpen}
+          onClose={() => setMethodologyModal({ isOpen: false, portfolioId: "", portfolioName: "" })}
+          portfolioId={methodologyModal.portfolioId}
+          portfolioName={methodologyModal.portfolioName}
+        />
+      </DashboardLayout>
+    );
+  }

@@ -7,8 +7,10 @@ import { format, differenceInDays, addDays, isSameDay } from "date-fns"
 import { cn } from "@/lib/utils"
 import { tipsService, type Tip } from "@/services/tip.service"
 import { subscriptionService, type SubscriptionAccess } from "@/services/subscription.service"
+import { stockPriceService } from "@/services/stock-price.service"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { portfolioService } from "@/services/portfolio.service"
 
 // MarqueeText component for scrolling long text
 const MarqueeText = ({ text, className = "" }: { text: string; className?: string }) => {
@@ -337,10 +339,9 @@ const TipCard = ({ tip, isActive, onClick, isModelPortfolio, subscriptionAccess 
                </div>
                
                
-               <MarqueeText 
-                 text={tip.stockName}
-                 className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-black mt-0.5 mb-0.5 sm:mb-1"
-               />
+               <div className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-black mt-0.5 mb-0.5 sm:mb-1 truncate">
+                 {tip.stockName}
+               </div>
                <p className="text-xs sm:text-sm text-gray-500">{tip.exchange}</p>
              </div>
              <div className="relative bg-gradient-to-r from-[#00B7FF] to-[#85D437] p-[2px] rounded-lg flex-shrink-0">
@@ -353,10 +354,9 @@ const TipCard = ({ tip, isActive, onClick, isModelPortfolio, subscriptionAccess 
                      <div className="flex justify-between items-end mt-1.5 sm:mt-2 md:mt-3 gap-2 sm:gap-3">
              <div className="min-w-0 flex-1">
                <p className="text-[10px] sm:text-xs md:text-sm text-gray-500 mb-0.5 sm:mb-1 leading-tight font-medium">Buy Range</p>
-               <MarqueeText 
-                 text={tip.buyRange}
-                 className="text-xs sm:text-sm md:text-base font-semibold text-black"
-               />
+               <div className="text-xs sm:text-sm md:text-base font-semibold text-black truncate">
+                 {tip.buyRange}
+               </div>
              </div>
              <div className="flex-shrink-0">
                <p className="text-[10px] sm:text-xs md:text-sm text-gray-500 mb-0.5 sm:mb-1 leading-tight font-medium">Action</p>
@@ -367,10 +367,9 @@ const TipCard = ({ tip, isActive, onClick, isModelPortfolio, subscriptionAccess 
            </div>
                      {tip.message && (
              <div className="mt-1.5 sm:mt-2 p-1.5 sm:p-2 md:p-2.5 bg-gray-100 rounded">
-               <MarqueeText 
-                 text={tip.message}
-                 className="text-[10px] sm:text-xs md:text-sm text-gray-600 leading-tight"
-               />
+               <div className="text-[10px] sm:text-xs md:text-sm text-gray-600 leading-tight line-clamp-2">
+                 {tip.message}
+               </div>
              </div>
            )}
         </div>
@@ -428,6 +427,8 @@ export default function TipsCarousel({
   const [loading, setLoading] = useState(propLoading || false)
   const [subscriptionAccess, setSubscriptionAccess] = useState<SubscriptionAccess | undefined>(userSubscriptionAccess)
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [stockSymbols, setStockSymbols] = useState<Map<string, string>>(new Map())
+  const [portfolioHoldingsMap, setPortfolioHoldingsMap] = useState<Map<string, number>>(new Map());
   const containerRef = useRef<HTMLDivElement>(null)
   const x = useMotionValue(0)
   const router = useRouter()
@@ -580,11 +581,61 @@ export default function TipsCarousel({
     }
   }, [currentIndex, tips, currentTipDate])
 
+  // Fetch stock symbols for tips that have stockId
+  const fetchStockSymbols = async (apiTips: Tip[]) => {
+    const tipsWithStockId = apiTips.filter(tip => tip.stockId);
+    if (tipsWithStockId.length === 0) return;
+
+    try {
+      console.log(`🔍 Fetching stock symbols for ${tipsWithStockId.length} tips`);
+      const stockIds = tipsWithStockId.map(tip => tip.stockId!);
+      
+      const stockResults = await stockPriceService.getMultipleStockPricesById(stockIds);
+      const newStockSymbols = new Map<string, string>();
+      
+      stockResults.forEach((result, stockId) => {
+        if (result.success && result.data?.symbol) {
+          newStockSymbols.set(stockId, result.data.symbol);
+          console.log(`✅ Fetched symbol for ${stockId}: ${result.data.symbol}`);
+        } else {
+          console.warn(`⚠️ Failed to fetch symbol for ${stockId}`);
+        }
+      });
+      
+      setStockSymbols(newStockSymbols);
+    } catch (error) {
+      console.error('❌ Failed to fetch stock symbols:', error);
+    }
+  };
+
   const convertTipsToCarouselFormat = (apiTips: Tip[]): TipCardData[] => {
     return apiTips.map((tip, index) => {
-      let stockName = tip.title?.split(':')[0]?.split('-')[0]?.trim();
+      // Use fetched stock symbol if available, otherwise use stockId or fallback
+      let stockName = stockSymbols.get(tip.stockId || '');
+      if (!stockName && tip.stockId) {
+        stockName = tip.stockId; // Use stockId as fallback if symbol not fetched yet
+      }
       if (!stockName) {
-        stockName = tip.stockId || `Stock ${index + 1}`;
+        stockName = tip.title?.split(':')[0]?.split('-')[0]?.trim();
+      }
+      if (!stockName) {
+        stockName = `Stock ${index + 1}`;
+      }
+      // Debug: Log the mapping and lookup
+      if (isModelPortfolio) {
+        console.log('[TipsCarousel] Looking up weight for symbol:', stockName, 'in map:', Array.from(portfolioHoldingsMap.entries()));
+      }
+      // Get weightage from portfolio holdings if available
+      let weightage: number | undefined = undefined;
+      if (isModelPortfolio && stockName && portfolioHoldingsMap.has(stockName)) {
+        weightage = portfolioHoldingsMap.get(stockName);
+        console.log(`[TipsCarousel] Found weightage for ${stockName}:`, weightage);
+      }
+      if (weightage === undefined) {
+        weightage = tip.targetPercentage ? parseFloat(tip.targetPercentage.replace('%', '')) : 5.0;
+        if (isModelPortfolio) {
+          console.log(`[TipsCarousel] Fallback weightage for ${stockName}:`, weightage);
+        }
       }
       
       // Extract portfolio name
@@ -603,7 +654,7 @@ export default function TipsCarousel({
         date: tip.createdAt,
         stockName,
         exchange: "NSE",
-        weightage: tip.targetPercentage ? parseFloat(tip.targetPercentage.replace('%', '')) : 5.0,
+        weightage,
         buyRange: tip.buyRange || "₹ 1000 - 1050",
         action: (tip.action as "HOLD" | "Partial Profit Booked" | "BUY" | "SELL") || "BUY",
         category: tip.category || "basic",
@@ -708,6 +759,8 @@ export default function TipsCarousel({
           filteredTips = propTips.filter(tip => tip.category === categoryFilter);
         }
         
+        // Fetch stock symbols first, then convert tips
+        await fetchStockSymbols(filteredTips);
         const carouselTips = convertTipsToCarouselFormat(filteredTips)
         setTips(carouselTips)
         setLoading(false)
@@ -729,6 +782,8 @@ export default function TipsCarousel({
           });
         }
         
+        // Fetch stock symbols first, then convert tips
+        await fetchStockSymbols(apiTips);
         const carouselTips = convertTipsToCarouselFormat(apiTips)
         setTips(carouselTips)
       } catch (error) {
@@ -768,6 +823,18 @@ export default function TipsCarousel({
     fetchTips()
   }, [portfolioId, propTips, categoryFilter])
 
+  // Re-convert tips when stock symbols are updated
+  useEffect(() => {
+    if (propTips) {
+      let filteredTips = propTips;
+      if (categoryFilter !== 'all') {
+        filteredTips = propTips.filter(tip => tip.category === categoryFilter);
+      }
+      const carouselTips = convertTipsToCarouselFormat(filteredTips);
+      setTips(carouselTips);
+    }
+  }, [stockSymbols, propTips, categoryFilter])
+
   useEffect(() => {
     const fetchSubscriptionAccess = async () => {
       try {
@@ -787,6 +854,29 @@ export default function TipsCarousel({
 
     fetchSubscriptionAccess();
   }, []);
+
+  // Fetch portfolio holdings for model portfolios
+  useEffect(() => {
+    const fetchPortfolioHoldings = async () => {
+      if (isModelPortfolio && portfolioId) {
+        try {
+          const portfolio = await portfolioService.getById(portfolioId);
+          if (portfolio && Array.isArray(portfolio.holdings)) {
+            const map = new Map<string, number>();
+            portfolio.holdings.forEach((h: any) => {
+              if (h.symbol && typeof h.weight === 'number') {
+                map.set(h.symbol, h.weight);
+              }
+            });
+            setPortfolioHoldingsMap(map);
+          }
+        } catch (err) {
+          console.error('Failed to fetch portfolio holdings for weightage:', err);
+        }
+      }
+    };
+    fetchPortfolioHoldings();
+  }, [isModelPortfolio, portfolioId]);
 
   // Center the first tip on initial load
   useEffect(() => {
