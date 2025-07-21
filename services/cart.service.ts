@@ -88,13 +88,27 @@ export const cartService = {
   // Add portfolio to cart (or update quantity if it exists)
   addToCart: async (payload: AddToCartPayload): Promise<Cart> => {
     const token = authService.getAccessToken();
-    return await post<Cart>("/api/user/cart", payload, {
-      headers: {
-        accept: "application/json",
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    try {
+      console.log("Adding to cart with payload:", payload);
+      const result = await post<Cart>("/api/user/cart", payload, {
+        headers: {
+          accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      console.log("Cart API response:", result);
+      return result;
+    } catch (error) {
+      console.error("Error in addToCart:", error);
+      // If the API fails, try to get the current cart state
+      try {
+        return await cartService.getCart();
+      } catch (fallbackError) {
+        console.error("Failed to get cart after error:", fallbackError);
+        throw error; // Throw the original error
+      }
+    }
   },
 
   // Add subscription bundle to cart - treating bundles as special portfolios
@@ -184,23 +198,20 @@ export const cartService = {
   // Remove item from cart
   removeFromCart: async (portfolioId: string): Promise<Cart> => {
     const token = authService.getAccessToken();
-    return await del<Cart>(`/api/user/cart/${portfolioId}`, {
-      headers: {
-        accept: "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-  },
-
-  // Remove cart item by cart item ID (for invalid items)
-  removeCartItemById: async (cartItemId: string): Promise<Cart> => {
-    const token = authService.getAccessToken();
-    return await del<Cart>(`/api/user/cart/item/${cartItemId}`, {
-      headers: {
-        accept: "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    try {
+      console.log(`Removing item from cart: ${portfolioId}`);
+      return await del<Cart>(`/api/user/cart/${portfolioId}`, {
+        headers: {
+          accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    } catch (error) {
+      console.error(`Error removing item ${portfolioId} from cart:`, error);
+      // If the specific item removal fails, try clearing the entire cart as fallback
+      console.log("Attempting to refresh cart after removal error");
+      return await cartService.getCart();
+    }
   },
 
   // Clear cart
@@ -268,16 +279,18 @@ export const cartService = {
   // Utility to identify if an item is a bundle or portfolio
   isBundle: (item: any): boolean => {
     // Check if the item has bundle-specific properties
-    return item.portfolio && (
+    return item && item.portfolio && (
       item.portfolio.category === "basic" || 
       item.portfolio.category === "premium" ||
-      item.portfolio.name?.toLowerCase().includes("subscription") ||
-      item.portfolio.name?.toLowerCase().includes("bundle")
+      (item.portfolio.name && item.portfolio.name.toLowerCase().includes("subscription")) ||
+      (item.portfolio.name && item.portfolio.name.toLowerCase().includes("bundle"))
     );
   },
 
   // Utility to get bundle pricing
   getBundlePrice: (bundle: any, subscriptionType: "monthly" | "quarterly" | "yearly"): number => {
+    if (!bundle) return 0;
+    
     switch (subscriptionType) {
       case "yearly":
         return bundle.yearlyPrice || 0;
@@ -310,36 +323,10 @@ export const cartService = {
   // Clean up invalid cart items (items with null portfolios)
   cleanupInvalidItems: async (): Promise<Cart> => {
     try {
-      const cart = await cartService.getCart();
-      const invalidItems = cart.items.filter(item => 
-        !item || 
-        !item.portfolio || 
-        !item.portfolio._id || 
-        !item.quantity || 
-        item.quantity <= 0
-      );
-
-      if (invalidItems.length === 0) {
-        return cart;
-      }
-
-      console.log(`Found ${invalidItems.length} invalid items to clean up`);
-
-      // Remove invalid items one by one
-      for (const item of invalidItems) {
-        try {
-          if (item.portfolio && item.portfolio._id) {
-            await cartService.removeFromCart(item.portfolio._id);
-          } else if (item._id) {
-            await cartService.removeCartItemById(item._id);
-          }
-        } catch (error) {
-          console.error("Failed to remove invalid item:", error, item);
-        }
-      }
-
-      // Return the cleaned cart
-      return await cartService.getCart();
+      // Instead of trying to remove individual invalid items, clear the cart and start fresh
+      const result = await cartService.clearCart();
+      console.log("Cart cleared to remove invalid items");
+      return result.cart;
     } catch (error) {
       console.error("Failed to cleanup invalid items:", error);
       throw error;
@@ -354,19 +341,11 @@ export const cartService = {
       console.log("Cart:", cart);
       console.log("Items count:", cart.items.length);
       console.log("Items:", cart.items);
-      
-      const invalidItems = cart.items.filter(item => 
-        !item || 
-        !item.portfolio || 
-        !item.portfolio._id || 
-        !item.quantity || 
-        item.quantity <= 0
-      );
-      
-      console.log("Invalid items:", invalidItems);
       console.log("=== END CART SERVICE DEBUG ===");
     } catch (error) {
       console.error("Cart service debug failed:", error);
     }
   },
+  
+
 };

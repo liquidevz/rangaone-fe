@@ -18,6 +18,7 @@ import Link from "next/link"
 import { cartService } from "@/services/cart.service"
 import { userPortfolioService } from "@/services/user-portfolio.service"
 import { motion, AnimatePresence } from "framer-motion"
+import { PageHeader } from "@/components/page-header";
 
 export default function CartPage() {
   const [loading, setLoading] = useState(true)
@@ -58,7 +59,7 @@ export default function CartPage() {
             // Remove already-purchased items from cart
             const effectiveCart = getEffectiveCart()
             const itemsToRemove = effectiveCart.items.filter(item => 
-              activatedIds.includes(item.portfolio._id)
+              item && item.portfolio && activatedIds.includes(item.portfolio._id)
             )
             
             if (itemsToRemove.length > 0) {
@@ -98,7 +99,12 @@ export default function CartPage() {
 
   // Filter out items with 0/null price for the selected period
   const filteredItems = effectiveItems.filter((item) => {
-    const isBundle = cartService.isBundle(item)
+    // Skip invalid items
+    if (!item || !item.portfolio) {
+      return false
+    }
+    
+    const isBundle = item.portfolio && cartService.isBundle(item)
     let price = 0
     
     try {
@@ -114,7 +120,7 @@ export default function CartPage() {
             price = cartService.getBundlePrice(item.portfolio, "monthly")
             break
         }
-      } else {
+      } else if (item.portfolio && item.portfolio.subscriptionFee) {
         switch (subscriptionType) {
           case "yearly":
             price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "yearly")?.price || 0
@@ -126,9 +132,6 @@ export default function CartPage() {
             price = item.portfolio.subscriptionFee.find((fee: any) => fee.type === "monthly")?.price || 0
             break
         }
-        // NOTE: Removed the filter that was hiding already-purchased items
-        // Instead, we now prevent adding them to cart in the first place
-        // If they somehow end up in cart, we'll show them with a clear message
       }
       return price > 0
     } catch (error) {
@@ -151,7 +154,20 @@ export default function CartPage() {
           description: "Item has been removed from your cart",
         })
       } else {
-        const currentItem = effectiveItems.find(item => item.portfolio._id === portfolioId)
+        const currentItem = effectiveItems.find(item => 
+          item && item.portfolio && item.portfolio._id === portfolioId
+        )
+        
+        if (!currentItem) {
+          console.error(`Item with ID ${portfolioId} not found in cart`)
+          toast({
+            title: "Update Failed",
+            description: "Item not found in cart. Please try again.",
+            variant: "destructive",
+          })
+          return
+        }
+        
         const currentQuantity = currentItem?.quantity || 0
         
         if (newQuantity > currentQuantity) {
@@ -216,6 +232,8 @@ export default function CartPage() {
       })
     }
   }
+  
+
 
   const applyCoupon = () => {
     toast({
@@ -311,129 +329,7 @@ export default function CartPage() {
     <>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
         {/* Modern Header */}
-        <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 shadow-sm sticky top-0 z-40">
-          <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6">
-            <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <Link href="/" className="flex items-center text-blue-600 hover:text-blue-700 transition-colors group">
-                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-2 group-hover:-translate-x-1 transition-transform" />
-                <span className="font-medium text-sm sm:text-base">Continue Shopping</span>
-              </Link>
-              
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-2 sm:p-3 bg-blue-100 rounded-full">
-                  <CartIcon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
-                </div>
-                {error && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRefreshCart}
-                    className="text-blue-600 hover:text-blue-700"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Refresh
-                  </Button>
-                )}
-              </div>
-            </div>
-            
-            <div className="text-center">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-3 sm:mb-4"
-              >
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 tracking-tight">Your Cart</h1>
-              </motion.div>
-              
-              <motion.p 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.1 }}
-                className="text-gray-600 text-base sm:text-lg"
-              >
-                {cartItemCount > 0 
-                  ? `${cartItemCount} item${cartItemCount > 1 ? 's' : ''} ready for checkout`
-                  : "Your cart is empty"
-                }
-              </motion.p>
-            </div>
-
-            {/* Error Alert */}
-            <AnimatePresence>
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="mt-4 sm:mt-6"
-                >
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription className="flex items-center justify-between">
-                      <span>{error}</span>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleRefreshCart}
-                          className="text-red-600 hover:text-red-700 p-1"
-                        >
-                          <RefreshCw className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={clearError}
-                          className="text-red-600 hover:text-red-700 p-1"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </AlertDescription>
-                  </Alert>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            
-            {/* Status Notifications */}
-            <AnimatePresence>
-              {!isAuthenticated && cartItemCount > 0 && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/50 rounded-xl p-3 sm:p-4 mt-4 sm:mt-6 text-center"
-                >
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <Package className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                    <span className="font-semibold text-blue-900 text-sm sm:text-base">Items Saved Locally</span>
-                  </div>
-                  <p className="text-blue-800 text-xs sm:text-sm">
-                    Sign in during checkout to save these items to your account permanently.
-                  </p>
-                </motion.div>
-              )}
-
-              {syncing && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200/50 rounded-xl p-3 sm:p-4 mt-4 sm:mt-6 text-center"
-                >
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 animate-pulse" />
-                    <span className="font-semibold text-green-900 text-sm sm:text-base">Syncing Cart</span>
-                  </div>
-                  <p className="text-green-800 text-xs sm:text-sm">
-                    Transferring your items to your account...
-                  </p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
+        <PageHeader title="Your Cart" subtitle="Review your selected items and proceed to checkout" />
 
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-6 sm:py-8">
           {cartItemCount === 0 ? (
@@ -463,6 +359,16 @@ export default function CartPage() {
                         There was an issue loading your cart. Please try refreshing the page.
                       </AlertDescription>
                     </Alert>
+                    <div className="mt-4 flex justify-center">
+                      <Button 
+                        variant="outline" 
+                        className="flex items-center gap-2"
+                        onClick={handleRefreshCart}
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        Refresh Cart
+                      </Button>
+                    </div>
                   </div>
                 )}
                 
@@ -525,6 +431,7 @@ export default function CartPage() {
                     </div>
                   </div>
                 </motion.div>
+
 
                 {/* Enhanced Cart Items List */}
                 <div className="space-y-4 sm:space-y-6">
@@ -711,6 +618,32 @@ export default function CartPage() {
                   animate={{ opacity: 1, x: 0 }}
                   className="sticky top-24"
                 >
+                  {/* Cart Action Buttons */}
+                  <div className="mb-4">
+                    <Button 
+                      variant="outline" 
+                      className="w-full flex items-center justify-center gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                      onClick={async () => {
+                        try {
+                          await clearCart()
+                          toast({
+                            title: "Cart Cleared",
+                            description: "All items have been removed from your cart",
+                          })
+                        } catch (error: any) {
+                          toast({
+                            title: "Error",
+                            description: error.message || "Failed to clear cart",
+                            variant: "destructive",
+                          })
+                        }
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Clear Cart
+                    </Button>
+                  </div>
+                  
                   <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm rounded-2xl overflow-hidden">
                     <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200/50">
                       <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">

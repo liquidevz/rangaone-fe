@@ -98,12 +98,11 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   // Validate server cart item
   const isValidServerCartItem = useCallback((item: any) => {
     try {
+      // Basic validation - require portfolio and quantity
       return item && 
              item.portfolio && 
              item.portfolio._id && 
-             item.portfolio.name && 
-             typeof item.quantity === 'number' && 
-             item.quantity > 0;
+             item.quantity;
     } catch (error) {
       console.error("Error validating server cart item:", error, item);
       return false;
@@ -149,12 +148,10 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const getEffectiveCart = useCallback(() => {
     try {
       if (isAuthenticated && cart) {
-        // Filter out invalid server cart items
-        const validItems = cart.items.filter(isValidServerCartItem);
-        
+        // Return all cart items without filtering
         return {
-          items: validItems,
-          itemCount: validItems.reduce((total, item) => total + item.quantity, 0)
+          items: cart.items,
+          itemCount: cart.items.reduce((total, item) => total + (item.quantity || 1), 0)
         };
       } else {
         // Filter out invalid local cart items
@@ -190,7 +187,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       console.error("Error getting effective cart:", error);
       return { items: [], itemCount: 0 };
     }
-  }, [isAuthenticated, cart, localCart, isValidServerCartItem, isValidLocalCartItem, cleanupInvalidLocalItems]);
+  }, [isAuthenticated, cart, localCart, isValidLocalCartItem, cleanupInvalidLocalItems]);
 
   const cartItemCount = getEffectiveCart().itemCount;
 
@@ -200,7 +197,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     
     // Rate limiting to prevent infinite loops
     const now = Date.now();
-    if (now - lastRefreshTime < 2000) { // Prevent refresh more than once every 2 seconds
+    if (now - lastRefreshTime < 500) { // Prevent refresh more than once every 0.5 seconds
       console.log("Cart refresh rate limited");
       return;
     }
@@ -225,37 +222,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       const cartData = await cartService.getCart();
       console.log("Server cart fetched:", cartData);
       
-      // Check for invalid items and clean them up
-      const invalidItems = cartData.items.filter(item => 
-        !item || 
-        !item.portfolio || 
-        !item.portfolio._id || 
-        !item.quantity || 
-        item.quantity <= 0
-      );
-      
-      if (invalidItems.length > 0) {
-        console.log("Invalid cart item found:", invalidItems[0]);
-        console.log(`Found ${invalidItems.length} invalid items, cleaning up...`);
-        
-        try {
-          const cleanedCart = await cartService.cleanupInvalidItems();
-          setCart(cleanedCart);
-          console.log("Cart cleaned and refreshed successfully");
-          return;
-        } catch (cleanupError) {
-          console.error("Failed to cleanup invalid items:", cleanupError);
-          // Continue with original cart data but filter out invalid items
-          const validItems = cartData.items.filter(item => 
-            item && 
-            item.portfolio && 
-            item.portfolio._id && 
-            item.quantity && 
-            item.quantity > 0
-          );
-          cartData.items = validItems;
-        }
-      }
+      // Accept all items from the server - don't filter them
+      // This prevents valid items from being incorrectly filtered out
       
       // Enrich cart items with full portfolio data if description is missing
       if (cartData.items && cartData.items.length > 0) {
@@ -403,7 +371,18 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   // Enhanced add to cart with subscription check
   const addToCart = async (portfolioId: string, quantity: number = 1) => {
     try {
+      if (!portfolioId || typeof portfolioId !== 'string' || portfolioId.trim() === '') {
+        console.error("Cannot add to cart: Invalid portfolio ID", portfolioId);
+        toast({
+          title: "Error",
+          description: "Invalid portfolio ID",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       setError(null);
+      console.log(`Cart context: Adding portfolio ${portfolioId} with quantity ${quantity}`);
       
       // Check if user has already purchased this portfolio
       if (isAuthenticated) {
@@ -426,10 +405,28 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
           // Continue with adding to cart if subscription check fails
         }
         
-        // Add to server cart
-        const updatedCart = await cartService.addToCart({ portfolioId, quantity });
-        setCart(updatedCart);
-        console.log("Added to server cart:", portfolioId, quantity);
+        try {
+          // Add to server cart
+          console.log("Sending addToCart request with:", { portfolioId, quantity });
+          const updatedCart = await cartService.addToCart({ portfolioId, quantity });
+          console.log("Server returned cart:", updatedCart);
+          
+          if (updatedCart) {
+            setCart(updatedCart);
+            console.log("Added to server cart:", portfolioId, quantity);
+            
+            // Force a refresh to ensure we have the latest cart data
+            setTimeout(() => refreshCart(), 500);
+          } else {
+            console.error("Server returned empty cart");
+            await refreshCart();
+          }
+        } catch (cartError) {
+          console.error("Error adding to server cart:", cartError);
+          // Try to refresh the cart to get the latest state
+          await refreshCart();
+          throw cartError;
+        }
       } else {
         // Add to local cart - we need item data for offline storage
         try {
@@ -628,6 +625,16 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     try {
       setError(null);
       
+      if (!portfolioId) {
+        console.error("Cannot remove from cart: Invalid portfolio ID");
+        toast({
+          title: "Error",
+          description: "Invalid portfolio ID",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       if (isAuthenticated) {
         // Remove from server cart
         if (cart) {
@@ -637,15 +644,20 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
               return item && item.portfolio && item.portfolio._id !== portfolioId;
             } catch (error) {
               console.error("Error filtering cart item during removal:", error, item);
-              return false; // Remove invalid items
+              return false;
             }
           });
           setCart(optimisticCart);
         }
 
-        const updatedCart = await cartService.removeFromCart(portfolioId);
-        setCart(updatedCart);
-        console.log("Removed from server cart:", portfolioId);
+        try {
+          const updatedCart = await cartService.removeFromCart(portfolioId);
+          setCart(updatedCart);
+          console.log("Removed from server cart:", portfolioId);
+        } catch (removeError) {
+          console.error("Failed to remove item, trying to refresh cart:", removeError);
+          await refreshCart();
+        }
       } else {
         // Remove from local cart
         const updatedLocalCart = localCartService.removeFromLocalCart(portfolioId);
@@ -687,62 +699,19 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     }
   };
 
-  // Force cleanup of invalid items (can be called manually)
+  // Simple cart refresh function
   const forceCleanupInvalidItems = useCallback(async () => {
     try {
-      console.log("Force cleaning up invalid items...");
-      cleanupInvalidLocalItems();
-      
-      // Also clean up server cart items with null portfolios
-      if (isAuthenticated) {
-        try {
-          const cleanedCart = await cartService.cleanupInvalidItems();
-          setCart(cleanedCart);
-          console.log("Server cart cleaned successfully");
-        } catch (error) {
-          console.error("Failed to cleanup server cart:", error);
-          // Fallback to manual cleanup
-          if (cart) {
-            const invalidServerItems = cart.items.filter(item => {
-              try {
-                return !item || !item.portfolio || !item.portfolio._id || !item.quantity || item.quantity <= 0;
-              } catch (error) {
-                console.error("Error checking server item validity:", error, item);
-                return true; // Remove invalid items
-              }
-            });
-            
-            if (invalidServerItems.length > 0) {
-              console.log(`Found ${invalidServerItems.length} invalid server items, removing manually...`);
-              
-              for (const item of invalidServerItems) {
-                try {
-                  if (item.portfolio && item.portfolio._id) {
-                    await cartService.removeFromCart(item.portfolio._id);
-                  } else if (item._id) {
-                    await cartService.removeCartItemById(item._id);
-                  }
-                } catch (removeError) {
-                  console.error("Error removing invalid server item:", removeError, item);
-                }
-              }
-            }
-          }
-          
-          // Refresh the cart to ensure consistency
-          await refreshCart();
-        }
-      }
-      
+      await refreshCart();
       toast({
-        title: "Cart Cleaned",
-        description: "Invalid items have been removed from your cart.",
+        title: "Cart Refreshed",
+        description: "Your cart has been refreshed.",
       });
     } catch (error) {
-      console.error("Failed to force cleanup:", error);
-      handleError(error, "cleanup invalid items");
+      console.error("Failed to refresh cart:", error);
+      handleError(error, "refresh cart");
     }
-  }, [cleanupInvalidLocalItems, isAuthenticated, cart, refreshCart, toast, handleError]);
+  }, [refreshCart, toast, handleError]);
 
   // Debug cart functionality
   const debugCart = useCallback(async () => {

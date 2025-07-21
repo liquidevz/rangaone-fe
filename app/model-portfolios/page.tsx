@@ -9,19 +9,14 @@ import { portfolioService } from "@/services/portfolio.service";
 import { useAuth } from "@/components/auth/auth-context";
 import { MethodologyModal } from "@/components/methodology-modal";
 import type { Portfolio } from "@/lib/types";
-import {
-  FileText,
-  Eye,
-  Lock,
-  ShoppingCart,
-  ClipboardList,
-} from "lucide-react";
+import { FileText, Eye, Lock, ShoppingCart, ClipboardList } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useCart } from "@/components/cart/cart-context";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 // Extend the Portfolio type to include the message field from the API response
-interface PortfolioWithMessage extends Omit<Portfolio, 'subscriptionFee'> {
+interface PortfolioWithMessage extends Omit<Portfolio, "subscriptionFee"> {
   message?: string; // This field indicates if user needs to subscribe
   cashBalance?: number;
   CAGRSinceInception?: number;
@@ -35,6 +30,93 @@ interface PortfolioWithMessage extends Omit<Portfolio, 'subscriptionFee'> {
   details?: string;
   compareWith?: string;
   holdingsValue?: number;
+  monthlyContribution?: number;
+}
+
+function SubscriptionModal({ open, onClose, productId, productType }: { open: boolean; onClose: () => void; productId: string | null; productType: string }) {
+  const [planType, setPlanType] = useState("quarterly");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // Ensure Razorpay script is loaded
+  useEffect(() => {
+    if (!window.Razorpay) {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, []);
+
+  const handleBuy = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(process.env.NEXT_PUBLIC_API_BASE_URL + "/api/subscriptions/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productType, productId, planType }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      // Razorpay options
+      const options = {
+        key: "YOUR_RAZORPAY_KEY_ID", // TODO: Replace with your Razorpay key
+        amount: data.amount, // in paise
+        currency: data.currency,
+        name: "RangaOne",
+        order_id: data.orderId,
+        handler: function (response: any) {
+          // Optionally verify payment on backend
+          onClose();
+        },
+        prefill: {},
+        theme: { color: "#fbbf24" },
+      };
+      if (window.Razorpay) {
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+      } else {
+        setError("Razorpay failed to load. Please try again.");
+      }
+    } catch (err) {
+      setError("Failed to create order. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Choose a Plan</DialogTitle>
+        </DialogHeader>
+        <div className="flex gap-4 mb-4 mt-2">
+          <Button
+            variant={planType === "quarterly" ? "default" : "outline"}
+            onClick={() => setPlanType("quarterly")}
+            className="flex-1"
+          >
+            Quarterly
+          </Button>
+          <Button
+            variant={planType === "yearly" ? "default" : "outline"}
+            onClick={() => setPlanType("yearly")}
+            className="flex-1"
+          >
+            Yearly
+          </Button>
+        </div>
+        {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
+        <DialogFooter>
+          <Button onClick={handleBuy} className="w-full" disabled={loading}>
+            {loading ? "Processing..." : "Buy Now"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 export default function ModelPortfoliosPage() {
@@ -53,38 +135,46 @@ export default function ModelPortfoliosPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { addToCart } = useCart();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalPortfolioId, setModalPortfolioId] = useState<string | null>(null);
+  const [modalProductType, setModalProductType] = useState<string>("Portfolio");
 
   // Helper function to safely render description
   const renderDescription = (desc: any): string => {
-    if (!desc) return 'No description available';
-    if (typeof desc === 'string') return desc;
+    if (!desc) return "No description available";
+    if (typeof desc === "string") return desc;
     if (Array.isArray(desc)) {
       const homeCardDesc = desc.find((item: any) => item.key === "home card");
       if (homeCardDesc && homeCardDesc.value) {
-        const textContent = homeCardDesc.value.replace(/<[^>]*>/g, '');
-        return textContent.length > 150 ? textContent.substring(0, 150) + '...' : textContent;
+        const textContent = homeCardDesc.value.replace(/<[^>]*>/g, "");
+        return textContent.length > 150
+          ? textContent.substring(0, 150) + "..."
+          : textContent;
       }
-      
-      return desc.map((item: any) => {
-        if (typeof item === 'string') return item;
-        if (item?.value) {
-          const textContent = String(item.value).replace(/<[^>]*>/g, '');
-          return textContent;
-        }
-        if (item?.key) return item.key;
-        return String(item);
-      }).filter(Boolean).join(', ');
+
+      return desc
+        .map((item: any) => {
+          if (typeof item === "string") return item;
+          if (item?.value) {
+            const textContent = String(item.value).replace(/<[^>]*>/g, "");
+            return textContent;
+          }
+          if (item?.key) return item.key;
+          return String(item);
+        })
+        .filter(Boolean)
+        .join(", ");
     }
     return String(desc);
   };
 
   // Helper function to safely convert values to strings
   const safeString = (value: any): string => {
-    if (value === null || value === undefined) return '0';
-    if (typeof value === 'string') return value || '0';
-    if (typeof value === 'number') return value.toString();
-    if (typeof value === 'boolean') return value.toString();
-    return String(value) || '0';
+    if (value === null || value === undefined) return "0";
+    if (typeof value === "string") return value || "0";
+    if (typeof value === "number") return value.toString();
+    if (typeof value === "boolean") return value.toString();
+    return String(value) || "0";
   };
 
   // Helper function to safely convert to number
@@ -105,7 +195,7 @@ export default function ModelPortfoliosPage() {
 
       try {
         setLoading(true);
-        
+
         if (isAuthenticated) {
           // Fetch portfolios from /api/user/portfolios
           const userPortfolios = await portfolioService.getAll();
@@ -118,12 +208,14 @@ export default function ModelPortfoliosPage() {
           } catch (error) {
             // If that fails, try public endpoint as fallback
             const publicPortfolios = await portfolioService.getPublic();
-            setPortfolios(publicPortfolios as unknown as PortfolioWithMessage[]);
+            setPortfolios(
+              publicPortfolios as unknown as PortfolioWithMessage[]
+            );
           }
         }
       } catch (error: any) {
         console.error("Failed to load portfolios:", error);
-        
+
         if (error?.response?.status === 401) {
           toast({
             title: "Authentication Error",
@@ -138,7 +230,7 @@ export default function ModelPortfoliosPage() {
             variant: "destructive",
           });
         }
-        
+
         setPortfolios([]);
       } finally {
         setLoading(false);
@@ -151,7 +243,7 @@ export default function ModelPortfoliosPage() {
   const handleAddToCart = async (portfolio: PortfolioWithMessage) => {
     try {
       console.log("Adding portfolio to cart:", portfolio._id, portfolio.name);
-      
+
       // Check if user is authenticated
       if (!isAuthenticated) {
         console.log("User not authenticated, redirecting to login");
@@ -165,14 +257,25 @@ export default function ModelPortfoliosPage() {
         return;
       }
 
-      await addToCart(portfolio._id);
-      
-      toast({
-        title: "Added to Cart",
-        description: `${portfolio.name} has been added to your cart.`,
-      });
-      
-      console.log("Successfully added to cart");
+      // Add to cart with error handling
+      try {
+        // Always add with quantity 1
+        await addToCart(portfolio._id, 1);
+        
+        toast({
+          title: "Added to Cart",
+          description: `${portfolio.name} has been added to your cart.`,
+        });
+        
+        console.log("Successfully added to cart:", portfolio._id);
+      } catch (cartError: any) {
+        console.error("Error in cart operation:", cartError);
+        toast({
+          title: "Cart Error",
+          description: "There was an issue with your cart. Please try again.",
+          variant: "destructive",
+        });
+      }
     } catch (error: any) {
       console.error("Error adding to cart:", error);
       toast({
@@ -187,7 +290,10 @@ export default function ModelPortfoliosPage() {
     router.push(`/model-portfolios/${portfolioId}`);
   };
 
-  const handleMethodologyClick = (portfolioId: string, portfolioName: string) => {
+  const handleMethodologyClick = (
+    portfolioId: string,
+    portfolioName: string
+  ) => {
     setMethodologyModal({
       isOpen: true,
       portfolioId,
@@ -199,9 +305,9 @@ export default function ModelPortfoliosPage() {
     return (
       <DashboardLayout>
         <div className="max-w-6xl mx-auto">
-          <PageHeader 
-            title="MODEL PORTFOLIOS" 
-            subtitle="Discover our expertly crafted investment strategies" 
+          <PageHeader
+            title="MODEL PORTFOLIOS"
+            subtitle="Discover our expertly crafted investment strategies"
           />
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
@@ -214,9 +320,9 @@ export default function ModelPortfoliosPage() {
   return (
     <DashboardLayout>
       <div className="max-w-6xl mx-auto">
-        <PageHeader 
-          title="MODEL PORTFOLIOS" 
-          subtitle="Discover our expertly crafted investment strategies" 
+        <PageHeader
+          title="MODEL PORTFOLIOS"
+          subtitle="Discover our expertly crafted investment strategies"
         />
         {loading ? (
           <div className="flex justify-center items-center h-64">
@@ -230,7 +336,9 @@ export default function ModelPortfoliosPage() {
               // Find methodology PDF link in description array
               let methodologyLink: string | undefined = undefined;
               if (Array.isArray(portfolio.description)) {
-                const methodologyItem = portfolio.description.find((item: any) => item.key === 'methodology PDF link');
+                const methodologyItem = portfolio.description.find(
+                  (item: any) => item.key === "methodology PDF link"
+                );
                 if (methodologyItem && methodologyItem.value) {
                   methodologyLink = methodologyItem.value;
                 }
@@ -238,8 +346,10 @@ export default function ModelPortfoliosPage() {
               return (
                 <Card key={portfolio._id} className="overflow-hidden relative">
                   {isLocked && (
-                    <div className="absolute inset-0 flex items-center justify-center z-10 bg-white bg-opacity-10">
-                      <img src="/icons/LOCK 4.png" alt="Locked" className="h-20 w-20 opacity-80" />
+                    <div className="absolute bottom-1/2 left-1/2 transform -translate-x-1/2 flex items-center gap-3 text-sm text-gray-700 z-20">
+                      <div className="bg-gradient-to-br from-yellow-400 to-amber-500 rounded-full p-2 shadow-lg transition-transform hover:scale-110">
+                        <Lock className="h-5 w-5 text-white animate-[wiggle_1s_ease-in-out_infinite]" />
+                      </div>
                     </div>
                   )}
                   <CardContent className="p-4 sm:p-6">
@@ -251,12 +361,16 @@ export default function ModelPortfoliosPage() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className="text-lg sm:text-xl font-semibold leading-tight">{portfolio.name}</h3>
-                            {isLocked && <Lock className="h-4 w-4 text-gray-400" />}
+                            <h3 className="text-lg sm:text-xl font-semibold leading-tight">
+                              {portfolio.name}
+                            </h3>
+                            {isLocked && (
+                              <Lock className="h-4 w-4 text-gray-400" />
+                            )}
                           </div>
-                            <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">
-                              {renderDescription(portfolio.description)}
-                            </p>
+                          <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">
+                            {renderDescription(portfolio.description)}
+                          </p>
                         </div>
                       </div>
                       {/* Methodology button */}
@@ -270,7 +384,9 @@ export default function ModelPortfoliosPage() {
                           >
                             <Button variant="outline" size="sm">
                               <FileText className="h-4 w-4" />
-                              <span className="text-xs sm:text-sm">View Methodology</span>
+                              <span className="text-xs sm:text-sm">
+                                View Methodology
+                              </span>
                             </Button>
                           </a>
                         ) : null}
@@ -279,11 +395,35 @@ export default function ModelPortfoliosPage() {
 
                     {/* Mobile-responsive metrics grid */}
                     <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-4 mb-4 sm:mb-6">
-                      <div className={`p-2 sm:p-4 bg-gray-50 rounded-lg relative group ${isLocked ? 'overflow-hidden' : ''}`}>
-                        <p className="text-xs sm:text-sm text-gray-600 mb-1">Monthly Gains</p>
+                      <div
+                        className={`p-2 sm:p-4 bg-gray-50 rounded-lg relative group ${
+                          isLocked ? "overflow-hidden" : ""
+                        }`}
+                      >
+                        <p className="text-xs sm:text-sm text-gray-600 mb-1">
+                          Monthly Gains
+                        </p>
                         <div className="relative">
-                          <p className={`text-lg sm:text-xl font-semibold ${isLocked ? 'blur-sm text-green-600' : safeNumber(portfolio.monthlyGains) >= 0 ? 'text-green-600' : 'text-red-600'} ${safeNumber(portfolio.monthlyGains) === 0 ? 'cursor-help' : ''}`}>
-                            {isLocked ? `+${Math.floor(Math.random() * 20) + 5}.${Math.floor(Math.random() * 99)}%` : safeNumber(portfolio.monthlyGains) === 0 ? "-" : `${safeString(portfolio.monthlyGains)}%`}
+                          <p
+                            className={`text-lg sm:text-xl font-semibold ${
+                              isLocked
+                                ? "blur-sm text-green-600"
+                                : safeNumber(portfolio.monthlyGains) >= 0
+                                ? "text-green-600"
+                                : "text-red-600"
+                            } ${
+                              safeNumber(portfolio.monthlyGains) === 0
+                                ? "cursor-help"
+                                : ""
+                            }`}
+                          >
+                            {isLocked
+                              ? `+${
+                                  Math.floor(Math.random() * 20) + 5
+                                }.${Math.floor(Math.random() * 99)}%`
+                              : safeNumber(portfolio.monthlyGains) === 0
+                              ? "-"
+                              : `${safeString(portfolio.monthlyGains)}%`}
                             {safeNumber(portfolio.monthlyGains) === 0 && (
                               <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-20">
                                 will change
@@ -292,11 +432,35 @@ export default function ModelPortfoliosPage() {
                           </p>
                         </div>
                       </div>
-                      <div className={`p-2 sm:p-4 bg-gray-50 rounded-lg relative group ${isLocked ? 'overflow-hidden' : ''}`}>
-                        <p className="text-xs sm:text-sm text-gray-600 mb-1">1 Year Gains</p>
+                      <div
+                        className={`p-2 sm:p-4 bg-gray-50 rounded-lg relative group ${
+                          isLocked ? "overflow-hidden" : ""
+                        }`}
+                      >
+                        <p className="text-xs sm:text-sm text-gray-600 mb-1">
+                          1 Year Gains
+                        </p>
                         <div className="relative">
-                          <p className={`text-lg sm:text-xl font-semibold ${isLocked ? 'blur-sm text-green-600' : safeNumber(portfolio.oneYearGains) >= 0 ? 'text-green-600' : 'text-red-600'} ${safeNumber(portfolio.oneYearGains) === 0 ? 'cursor-help' : ''}`}>
-                            {isLocked ? `+${Math.floor(Math.random() * 15) + 2}.${Math.floor(Math.random() * 99)}%` : safeNumber(portfolio.oneYearGains) === 0 ? "-" : `${safeString(portfolio.oneYearGains)}%`}
+                          <p
+                            className={`text-lg sm:text-xl font-semibold ${
+                              isLocked
+                                ? "blur-sm text-green-600"
+                                : safeNumber(portfolio.oneYearGains) >= 0
+                                ? "text-green-600"
+                                : "text-red-600"
+                            } ${
+                              safeNumber(portfolio.oneYearGains) === 0
+                                ? "cursor-help"
+                                : ""
+                            }`}
+                          >
+                            {isLocked
+                              ? `+${
+                                  Math.floor(Math.random() * 15) + 2
+                                }.${Math.floor(Math.random() * 99)}%`
+                              : safeNumber(portfolio.oneYearGains) === 0
+                              ? "-"
+                              : `${safeString(portfolio.oneYearGains)}%`}
                             {safeNumber(portfolio.oneYearGains) === 0 && (
                               <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-20">
                                 will change
@@ -305,11 +469,35 @@ export default function ModelPortfoliosPage() {
                           </p>
                         </div>
                       </div>
-                      <div className={`p-2 sm:p-4 bg-gray-50 rounded-lg relative group ${isLocked ? 'overflow-hidden' : ''}`}>
-                        <p className="text-xs sm:text-sm text-gray-600 mb-1">CAGR Since Inception</p>
+                      <div
+                        className={`p-2 sm:p-4 bg-gray-50 rounded-lg relative group ${
+                          isLocked ? "overflow-hidden" : ""
+                        }`}
+                      >
+                        <p className="text-xs sm:text-sm text-gray-600 mb-1">
+                          CAGR Since Inception
+                        </p>
                         <div className="relative">
-                          <p className={`text-lg sm:text-xl font-semibold ${isLocked ? 'blur-sm text-green-600' : safeNumber(portfolio.CAGRSinceInception) >= 0 ? 'text-green-600' : 'text-red-600'} ${safeNumber(portfolio.CAGRSinceInception) === 0 ? 'cursor-help' : ''}`}>
-                            {isLocked ? `+${Math.floor(Math.random() * 25) + 10}.${Math.floor(Math.random() * 99)}%` : safeNumber(portfolio.CAGRSinceInception) === 0 ? "-" : `${safeString(portfolio.CAGRSinceInception)}%`}
+                          <p
+                            className={`text-lg sm:text-xl font-semibold ${
+                              isLocked
+                                ? "blur-sm text-green-600"
+                                : safeNumber(portfolio.CAGRSinceInception) >= 0
+                                ? "text-green-600"
+                                : "text-red-600"
+                            } ${
+                              safeNumber(portfolio.CAGRSinceInception) === 0
+                                ? "cursor-help"
+                                : ""
+                            }`}
+                          >
+                            {isLocked
+                              ? `+${
+                                  Math.floor(Math.random() * 25) + 10
+                                }.${Math.floor(Math.random() * 99)}%`
+                              : safeNumber(portfolio.CAGRSinceInception) === 0
+                              ? "-"
+                              : `${safeString(portfolio.CAGRSinceInception)}%`}
                             {safeNumber(portfolio.CAGRSinceInception) === 0 && (
                               <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-20">
                                 will change
@@ -319,32 +507,35 @@ export default function ModelPortfoliosPage() {
                         </div>
                       </div>
                       <div className="p-2 sm:p-4 bg-gray-50 rounded-lg group">
-                        <p className="text-xs sm:text-sm text-gray-600 mb-1">Monthly Contribution</p>
+                        <p className="text-xs sm:text-sm text-gray-600 mb-1">
+                          Monthly Contribution
+                        </p>
                         <div className="relative">
-                          <p className={`text-lg sm:text-xl font-semibold text-blue-600 ${(() => {
-                            const monthlyFee = portfolio.subscriptionFee?.find(fee => fee.type === "monthly");
-                            return monthlyFee && monthlyFee.price === 0 ? 'cursor-help' : '';
-                          })()}`}>
-                            {(() => {
-                              const monthlyFee = portfolio.subscriptionFee?.find(fee => fee.type === "monthly");
-                              return monthlyFee && monthlyFee.price === 0 ? "-" : monthlyFee ? `₹${monthlyFee.price}` : "N/A";
-                            })()}
-                            {(() => {
-                              const monthlyFee = portfolio.subscriptionFee?.find(fee => fee.type === "monthly");
-                              return monthlyFee && monthlyFee.price === 0 ? (
-                                <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-20">
-                                  will change
-                                </span>
-                              ) : null;
-                            })()}
+                          <p className={`text-lg sm:text-xl font-semibold text-blue-600 ${portfolio.monthlyContribution === 0 ? 'cursor-help' : ''}`}>
+                            {portfolio.monthlyContribution === 0 ? '-' : `₹${portfolio.monthlyContribution}`}
+                            {portfolio.monthlyContribution === 0 && (
+                              <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-20">
+                                will change
+                              </span>
+                            )}
                           </p>
                         </div>
                       </div>
                       <div className="p-2 sm:p-4 bg-gray-50 rounded-lg group">
-                        <p className="text-xs sm:text-sm text-gray-600 mb-1">Min. Investment</p>
+                        <p className="text-xs sm:text-sm text-gray-600 mb-1">
+                          Min. Investment
+                        </p>
                         <div className="relative">
-                          <p className={`text-lg sm:text-xl font-semibold text-gray-900 ${safeNumber(portfolio.minInvestment) === 0 ? 'cursor-help' : ''}`}>
-                            {safeNumber(portfolio.minInvestment) === 0 ? "-" : `₹${safeString(portfolio.minInvestment)}`}
+                          <p
+                            className={`text-lg sm:text-xl font-semibold text-gray-900 ${
+                              safeNumber(portfolio.minInvestment) === 0
+                                ? "cursor-help"
+                                : ""
+                            }`}
+                          >
+                            {safeNumber(portfolio.minInvestment) === 0
+                              ? "-"
+                              : `₹${safeString(portfolio.minInvestment)}`}
                             {safeNumber(portfolio.minInvestment) === 0 && (
                               <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-20">
                                 will change
@@ -356,59 +547,89 @@ export default function ModelPortfoliosPage() {
                     </div>
 
                     {/* Action section */}
-                      {hasAccess ? (
-                        <div className="flex flex-row gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center justify-center space-x-1 flex-1"
-                            onClick={() => handleViewDetails(portfolio._id)}
+                    {hasAccess ? (
+                      <div className="flex flex-row gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center justify-center space-x-1 flex-1"
+                          onClick={() => handleViewDetails(portfolio._id)}
+                        >
+                          <Eye className="h-4 w-4" />
+                          <span className="text-xs sm:text-sm">
+                            View Details
+                          </span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center justify-center space-x-1 flex-1"
+                          onClick={() =>
+                            router.push(
+                              `/model-portfolios/${portfolio._id}#reports`
+                            )
+                          }
+                        >
+                          <ClipboardList className="h-4 w-4" />
+                          <span
+                            className="text-xs sm:text-sm"
+                            id="reports-section"
                           >
-                            <Eye className="h-4 w-4" />
-                            <span className="text-xs sm:text-sm">View Details</span>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center justify-center space-x-1 flex-1"
-                            onClick={() => router.push(`/model-portfolios/${portfolio._id}#reports`)}
-                          >
-                            <ClipboardList className="h-4 w-4" />
-                            <span className ="text-xs sm:text-sm" id="reports-section">Reports</span>
-                          </Button>
-                        </div>
-                      ) : (
+                            Reports
+                          </span>
+                        </Button>
+                      </div>
+                    ) : (
                       <div className="flex items-center justify-between bg-blue-50 p-3 rounded-lg">
                         <div className="flex items-center gap-2">
                           <Lock className="h-4 w-4 text-blue-600" />
                           <p className="text-sm text-blue-900">
-                              {portfolio.message || "Subscribe to view complete details"}
+                            {portfolio.message ||
+                              "Subscribe to view complete details"}
                           </p>
                         </div>
                         <Button
                           size="sm"
-                          className="bg-blue-600 hover:bg-blue-700 text-white"
-                            onClick={() => handleAddToCart(portfolio)}
+                          className="bg-gradient-to-br from-yellow-400 to-amber-500 rounded-full p-2 shadow-lg transition-transform hover:scale-110"
+                          onClick={() => {
+                            setModalPortfolioId(portfolio._id);
+                            setModalProductType("Portfolio");
+                            setModalOpen(true);
+                          }}
                         >
-                            <ShoppingCart className="h-4 w-4 mr-1" />
-                            Subscribe Now
+                          <ShoppingCart className="h-4 w-4 mr-1" />
+                          Subscribe Now
                         </Button>
                       </div>
                     )}
                   </CardContent>
                 </Card>
-                );
-              })}
-            </div>
-          )}
-        </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
-        <MethodologyModal
-          isOpen={methodologyModal.isOpen}
-          onClose={() => setMethodologyModal({ isOpen: false, portfolioId: "", portfolioName: "" })}
-          portfolioId={methodologyModal.portfolioId}
-          portfolioName={methodologyModal.portfolioName}
+      <MethodologyModal
+        isOpen={methodologyModal.isOpen}
+        onClose={() =>
+          setMethodologyModal({
+            isOpen: false,
+            portfolioId: "",
+            portfolioName: "",
+          })
+        }
+        portfolioId={methodologyModal.portfolioId}
+        portfolioName={methodologyModal.portfolioName}
+      />
+      {modalOpen && modalPortfolioId && (
+        <SubscriptionModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          productId={modalPortfolioId}
+          productType={modalProductType}
         />
-      </DashboardLayout>
-    );
-  }
+      )}
+    </DashboardLayout>
+  );
+}

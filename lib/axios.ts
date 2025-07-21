@@ -168,14 +168,22 @@ export async function post<T>(
   config: AxiosRequestConfig = {},
   isFormData: boolean = false
 ): Promise<T> {
-  if (isFormData) {
-    return axiosApi
-      .post(url, getFormData(data), { ...config })
-      .then((response: AxiosResponse<T>) => response.data);
+  try {
+    console.log(`Making POST request to ${url} with data:`, data);
+    let response;
+    
+    if (isFormData) {
+      response = await axiosApi.post(url, getFormData(data), { ...config });
+    } else {
+      response = await axiosApi.post(url, data, { ...config });
+    }
+    
+    console.log(`POST response from ${url}:`, response.data);
+    return response.data;
+  } catch (error) {
+    console.error(`POST request to ${url} failed:`, error);
+    throw error;
   }
-  return axiosApi
-    .post(url, { ...data }, { ...config })
-    .then((response: AxiosResponse<T>) => response.data);
 }
 
 export async function put<T>(

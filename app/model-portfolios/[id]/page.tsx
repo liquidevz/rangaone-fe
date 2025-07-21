@@ -940,8 +940,9 @@ export default function PortfolioDetailsPage() {
               </div>
                   );
                 })()}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-4 font-bold font-size-2xl">Portfolio Details</div>
             </div>
-
+            
              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-4 border-t">
             <div>
                   <p className="font-semibold text-gray-800">Time Horizon</p>
@@ -955,25 +956,26 @@ export default function PortfolioDetailsPage() {
                   <p className="font-semibold text-gray-800">Benchmark Index</p>
                   <p className="text-gray-600">{safeString((portfolio as any)?.index || (portfolio as any)?.compareWith )}</p>
               </div>
-                <div>
-                  <p className="font-semibold text-gray-800">Portfolio Details</p>
-                  <div className="text-xs sm:text-sm text-gray-600 space-y-1">
-                    <p><strong>Created:</strong> {(portfolio as any)?.createdAt ? new Date((portfolio as any).createdAt).toLocaleDateString() : "N/A"}</p>
-                    <p><strong>Min Investment:</strong> ₹{safeNumber((portfolio as any)?.minInvestment || 30000).toLocaleString()}</p>
-            </div>
+          <div>
+            <p className="font-semibold text-gray-800">Minimum Investment</p>
+            <p className="text-gray-600">₹{safeNumber((portfolio as any)?.minInvestment || 30000).toLocaleString()}</p>
           </div>
           <div>
-                  <p className="font-semibold text-gray-800">Monthly Contribution</p>
-                  <p className="text-gray-600">{safeString((portfolio as any)?.index || (portfolio as any)?.monthlyContribution )}</p>
-              </div>
+            <p className="font-semibold text-gray-800">Monthly Contribution</p>
+            <p className="text-gray-600">{safeString((portfolio as any)?.monthlyContribution)}</p>
+          </div>
               <div>
                   <p className="font-semibold text-gray-800">Last Rebalancing Date</p>
-                  <p className="text-gray-600">{(portfolio as any)?.createdAt ? new Date((portfolio as any).createdAt).toLocaleDateString() : "N/A"}</p>
+                  <p className="text-gray-600">{(portfolio as any)?.lastRebalanceDate ? new Date((portfolio as any).lastRebalanceDate).toLocaleDateString() : "N/A"}</p>
               </div>
               <div>
                   <p className="font-semibold text-gray-800">Next Rebalancing Date</p>
-                  <p className="text-gray-600">{(portfolio as any)?.createdAt ? new Date((portfolio as any).createdAt).toLocaleDateString() : "N/A"}</p>
+                  <p className="text-gray-600">{(portfolio as any)?.nextRebalanceDate ? new Date((portfolio as any).nextRebalanceDate).toLocaleDateString() : "N/A"}</p>
               </div>
+              <div>
+            <p className="font-semibold text-gray-800">Created On</p>
+            <p className="text-gray-600">{(portfolio as any)?.createdAt ? new Date((portfolio as any).createdAt).toLocaleDateString() : "N/A"}</p>
+          </div>
         </div>
           </div>
           </CardContent>

@@ -258,19 +258,41 @@ export function InvestmentCalculator() {
     setCalculatingInvestment(true);
     
     try {
-      // Calculate holdings with quantities based on investment amount
+      // Get the minimum investment amount from the portfolio
+      const minInvestment = portfolio.minInvestment || 30000;
+      
+      // Calculate the investment ratio (user investment / minimum investment)
+      const investmentRatio = amount / minInvestment;
+      console.log(`Investment ratio: ${investmentRatio} (${amount} / ${minInvestment})`);
+      
+      // Calculate holdings with quantities based on investment ratio
       const calculatedHoldings = holdings.map(holding => {
+        // Calculate allocation based on weight and user's investment amount
         const allocation = (holding.weight / 100) * amount;
+        
         let quantity = 0;
         let calculatedValue = 0;
         
         if (holding.currentPrice && holding.currentPrice > 0) {
-          // Calculate quantity based on allocation and current price
-          quantity = Math.floor(allocation / holding.currentPrice);
+          // If the holding has a quantity from the portfolio, scale it by the investment ratio
+          if (holding.quantity && holding.quantity > 0) {
+            quantity = Math.floor(holding.quantity * investmentRatio);
+            // Ensure at least 1 share if the user is investing enough
+            quantity = investmentRatio >= 0.5 && quantity === 0 ? 1 : quantity;
+          } else {
+            // Otherwise calculate based on allocation and current price
+            quantity = Math.floor(allocation / holding.currentPrice);
+          }
+          
+          // Calculate the actual value based on quantity and current price
           calculatedValue = quantity * holding.currentPrice;
         } else {
-          // Fallback if no price available
-          calculatedValue = allocation;
+          // Fallback if no price available - scale the original value by investment ratio
+          if (holding.value) {
+            calculatedValue = holding.value * investmentRatio;
+          } else {
+            calculatedValue = allocation;
+          }
         }
         
         return {
