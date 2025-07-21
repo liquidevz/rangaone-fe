@@ -1143,8 +1143,12 @@ export default function PortfolioDetailsPage() {
           <CardContent className="p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-blue-600 mb-2 sm:mb-0">Portfolio & Weights</h3>
-              <Button variant="outline" className="flex items-center space-x-2">
-                <Calculator className="h-4 w-4" />
+              <Button 
+                variant="outline" 
+                className="flex items-center space-x-2"
+                onClick={() => router.push(`/investment-calculator?portfolio=${portfolioId}`)}
+              >
+                <Calculator className="h-4 w-4" href="/investment-calculator" />
                 <span className="text-sm">Investment calculator</span>
               </Button>
           </div>

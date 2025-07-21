@@ -14,6 +14,7 @@ import {
   Briefcase,
   X,
   TrendingUp,
+  Calculator,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -46,6 +47,12 @@ const navigationItems = [
         label: "Model Portfolios",
         icon: <LineChart className="h-6 w-6" />,
         href: "/model-portfolios",
+        badge: null,
+      },
+      {
+        label: "Investment Calculator",
+        icon: <Calculator className="h-6 w-6" />,
+        href: "/investment-calculator",
         badge: null,
       },
     ],
