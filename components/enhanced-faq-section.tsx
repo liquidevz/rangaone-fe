@@ -132,11 +132,11 @@ export default function EnhancedFAQSection() {
                 className={cn(
                   "flex items-center gap-2 px-5 py-3 rounded-full transition-all duration-300",
                   activeCategory === category.id
-                    ? "bg-blue-600 text-white shadow-md"
+                    ? "bg-blue-600 text-[#FFFFF0] shadow-md"
                     : "bg-white text-slate-700 border border-slate-200 hover:border-blue-300 hover:bg-blue-50",
                 )}
               >
-                <span className={activeCategory === category.id ? "text-white" : "text-blue-600"}>{category.icon}</span>
+                <span className={activeCategory === category.id ? "text-[#FFFFF0]" : "text-blue-600"}>{category.icon}</span>
                 <span className="font-medium">{category.label}</span>
               </button>
             ))}

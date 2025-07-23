@@ -185,7 +185,7 @@ export default function FAQContactCombined() {
       <div className="container mx-auto px-4">
         {/* Portfolio Slider - Mobile Only */}
         <div className="md:hidden mb-12">
-          <h2 className="text-2xl font-bold text-white mb-6">Our Portfolios</h2>
+          <h2 className="text-2xl font-bold text-[#FFFFF0] mb-6">Our Portfolios</h2>
           <Carousel
             opts={{
               align: "start",
@@ -228,7 +228,7 @@ export default function FAQContactCombined() {
           <div>
             <div className="mb-8">
               <p className="text-sm text-gray-300 mb-2">Let's answer some questions</p>
-              <h2 className="text-3xl font-bold text-white">FAQs</h2>
+              <h2 className="text-3xl font-bold text-[#FFFFF0]">FAQs</h2>
             </div>
 
             {/* Category Tabs */}
@@ -242,7 +242,7 @@ export default function FAQContactCombined() {
                   "px-4 py-2 text-sm font-medium rounded-md transition-all",
                   activeCategory === "basic"
                     ? "bg-white text-[#1e1b4b]"
-                    : "bg-[#2e2a5b] text-white hover:bg-[#3e3a6b]"
+                    : "bg-[#2e2a5b] text-[#FFFFF0] hover:bg-[#3e3a6b]"
                 )}
               >
                 Basic
@@ -256,7 +256,7 @@ export default function FAQContactCombined() {
                   "px-4 py-2 text-sm font-medium rounded-md transition-all",
                   activeCategory === "modelPortfolio"
                     ? "bg-white text-[#1e1b4b]"
-                    : "bg-[#2e2a5b] text-white hover:bg-[#3e3a6b]"
+                    : "bg-[#2e2a5b] text-[#FFFFF0] hover:bg-[#3e3a6b]"
                 )}
               >
                 Model Portfolio
@@ -270,7 +270,7 @@ export default function FAQContactCombined() {
                   "px-4 py-2 text-sm font-medium rounded-md transition-all",
                   activeCategory === "premium"
                     ? "bg-white text-[#1e1b4b]"
-                    : "bg-[#2e2a5b] text-white hover:bg-[#3e3a6b]"
+                    : "bg-[#2e2a5b] text-[#FFFFF0] hover:bg-[#3e3a6b]"
                 )}
               >
                 Premium
@@ -288,7 +288,7 @@ export default function FAQContactCombined() {
                     className="flex justify-between items-center w-full px-5 py-4 text-left"
                     onClick={() => toggleFAQ(index)}
                   >
-                    <span className="font-medium text-white">{faq.question}</span>
+                    <span className="font-medium text-[#FFFFF0]">{faq.question}</span>
                     <ChevronDown
                       className={`h-5 w-5 text-gray-300 transition-transform duration-200 ${
                         openIndex === index ? "transform rotate-180" : ""
@@ -309,23 +309,23 @@ export default function FAQContactCombined() {
 
           {/* Contact Form */}
           <div className="bg-[#2e2a5b] rounded-3xl p-6 md:p-8">
-            <h2 className="text-2xl font-bold text-white mb-8">Contact us</h2>
+            <h2 className="text-2xl font-bold text-[#FFFFF0] mb-8">Contact us</h2>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <p className="text-lg text-white mb-4">Hi 👋 My name is...</p>
+                <p className="text-lg text-[#FFFFF0] mb-4">Hi 👋 My name is...</p>
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="Your name..."
-                  className="w-full bg-[#1e1b4b] border border-[#3e3a6b] rounded-xl p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-[#1e1b4b] border border-[#3e3a6b] rounded-xl p-3 text-[#FFFFF0] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
               </div>
 
               <div>
-                <p className="text-lg text-white mb-4">and I represent</p>
+                <p className="text-lg text-[#FFFFF0] mb-4">and I represent</p>
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
@@ -334,7 +334,7 @@ export default function FAQContactCombined() {
                       "px-4 py-2 rounded-xl text-sm font-medium transition-colors",
                       formData.represent === "BASIC"
                         ? "bg-white text-[#1e1b4b]"
-                        : "bg-[#1e1b4b] text-white hover:bg-[#3e3a6b]"
+                        : "bg-[#1e1b4b] text-[#FFFFF0] hover:bg-[#3e3a6b]"
                     )}
                   >
                     BASIC
@@ -346,7 +346,7 @@ export default function FAQContactCombined() {
                       "px-4 py-2 rounded-xl text-sm font-medium transition-colors",
                       formData.represent === "PREMIUM"
                         ? "bg-white text-[#1e1b4b]"
-                        : "bg-[#1e1b4b] text-white hover:bg-[#3e3a6b]"
+                        : "bg-[#1e1b4b] text-[#FFFFF0] hover:bg-[#3e3a6b]"
                     )}
                   >
                     PREMIUM
@@ -358,7 +358,7 @@ export default function FAQContactCombined() {
                       "px-4 py-2 rounded-xl text-sm font-medium transition-colors",
                       formData.represent === "MODEL PORTFOLIO"
                         ? "bg-white text-[#1e1b4b]"
-                        : "bg-[#1e1b4b] text-white hover:bg-[#3e3a6b]"
+                        : "bg-[#1e1b4b] text-[#FFFFF0] hover:bg-[#3e3a6b]"
                     )}
                   >
                     MODEL PORTFOLIO
@@ -367,14 +367,14 @@ export default function FAQContactCombined() {
               </div>
 
               <div>
-                <p className="text-lg text-white mb-4">I'd love to ask about...</p>
+                <p className="text-lg text-[#FFFFF0] mb-4">I'd love to ask about...</p>
                 <textarea
                   name="message"
                   value={formData.message}
                   onChange={handleChange}
                   placeholder="Your question..."
                   rows={4}
-                  className="w-full bg-[#1e1b4b] border border-[#3e3a6b] rounded-xl p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-[#1e1b4b] border border-[#3e3a6b] rounded-xl p-3 text-[#FFFFF0] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 ></textarea>
               </div>

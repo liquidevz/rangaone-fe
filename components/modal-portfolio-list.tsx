@@ -82,7 +82,7 @@ export const ModalPortfolioList = () => {
                     <p className="text-sm text-gray-700 text-center mt-2">{feature.description}</p>
                   </div>
                   <div className="flex justify-center mt-6">
-                    <button className="bg-[#2a2e86] text-white font-semibold text-sm px-6 py-2 rounded-full hover:bg-[#1f236b] transition">
+                    <button className="bg-[#2a2e86] text-[#FFFFF0] font-semibold text-sm px-6 py-2 rounded-full hover:bg-[#1f236b] transition">
                       Know More
                     </button>
                   </div>

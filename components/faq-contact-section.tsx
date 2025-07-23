@@ -155,7 +155,7 @@ export default function FAQContactSection() {
                 }}
                 className={`px-4 py-1.5 text-sm font-medium rounded-md border ${
                   activeCategory === "basic"
-                    ? "bg-[#1e3a8a] text-white border-[#1e3a8a]"
+                    ? "bg-[#1e3a8a] text-[#FFFFF0] border-[#1e3a8a]"
                     : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                 }`}
               >
@@ -168,7 +168,7 @@ export default function FAQContactSection() {
                 }}
                 className={`px-4 py-1.5 text-sm font-medium rounded-md border ${
                   activeCategory === "modelPortfolio"
-                    ? "bg-[#1e3a8a] text-white border-[#1e3a8a]"
+                    ? "bg-[#1e3a8a] text-[#FFFFF0] border-[#1e3a8a]"
                     : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                 }`}
               >
@@ -181,7 +181,7 @@ export default function FAQContactSection() {
                 }}
                 className={`px-4 py-1.5 text-sm font-medium rounded-md border ${
                   activeCategory === "premium"
-                    ? "bg-[#1e3a8a] text-white border-[#1e3a8a]"
+                    ? "bg-[#1e3a8a] text-[#FFFFF0] border-[#1e3a8a]"
                     : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                 }`}
               >
@@ -220,7 +220,7 @@ export default function FAQContactSection() {
           </div>
 
           {/* Contact Form */}
-          <div className="bg-[#0f1d59] text-white rounded-xl p-6 md:p-8 shadow-lg">
+          <div className="bg-[#0f1d59] text-[#FFFFF0] rounded-xl p-6 md:p-8 shadow-lg">
             <h2 className="text-2xl font-bold mb-6">Contact us</h2>
             <form onSubmit={handleSubmit}>
               <div className="mb-6">
@@ -231,7 +231,7 @@ export default function FAQContactSection() {
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="Your name..."
-                  className="w-full bg-[#1a2a6c] border border-[#2a3a7c] rounded-md p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-[#1a2a6c] border border-[#2a3a7c] rounded-md p-3 text-[#FFFFF0] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
               </div>
@@ -245,7 +245,7 @@ export default function FAQContactSection() {
                     className={`py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                       formData.represent === "BASIC"
                         ? "bg-white text-[#0f1d59]"
-                        : "bg-[#1a2a6c] text-white hover:bg-[#2a3a7c]"
+                        : "bg-[#1a2a6c] text-[#FFFFF0] hover:bg-[#2a3a7c]"
                     }`}
                   >
                     BASIC
@@ -256,7 +256,7 @@ export default function FAQContactSection() {
                     className={`py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                       formData.represent === "PREMIUM"
                         ? "bg-white text-[#0f1d59]"
-                        : "bg-[#1a2a6c] text-white hover:bg-[#2a3a7c]"
+                        : "bg-[#1a2a6c] text-[#FFFFF0] hover:bg-[#2a3a7c]"
                     }`}
                   >
                     PREMIUM
@@ -267,7 +267,7 @@ export default function FAQContactSection() {
                     className={`py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                       formData.represent === "MODEL PORTFOLIO"
                         ? "bg-white text-[#0f1d59]"
-                        : "bg-[#1a2a6c] text-white hover:bg-[#2a3a7c]"
+                        : "bg-[#1a2a6c] text-[#FFFFF0] hover:bg-[#2a3a7c]"
                     }`}
                   >
                     MODEL PORTFOLIO
@@ -283,7 +283,7 @@ export default function FAQContactSection() {
                   onChange={handleChange}
                   placeholder="Your question..."
                   rows={4}
-                  className="w-full bg-[#1a2a6c] border border-[#2a3a7c] rounded-md p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-[#1a2a6c] border border-[#2a3a7c] rounded-md p-3 text-[#FFFFF0] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 ></textarea>
               </div>

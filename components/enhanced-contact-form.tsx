@@ -90,7 +90,7 @@ export default function EnhancedContactForm() {
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl p-6 text-white shadow-md">
+            <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl p-6 text-[#FFFFF0] shadow-md">
               <h3 className="text-xl font-semibold mb-4">Need Immediate Assistance?</h3>
               <p className="mb-4">Our premium members get priority support with faster response times.</p>
               <a
@@ -197,12 +197,12 @@ export default function EnhancedContactForm() {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-md font-medium transition-colors"
+                      className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-[#FFFFF0] py-3 px-6 rounded-md font-medium transition-colors"
                     >
                       {isSubmitting ? (
                         <>
                           <svg
-                            className="animate-spin h-5 w-5 text-white"
+                            className="animate-spin h-5 w-5 text-[#FFFFF0]"
                             xmlns="http://www.w3.org/2000/svg"
                             fill="none"
                             viewBox="0 0 24 24"

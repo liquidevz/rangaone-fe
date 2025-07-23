@@ -123,7 +123,7 @@ export default function VideosForYou() {
   return (
     <DashboardLayout>
       <div className="flex flex-col w-full gap-6">
-        <div className="bg-indigo-900 text-white py-6 px-8 rounded-lg shadow-md mb-6">
+        <div className="bg-indigo-900 text-[#FFFFF0] py-6 px-8 rounded-lg shadow-md mb-6">
           <h1 className="text-3xl font-bold text-center">Videos For You</h1>
           <p className="text-center mt-2">Educational content and market insights</p>
         </div>
@@ -181,7 +181,7 @@ export default function VideosForYou() {
                     className={cn(
                       "py-2 px-4 rounded-md data-[state=active]:shadow-none capitalize",
                       activeTab === category
-                        ? "data-[state=active]:bg-indigo-900 data-[state=active]:text-white"
+                        ? "data-[state=active]:bg-indigo-900 data-[state=active]:text-[#FFFFF0]"
                         : "data-[state=inactive]:bg-transparent",
                     )}
                   >
@@ -224,10 +224,10 @@ function VideoCard({ video, onClick, isSelected }) {
           <img src={video.thumbnail || "/placeholder.svg"} alt={video.title} className="w-full h-48 object-cover" />
           <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300">
             <div className="bg-indigo-900 bg-opacity-80 rounded-full p-3">
-              <Play className="h-8 w-8 text-white" />
+              <Play className="h-8 w-8 text-[#FFFFF0]" />
             </div>
           </div>
-          <div className="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+          <div className="absolute bottom-2 right-2 bg-black bg-opacity-70 text-[#FFFFF0] text-xs px-2 py-1 rounded">
             {video.duration}
           </div>
         </div>

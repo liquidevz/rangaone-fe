@@ -283,7 +283,7 @@ export default function ExpertRecommendations() {
             size="sm"
             className={cn(
               activeTab === "rangaoneWealth"
-                ? "bg-blue-600 text-white hover:bg-blue-700 hover:text-white"
+                ? "bg-blue-600 text-[#FFFFF0] hover:bg-blue-700 hover:text-[#FFFFF0]"
                 : "border-blue-600 text-blue-600 hover:bg-blue-50",
             )}
             onClick={() => setActiveTab("rangaoneWealth")}
@@ -295,7 +295,7 @@ export default function ExpertRecommendations() {
             size="sm"
             className={cn(
               activeTab === "modelPortfolio"
-                ? "bg-blue-600 text-white hover:bg-blue-700 hover:text-white"
+                ? "bg-blue-600 text-[#FFFFF0] hover:bg-blue-700 hover:text-[#FFFFF0]"
                 : "border-blue-600 text-blue-600 hover:bg-blue-50",
             )}
             onClick={() => setActiveTab("modelPortfolio")}
@@ -433,7 +433,7 @@ function ModelPortfolioTipCard({ tip }: { tip: Tip }) {
       {/* Header */}
       <div className="bg-gradient-to-r from-[#00B7FF] to-[#85D437] p-4">
         <div className="flex items-center justify-between">
-          <div className="bg-gray-800 text-white px-4 py-1.5 rounded text-sm font-medium">
+          <div className="bg-gray-800 text-[#FFFFF0] px-4 py-1.5 rounded text-sm font-medium">
             Model Portfolio
           </div>
           <div className="bg-white text-gray-800 px-4 py-1.5 rounded text-sm font-bold">
@@ -499,7 +499,7 @@ function StockCard({ category, stock, categoryColor }: StockCardProps) {
         <div className="flex items-start justify-between">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className={cn("px-2 py-1 rounded text-xs font-medium text-white", categoryColor)}>
+              <span className={cn("px-2 py-1 rounded text-xs font-medium text-[#FFFFF0]", categoryColor)}>
                 {category}
               </span>
             </div>

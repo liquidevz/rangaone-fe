@@ -57,7 +57,7 @@ export default function ContactUs() {
   return (
     <DashboardLayout>
       <div className="flex flex-col w-full gap-6 max-w-4xl mx-auto">
-        <div className="bg-indigo-900 text-white py-6 px-8 rounded-lg shadow-md mb-6">
+        <div className="bg-indigo-900 text-[#FFFFF0] py-6 px-8 rounded-lg shadow-md mb-6">
           <h1 className="text-3xl font-bold text-center">Contact Us</h1>
           <p className="text-center mt-2">We're here to help with your investment journey</p>
         </div>
@@ -176,7 +176,7 @@ export default function ContactUs() {
                     {isSubmitting ? (
                       <span className="flex items-center">
                         <svg
-                          className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                          className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#FFFFF0]"
                           xmlns="http://www.w3.org/2000/svg"
                           fill="none"
                           viewBox="0 0 24 24"

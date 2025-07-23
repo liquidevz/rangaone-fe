@@ -116,14 +116,14 @@ export default function BasicSubscriptionPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.7, delay: 0.2 }}
             >
-              <h1 className="text-4xl md:text-5xl font-bold mb-6 text-white leading-tight">
+              <h1 className="text-4xl md:text-5xl font-bold mb-6 text-[#FFFFF0] leading-tight">
                 At RangaOne
                 <br />
                 <span className="text-blue-300">Your Growth, Our Priority</span>
               </h1>
               <div className="w-20 h-1 bg-blue-400 mb-6 rounded-full"></div>
               <p className="text-gray-200 mb-6 text-lg leading-relaxed">
-                Rangaone Wealth <span className="font-bold text-white">BASIC</span> - Get your investing journey
+                Rangaone Wealth <span className="font-bold text-[#FFFFF0]">BASIC</span> - Get your investing journey
                 started! For those who are new to the financial markets. Our basic plan provides you with essential
                 market insights, quality stock picks, and real-time updates to help you make informed investment
                 decisions.
@@ -135,7 +135,7 @@ export default function BasicSubscriptionPage() {
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Link
                     href="/#pricing"
-                    className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-10 rounded-full transition-all inline-flex items-center shadow-lg hover:shadow-blue-500/30"
+                    className="bg-blue-500 hover:bg-blue-600 text-[#FFFFF0] font-bold py-4 px-10 rounded-full transition-all inline-flex items-center shadow-lg hover:shadow-blue-500/30"
                   >
                     <span>BUY NOW</span>
                     <ChevronRight className="ml-2 h-5 w-5" />
@@ -150,7 +150,7 @@ export default function BasicSubscriptionPage() {
                   className={`font-bold py-4 px-10 rounded-full transition-all inline-flex items-center shadow-lg border-2 ${
                     isInCart
                       ? "bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed"
-                      : "bg-transparent border-white text-white hover:bg-white hover:text-blue-600"
+                      : "bg-transparent border-white text-[#FFFFF0] hover:bg-white hover:text-blue-600"
                   }`}
                 >
                   <ShoppingCart className="mr-2 h-5 w-5" />
@@ -264,7 +264,7 @@ export default function BasicSubscriptionPage() {
                     className="w-full h-auto"
                   />
                 </div>
-                <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xl z-20">
+                <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-blue-500 rounded-full flex items-center justify-center text-[#FFFFF0] font-bold text-xl z-20">
                   10-15
                 </div>
               </div>
@@ -287,7 +287,7 @@ export default function BasicSubscriptionPage() {
                   ].map((item, i) => (
                     <li key={i} className="flex items-start">
                       <span className="flex-shrink-0 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center mr-3 mt-0.5">
-                        <Check className="h-3.5 w-3.5 text-white" />
+                        <Check className="h-3.5 w-3.5 text-[#FFFFF0]" />
                       </span>
                       <span className="text-gray-700">{item}</span>
                     </li>
@@ -317,7 +317,7 @@ export default function BasicSubscriptionPage() {
                   ].map((item, i) => (
                     <li key={i} className="flex items-start">
                       <span className="flex-shrink-0 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center mr-3 mt-0.5">
-                        <Check className="h-3.5 w-3.5 text-white" />
+                        <Check className="h-3.5 w-3.5 text-[#FFFFF0]" />
                       </span>
                       <span className="text-gray-700">{item}</span>
                     </li>
@@ -335,7 +335,7 @@ export default function BasicSubscriptionPage() {
                     className="w-full h-auto"
                   />
                 </div>
-                <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xl z-20">
+                <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-blue-500 rounded-full flex items-center justify-center text-[#FFFFF0] font-bold text-xl z-20">
                   5
                 </div>
               </div>
@@ -374,7 +374,7 @@ export default function BasicSubscriptionPage() {
                   ].map((item, i) => (
                     <li key={i} className="flex items-start">
                       <span className="flex-shrink-0 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center mr-3 mt-0.5">
-                        <Check className="h-3.5 w-3.5 text-white" />
+                        <Check className="h-3.5 w-3.5 text-[#FFFFF0]" />
                       </span>
                       <span className="text-gray-700">{item}</span>
                     </li>
@@ -404,7 +404,7 @@ export default function BasicSubscriptionPage() {
                   ].map((item, i) => (
                     <li key={i} className="flex items-start">
                       <span className="flex-shrink-0 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center mr-3 mt-0.5">
-                        <Check className="h-3.5 w-3.5 text-white" />
+                        <Check className="h-3.5 w-3.5 text-[#FFFFF0]" />
                       </span>
                       <span className="text-gray-700">{item}</span>
                     </li>
@@ -503,7 +503,7 @@ export default function BasicSubscriptionPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 text-white">
+      <section className="py-20 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 text-[#FFFFF0]">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -539,7 +539,7 @@ export default function BasicSubscriptionPage() {
                 className={`font-bold py-4 px-10 rounded-full transition-all inline-flex items-center shadow-lg border-2 ${
                   isInCart
                     ? "bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed"
-                    : "bg-transparent border-white text-white hover:bg-white hover:text-blue-700"
+                    : "bg-transparent border-white text-[#FFFFF0] hover:bg-white hover:text-blue-700"
                 }`}
               >
                 <ShoppingCart className="mr-2 h-5 w-5" />

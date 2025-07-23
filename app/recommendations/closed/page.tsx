@@ -187,7 +187,7 @@ export default function ClosedRecommendations() {
           <div className="md:col-span-1">
             {selectedStock && (
               <Card className="overflow-hidden border-2 border-green-300 shadow-lg hover:shadow-xl transition-shadow duration-300">
-                <CardHeader className="bg-green-700 text-white p-4">
+                <CardHeader className="bg-green-700 text-[#FFFFF0] p-4">
                   <CardTitle className="text-xl text-center">Performance Details</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 bg-gradient-to-b from-white to-gray-50">
@@ -278,7 +278,7 @@ function StockCard({ stock, onClick, isSelected = false }) {
       <div className="border-2 border-green-300 rounded-lg overflow-hidden h-full">
         <div className="p-4 bg-white flex flex-col h-full">
           <div className="mb-3">
-            <span className="px-3 py-1 rounded-full text-sm inline-block bg-green-500 text-white font-semibold">
+            <span className="px-3 py-1 rounded-full text-sm inline-block bg-green-500 text-[#FFFFF0] font-semibold">
               Closed
             </span>
           </div>

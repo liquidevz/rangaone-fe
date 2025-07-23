@@ -4,7 +4,7 @@ export default function SettingsLoading() {
   return (
     <DashboardLayout>
       <div className="flex flex-col w-full gap-6 max-w-6xl mx-auto">
-        <div className="bg-indigo-900 text-white py-6 px-8 rounded-lg shadow-md mb-6">
+        <div className="bg-indigo-900 text-[#FFFFF0] py-6 px-8 rounded-lg shadow-md mb-6">
           <div className="h-8 w-48 bg-white/20 rounded animate-pulse mx-auto mb-2"></div>
           <div className="h-4 w-64 bg-white/20 rounded animate-pulse mx-auto"></div>
         </div>

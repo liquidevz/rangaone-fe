@@ -5,7 +5,7 @@ export default function Loading() {
   return (
     <DashboardLayout>
       <div className="max-w-6xl mx-auto">
-        <div className="bg-[#0a2463] text-white rounded-lg p-6 mb-8 text-center">
+        <div className="bg-[#0a2463] text-[#FFFFF0] rounded-lg p-6 mb-8 text-center">
           <h1 className="text-3xl font-bold mb-2">MODEL PORTFOLIO</h1>
           <p className="text-lg">YOUR GROWTH OUR PRIORITY</p>
         </div>

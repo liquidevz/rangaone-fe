@@ -42,13 +42,13 @@ const wealthPlans = [
 
 const CheckIcon = () => (
   <div className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center bg-green-500">
-    <Check className="w-4 h-4 text-white" strokeWidth={3} />
+    <Check className="w-4 h-4 text-[#FFFFF0]" strokeWidth={3} />
   </div>
 )
 
 const CrossIcon = () => (
   <div className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center bg-red-500">
-    <X className="w-4 h-4 text-white" strokeWidth={3} />
+    <X className="w-4 h-4 text-[#FFFFF0]" strokeWidth={3} />
   </div>
 )
 
@@ -158,7 +158,7 @@ export default function FeatureComparison() {
                     className={`w-full py-4 sm:py-5 text-sm sm:text-lg font-bold rounded-xl border-2 transition-all duration-300 hover:scale-[1.02] ${
                       plan.isPremium
                         ? "border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black bg-transparent"
-                        : "border-[#0c2f6b] text-[#0c2f6b] hover:bg-[#0c2f6b] hover:text-white bg-white"
+                        : "border-[#0c2f6b] text-[#0c2f6b] hover:bg-[#0c2f6b] hover:text-[#FFFFF0] bg-white"
                     }`}
                   >
                     View Detailed Description
@@ -170,7 +170,7 @@ export default function FeatureComparison() {
                   className={`w-full py-4 sm:py-5 text-sm sm:text-lg font-bold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-[1.02] ${
                     plan.isPremium
                       ? "bg-gradient-to-b from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-black"
-                      : "bg-gradient-to-b from-[#1e4ca1] to-[#0c2f6b] hover:from-[#2557b8] hover:to-[#0f3a82] text-white"
+                      : "bg-gradient-to-b from-[#1e4ca1] to-[#0c2f6b] hover:from-[#2557b8] hover:to-[#0f3a82] text-[#FFFFF0]"
                   }`}
                 >
                   BUY NOW

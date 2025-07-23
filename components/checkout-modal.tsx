@@ -629,7 +629,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     <Button
                       onClick={handleCreateOrder}
                       disabled={loading}
-                      className="w-full bg-[#001633] hover:bg-[#002244] text-white py-3"
+                      className="w-full bg-[#001633] hover:bg-[#002244] text-[#FFFFF0] py-3"
                     >
                       {loading ? "Processing..." : `Pay ₹${calculateTotal()}`}
                     </Button>

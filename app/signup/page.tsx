@@ -162,7 +162,7 @@ export default function SignupPage() {
     <div className="min-h-screen flex">
       {/* Left Panel - Image/Branding */}
       <div className="hidden lg:flex flex-1 bg-[#001633] items-center justify-center p-8">
-        <div className="text-center text-white">
+        <div className="text-center text-[#FFFFF0]">
           <h1 className="text-4xl font-bold mb-4">
             Join Rangaone Finwala
           </h1>
@@ -181,7 +181,7 @@ export default function SignupPage() {
           {/* Header */}
           <div className="text-center">
             <div className="w-16 h-16 bg-[#001633] rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-white font-bold text-xl">R</span>
+              <span className="text-[#FFFFF0] font-bold text-xl">R</span>
             </div>
             <h2 className="text-3xl font-bold text-gray-900">Create your account</h2>
             <p className="mt-2 text-gray-600">
@@ -282,7 +282,7 @@ export default function SignupPage() {
             <Button
               type="submit"
               disabled={formLoading}
-              className="w-full bg-[#001633] hover:bg-[#002244] text-white py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[#001633] hover:bg-[#002244] text-[#FFFFF0] py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {formLoading ? (
                 <div className="flex items-center gap-2">

@@ -11,7 +11,7 @@ export default function Footer() {
           <div>
             <div className="flex items-center mb-6">
               <div className="relative w-12 h-12 bg-[#001633] rounded-full flex items-center justify-center mr-3">
-                <span className="text-white text-2xl font-bold">R</span>
+                <span className="text-[#FFFFF0] text-2xl font-bold">R</span>
               </div>
               <div className="text-[#001633]">
                 <div className="font-bold text-lg leading-tight">RANGAONE</div>

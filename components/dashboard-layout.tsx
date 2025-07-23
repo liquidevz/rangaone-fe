@@ -169,7 +169,7 @@ export default function DashboardLayout({
                 (sidebarCollapsed || !sidebarOpen) && "lg:opacity-100 lg:pointer-events-auto"
               )}>
                 <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg">
-                  <span className="text-white font-bold text-sm">R</span>
+                  <span className="text-[#FFFFF0] font-bold text-sm">R</span>
                 </div>
                 <div className="font-bold text-[#1e1b4b] text-sm">
                   <div>RANGAONE</div>
@@ -222,7 +222,7 @@ export default function DashboardLayout({
                     className="flex items-center gap-2 rounded-xl p-2 text-gray-700 hover:bg-gray-100/80 transition-all duration-200 ring-1 ring-gray-200/50 hover:ring-gray-300/50"
                   >
                     <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md">
-                      <span className="text-white font-semibold text-sm">
+                      <span className="text-[#FFFFF0] font-semibold text-sm">
                         {currentUser?.username?.[0]?.toUpperCase() || "U"}
                       </span>
                     </div>

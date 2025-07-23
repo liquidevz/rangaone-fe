@@ -17,7 +17,7 @@ export default function SettingsPage() {
   return (
     <DashboardLayout>
       <div className="flex flex-col w-full gap-6 max-w-6xl mx-auto">
-        <div className="bg-indigo-900 text-white py-6 px-8 rounded-lg shadow-md mb-6">
+        <div className="bg-indigo-900 text-[#FFFFF0] py-6 px-8 rounded-lg shadow-md mb-6">
           <h1 className="text-3xl font-bold text-center">Account Settings</h1>
           <p className="text-center mt-2">Manage your account preferences and information</p>
         </div>

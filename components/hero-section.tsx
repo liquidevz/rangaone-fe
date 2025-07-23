@@ -63,7 +63,7 @@ export default function HeroSection() {
           transition={{ duration: 0.8, delay: 0.6 }}
           className="mt-10 md:mt-16"
         >
-          <button className="bg-[#1e40af] text-white px-8 py-3 rounded-full font-bold hover:bg-[#1e3a8a] transition-colors">
+          <button className="bg-[#1e40af] text-[#FFFFF0] px-8 py-3 rounded-full font-bold hover:bg-[#1e3a8a] transition-colors">
             Get Started
           </button>
         </motion.div>

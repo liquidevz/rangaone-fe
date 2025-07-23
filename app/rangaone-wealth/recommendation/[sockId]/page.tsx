@@ -266,8 +266,8 @@ export default function StockRecommendationPage() {
                 <Button 
                   className={
                     (tipData as any).category === 'premium'
-                      ? "bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white"
-                      : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                      ? "bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-[#FFFFF0]"
+                      : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-[#FFFFF0]"
                   }
                 >
                   {(tipData as any).category === 'premium' ? 'Upgrade to Premium' : 'Get Basic Plan'}

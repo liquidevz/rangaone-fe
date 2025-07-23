@@ -162,7 +162,7 @@ export default function AllRecommendations() {
   return (
     <DashboardLayout>
       <div className="flex flex-col w-full gap-6">
-        <div className="bg-indigo-900 text-white py-6 px-8 rounded-lg shadow-md mb-6">
+        <div className="bg-indigo-900 text-[#FFFFF0] py-6 px-8 rounded-lg shadow-md mb-6">
           <h1 className="text-4xl font-bold text-center">All Recommendations</h1>
         </div>
 
@@ -325,11 +325,11 @@ function StockCard({ stock }) {
       case "Premium":
         return "bg-yellow-400 text-black font-semibold"
       case "Basic":
-        return "bg-blue-500 text-white font-semibold"
+        return "bg-blue-500 text-[#FFFFF0] font-semibold"
       case "Social Media":
-        return "bg-pink-500 text-white font-semibold"
+        return "bg-pink-500 text-[#FFFFF0] font-semibold"
       default:
-        return "bg-gray-500 text-white font-semibold"
+        return "bg-gray-500 text-[#FFFFF0] font-semibold"
     }
   }
 

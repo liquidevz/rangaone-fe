@@ -12,7 +12,7 @@ export default function QuoteCard() {
         <div className="absolute inset-0 bg-gradient-to-br from-blue-900/80 to-indigo-900/80" />
         
         <div className="relative z-10 flex flex-col py-10 md:py-20 px-5 md:px-12">
-          <h2 className="text-3xl md:text-7xl font-bold text-white leading-tight">
+          <h2 className="text-3xl md:text-7xl font-bold text-[#FFFFF0] leading-tight">
             Transforming today&apos;s opportunities
             <div className="relative">
               <span className="inline-block">into tomorrow&apos;s success</span>
@@ -20,7 +20,7 @@ export default function QuoteCard() {
             </div>
           </h2>
 
-          <p className="text-xm md:text-3xl text-white mt-4">
+          <p className="text-xm md:text-3xl text-[#FFFFF0] mt-4">
             Partner with someone who puts <span className="font-bold">you first.</span>
           </p>
 

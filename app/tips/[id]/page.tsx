@@ -103,7 +103,7 @@ export default function TipDetailsPage() {
           transition={{ duration: 0.6 }}
         >
           {/* Model Portfolio Header */}
-          <div className="bg-[#1e3a8a] text-white rounded-t-xl px-6 py-4 mb-0">
+          <div className="bg-[#1e3a8a] text-[#FFFFF0] rounded-t-xl px-6 py-4 mb-0">
             <h1 className="text-2xl font-bold text-center tracking-wide">
               MODEL PORTFOLIO
             </h1>
@@ -121,7 +121,7 @@ export default function TipDetailsPage() {
                 <div className="bg-gradient-to-r from-cyan-50 to-blue-50 border-2 border-cyan-200 rounded-lg p-4 mb-4 max-w-md mx-auto">
                   <div className="flex items-center justify-between">
                     <div className="text-left">
-                      <div className="bg-[#1e3a8a] text-white px-3 py-1 rounded text-sm font-medium mb-2 inline-block">
+                      <div className="bg-[#1e3a8a] text-[#FFFFF0] px-3 py-1 rounded text-sm font-medium mb-2 inline-block">
                         Model Portfolio
                       </div>
                       <h3 className="font-bold text-gray-900 text-lg">
@@ -148,7 +148,7 @@ export default function TipDetailsPage() {
 
                 {/* Recommendation Details Card */}
                 <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg p-6 mb-6">
-                  <div className="bg-[#1e3a8a] text-white px-4 py-2 rounded-lg inline-block mb-4">
+                  <div className="bg-[#1e3a8a] text-[#FFFFF0] px-4 py-2 rounded-lg inline-block mb-4">
                     <h4 className="font-semibold">Recommendation Details</h4>
                   </div>
                   
@@ -182,7 +182,7 @@ export default function TipDetailsPage() {
           {/* Why Buy This Section */}
           <Card className="mb-6">
             <CardContent className="p-6">
-              <div className="bg-[#1e3a8a] text-white px-4 py-2 rounded-lg inline-block mb-4">
+              <div className="bg-[#1e3a8a] text-[#FFFFF0] px-4 py-2 rounded-lg inline-block mb-4">
                 <h4 className="font-semibold">Why Buy This?</h4>
               </div>
               
@@ -241,7 +241,7 @@ export default function TipDetailsPage() {
                 {tip.downloadLinks && tip.downloadLinks.length > 0 ? (
                   <Button
                     onClick={() => handleDownload(tip.downloadLinks[0].linkUrl)}
-                    className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-semibold"
+                    className="bg-green-600 hover:bg-green-700 text-[#FFFFF0] px-8 py-3 rounded-lg font-semibold"
                   >
                     <Download className="w-4 h-4 mr-2" />
                     View Detailed Report
@@ -249,7 +249,7 @@ export default function TipDetailsPage() {
                 ) : (
                   <Button
                     onClick={() => window.open(tip.tipUrl, '_blank')}
-                    className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-semibold"
+                    className="bg-green-600 hover:bg-green-700 text-[#FFFFF0] px-8 py-3 rounded-lg font-semibold"
                   >
                     View Detailed Report
                   </Button>
@@ -262,7 +262,7 @@ export default function TipDetailsPage() {
           {(tip.description || tip.horizon) && (
             <Card className="mb-6">
               <CardContent className="p-6">
-                <div className="bg-[#1e3a8a] text-white px-4 py-2 rounded-lg inline-block mb-4">
+                <div className="bg-[#1e3a8a] text-[#FFFFF0] px-4 py-2 rounded-lg inline-block mb-4">
                   <h4 className="font-semibold">Additional Information</h4>
                 </div>
                 

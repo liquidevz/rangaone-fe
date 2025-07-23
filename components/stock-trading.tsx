@@ -362,7 +362,7 @@ export default function StockTrading() {
           {/* Recommendation Details Card */}
           <Card className="overflow-hidden border-2 border-yellow-300 shadow-lg hover:shadow-xl transition-shadow duration-300">
             <CardContent className="p-0">
-              <div className="bg-gradient-to-r from-indigo-900 to-indigo-800 text-white py-3 px-4 font-semibold rounded-t-sm flex items-center justify-center">
+              <div className="bg-gradient-to-r from-indigo-900 to-indigo-800 text-[#FFFFF0] py-3 px-4 font-semibold rounded-t-sm flex items-center justify-center">
                 <Sparkles className="h-5 w-5 mr-2 text-yellow-300" />
                 <span className="text-lg">Recommendation Details</span>
               </div>
@@ -439,7 +439,7 @@ export default function StockTrading() {
           {/* Why Buy This Card */}
           <Card className="overflow-hidden border-2 border-yellow-300 shadow-lg hover:shadow-xl transition-shadow duration-300">
             <CardContent className="p-0">
-              <div className="bg-gradient-to-r from-indigo-900 to-indigo-800 text-white py-3 px-4 font-semibold rounded-t-sm flex items-center justify-center">
+              <div className="bg-gradient-to-r from-indigo-900 to-indigo-800 text-[#FFFFF0] py-3 px-4 font-semibold rounded-t-sm flex items-center justify-center">
                 <Award className="h-5 w-5 mr-2 text-yellow-300" />
                 <span className="text-lg">Why Buy This?</span>
               </div>
@@ -482,7 +482,7 @@ function TabFilter({ activeTab, setActiveTab }: TabFilterProps) {
           <button
             onClick={() => setActiveTab("all")}
             className={`relative rounded-full px-6 py-2 transition-colors duration-200 ${
-              activeTab === "all" ? "text-white" : "text-gray-700 hover:text-gray-900"
+              activeTab === "all" ? "text-[#FFFFF0]" : "text-gray-700 hover:text-gray-900"
             }`}
           >
             All
@@ -490,7 +490,7 @@ function TabFilter({ activeTab, setActiveTab }: TabFilterProps) {
           <button
             onClick={() => setActiveTab("basic")}
             className={`relative rounded-full px-6 py-2 transition-colors duration-200 ${
-              activeTab === "basic" ? "text-white" : "text-gray-700 hover:text-gray-900"
+              activeTab === "basic" ? "text-[#FFFFF0]" : "text-gray-700 hover:text-gray-900"
             }`}
           >
             Basic
@@ -498,7 +498,7 @@ function TabFilter({ activeTab, setActiveTab }: TabFilterProps) {
           <button
             onClick={() => setActiveTab("premium")}
             className={`relative rounded-full px-6 py-2 transition-colors duration-200 ${
-              activeTab === "premium" ? "text-white" : "text-gray-700 hover:text-gray-900"
+              activeTab === "premium" ? "text-[#FFFFF0]" : "text-gray-700 hover:text-gray-900"
             }`}
           >
             Premium
@@ -604,8 +604,8 @@ function StockCarousel({
         ))}
       </CarouselContent>
       <div className="flex justify-center mt-4 gap-2">
-        <CarouselPrevious className="static transform-none transition-all duration-200 hover:bg-primary hover:text-white" />
-        <CarouselNext className="static transform-none transition-all duration-200 hover:bg-primary hover:text-white" />
+        <CarouselPrevious className="static transform-none transition-all duration-200 hover:bg-primary hover:text-[#FFFFF0]" />
+        <CarouselNext className="static transform-none transition-all duration-200 hover:bg-primary hover:text-[#FFFFF0]" />
       </div>
     </Carousel>
   )

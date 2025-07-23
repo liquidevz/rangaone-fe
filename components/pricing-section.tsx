@@ -85,7 +85,7 @@ export default function PricingSection() {
   };
 
   const BASIC_SELECTED_STYLES =
-    "text-white font-bold rounded-lg py-3 w-28 relative bg-[linear-gradient(295.3deg,_#131859_11.58%,_rgba(24,_101,_123,_0.8)_108.02%)]";
+    "text-[#FFFFF0] font-bold rounded-lg py-3 w-28 relative bg-[linear-gradient(295.3deg,_#131859_11.58%,_rgba(24,_101,_123,_0.8)_108.02%)]";
   const PREMIUM_SELECTED_STYLES =
     "text-slate-800 font-bold rounded-lg py-3 w-28 relative bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]";
   const DESELECTED_STYLES =
@@ -158,8 +158,8 @@ export default function PricingSection() {
                             ? "bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)] text-[#333333] border-[#333333] shadow-[0px_4px_21.5px_8px_#AD9000]"
                             : "bg-[#333333] shadow-[0px_4px_21.5px_8px_#333333]"
                           : isYearly
-                            ? "bg-[linear-gradient(295.3deg,_#131859_11.58%,_rgba(24,101,123,0.8)_108.02%)] text-white border-slate-300 shadow-[0px_4px_21.5px_8px_#00A6E8]"
-                            : "bg-[linear-gradient(295.3deg,_#131859_11.58%,_rgba(24,101,123,0.8)_108.02%)] text-white shadow-[0px_4px_21.5px_8px_#00A6E8]"
+                            ? "bg-[linear-gradient(295.3deg,_#131859_11.58%,_rgba(24,101,123,0.8)_108.02%)] text-[#FFFFF0] border-slate-300 shadow-[0px_4px_21.5px_8px_#00A6E8]"
+                            : "bg-[linear-gradient(295.3deg,_#131859_11.58%,_rgba(24,101,123,0.8)_108.02%)] text-[#FFFFF0] shadow-[0px_4px_21.5px_8px_#00A6E8]"
                       }`}
                     >
                       <p className={`text-2xl font-bold mb-2 ${

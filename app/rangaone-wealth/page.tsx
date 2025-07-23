@@ -246,14 +246,14 @@ export default function RangaoneWealth() {
             <Button
               variant={mainFilter === "basic" ? "default" : "outline"}
               onClick={() => setMainFilter("basic")}
-              className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+              className="bg-blue-600 hover:bg-blue-700 text-[#FFFFF0] border-blue-600"
             >
               Basic
             </Button>
             <Button
               variant={mainFilter === "premium" ? "default" : "outline"}
               onClick={() => setMainFilter("premium")}
-              className="bg-yellow-600 hover:bg-yellow-700 text-white border-yellow-600"
+              className="bg-yellow-600 hover:bg-yellow-700 text-[#FFFFF0] border-yellow-600"
             >
               Premium
             </Button>
@@ -283,14 +283,14 @@ export default function RangaoneWealth() {
             <Button
               variant={closedFilter === "basic" ? "default" : "outline"}
               onClick={() => setClosedFilter("basic")}
-              className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+              className="bg-blue-600 hover:bg-blue-700 text-[#FFFFF0] border-blue-600"
             >
               Basic
             </Button>
             <Button
               variant={closedFilter === "premium" ? "default" : "outline"}
               onClick={() => setClosedFilter("premium")}
-              className="bg-yellow-600 hover:bg-yellow-700 text-white border-yellow-600"
+              className="bg-yellow-600 hover:bg-yellow-700 text-[#FFFFF0] border-yellow-600"
             >
               Premium
             </Button>

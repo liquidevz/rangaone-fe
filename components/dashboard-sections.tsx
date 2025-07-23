@@ -204,7 +204,7 @@ export function ExpertRecommendationsSection() {
           variant={activeTab === "rangaoneWealth" ? "default" : "outline"}
           size="sm"
           onClick={() => setActiveTab("rangaoneWealth")}
-          className={activeTab === "rangaoneWealth" ? "bg-blue-600 text-white" : ""}
+          className={activeTab === "rangaoneWealth" ? "bg-blue-600 text-[#FFFFF0]" : ""}
         >
           Rangaone Wealth
         </Button>
@@ -212,7 +212,7 @@ export function ExpertRecommendationsSection() {
           variant={activeTab === "modelPortfolio" ? "default" : "outline"}
           size="sm"
           onClick={() => setActiveTab("modelPortfolio")}
-          className={activeTab === "modelPortfolio" ? "bg-blue-600 text-white" : ""}
+          className={activeTab === "modelPortfolio" ? "bg-blue-600 text-[#FFFFF0]" : ""}
         >
           Model Portfolio
         </Button>
@@ -228,7 +228,7 @@ export function ExpertRecommendationsSection() {
               <div className={`border-2 ${rec.borderColor} rounded-lg p-3`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <div className={`${rec.categoryColor} text-white px-2 py-1 rounded text-xs font-medium`}>
+                    <div className={`${rec.categoryColor} text-[#FFFFF0] px-2 py-1 rounded text-xs font-medium`}>
                       {rec.category}
                     </div>
                     {rec.category === "Premium" && <Lock className="h-3 w-3 text-gray-500" />}
@@ -484,7 +484,7 @@ function ModelPortfolioTipCard({ tip }: { tip: Tip }) {
       <div className="border-2 border-blue-500 rounded-lg p-3 cursor-pointer hover:bg-blue-50" onClick={handleTipClick}>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className="bg-blue-500 text-white px-2 py-1 rounded text-xs font-medium">
+            <div className="bg-blue-500 text-[#FFFFF0] px-2 py-1 rounded text-xs font-medium">
               Premium
             </div>
             <Lock className="h-3 w-3 text-gray-500" />
@@ -588,34 +588,34 @@ function PortfolioCard({
     if (!isAuthenticated) {
       return {
         text: "Login to View",
-        className: "bg-blue-600 hover:bg-blue-700 text-white"
+        className: "bg-blue-600 hover:bg-blue-700 text-[#FFFFF0]"
       }
     }
     
     if (hasAccess) {
       return {
         text: "View Portfolio",
-        className: "bg-green-600 hover:bg-green-700 text-white"
+        className: "bg-green-600 hover:bg-green-700 text-[#FFFFF0]"
       }
     }
     
     if (subscriptionAccess?.hasPremium) {
       return {
         text: "Upgrade Required",
-        className: "bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-white"
+        className: "bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-[#FFFFF0]"
       }
     }
     
     if (subscriptionAccess?.hasBasic) {
       return {
         text: "Upgrade to Premium",
-        className: "bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-white"
+        className: "bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-[#FFFFF0]"
       }
     }
     
     return {
       text: "Subscribe Now",
-      className: "bg-blue-600 hover:bg-blue-700 text-white"
+      className: "bg-blue-600 hover:bg-blue-700 text-[#FFFFF0]"
     }
   }
 
@@ -701,7 +701,7 @@ function PortfolioCard({
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 text-sm text-gray-700 bg-gradient-to-r from-yellow-50 to-amber-50 px-4 py-2 rounded-full border border-yellow-200 animate-pulse">
               <div className="bg-gradient-to-br from-yellow-400 to-amber-500 rounded-full p-2 shadow-lg transition-transform hover:scale-110">
-                <Lock className="h-5 w-5 text-white animate-[wiggle_1s_ease-in-out_infinite]" />
+                <Lock className="h-5 w-5 text-[#FFFFF0] animate-[wiggle_1s_ease-in-out_infinite]" />
               </div>
               <span className="font-medium">
                 {!isAuthenticated 

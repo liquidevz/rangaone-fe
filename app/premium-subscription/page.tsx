@@ -134,7 +134,7 @@ export default function PremiumSubscriptionPage() {
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Link
                     href="/#pricing"
-                    className="bg-[#1e4e45] hover:bg-[#183a33] text-white font-bold py-4 px-10 rounded-full transition-all inline-flex items-center shadow-lg hover:shadow-[#1e4e45]/30"
+                    className="bg-[#1e4e45] hover:bg-[#183a33] text-[#FFFFF0] font-bold py-4 px-10 rounded-full transition-all inline-flex items-center shadow-lg hover:shadow-[#1e4e45]/30"
                   >
                     <span>BUY NOW</span>
                     <ChevronRight className="ml-2 h-5 w-5" />
@@ -149,7 +149,7 @@ export default function PremiumSubscriptionPage() {
                   className={`font-bold py-4 px-10 rounded-full transition-all inline-flex items-center shadow-lg border-2 ${
                     isInCart
                       ? "bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed"
-                      : "bg-transparent border-[#1e4e45] text-[#1e4e45] hover:bg-[#1e4e45] hover:text-white"
+                      : "bg-transparent border-[#1e4e45] text-[#1e4e45] hover:bg-[#1e4e45] hover:text-[#FFFFF0]"
                   }`}
                 >
                   <ShoppingCart className="mr-2 h-5 w-5" />
@@ -202,7 +202,7 @@ export default function PremiumSubscriptionPage() {
             variants={fadeIn}
             className="text-center mb-16"
           >
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-[#FFFFF0]">
               Why become <span className="text-[#7a8c3b]">Premium</span>?
             </h2>
             <div className="w-24 h-1 bg-gradient-to-r from-[#1e4e45] to-[#ffc107] mx-auto mb-6 rounded-full"></div>
@@ -284,7 +284,7 @@ export default function PremiumSubscriptionPage() {
                     className="w-full h-auto"
                   />
                 </div>
-                <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-gradient-to-r from-[#1e4e45] to-[#7a8c3b] rounded-full flex items-center justify-center text-white font-bold text-xl z-20">
+                <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-gradient-to-r from-[#1e4e45] to-[#7a8c3b] rounded-full flex items-center justify-center text-[#FFFFF0] font-bold text-xl z-20">
                   20-25
                 </div>
               </div>
@@ -307,7 +307,7 @@ export default function PremiumSubscriptionPage() {
                   ].map((item, i) => (
                     <li key={i} className="flex items-start">
                       <span className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-[#1e4e45] to-[#7a8c3b] rounded-full flex items-center justify-center mr-3 mt-0.5">
-                        <Check className="h-3.5 w-3.5 text-white" />
+                        <Check className="h-3.5 w-3.5 text-[#FFFFF0]" />
                       </span>
                       <span className="text-gray-300">{item}</span>
                     </li>
@@ -337,7 +337,7 @@ export default function PremiumSubscriptionPage() {
                   ].map((item, i) => (
                     <li key={i} className="flex items-start">
                       <span className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-[#1e4e45] to-[#7a8c3b] rounded-full flex items-center justify-center mr-3 mt-0.5">
-                        <Check className="h-3.5 w-3.5 text-white" />
+                        <Check className="h-3.5 w-3.5 text-[#FFFFF0]" />
                       </span>
                       <span className="text-gray-300">{item}</span>
                     </li>
@@ -355,7 +355,7 @@ export default function PremiumSubscriptionPage() {
                     className="w-full h-auto"
                   />
                 </div>
-                <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-gradient-to-r from-[#1e4e45] to-[#7a8c3b] rounded-full flex items-center justify-center text-white font-bold text-xl z-20">
+                <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-gradient-to-r from-[#1e4e45] to-[#7a8c3b] rounded-full flex items-center justify-center text-[#FFFFF0] font-bold text-xl z-20">
                   10
                 </div>
               </div>
@@ -374,7 +374,7 @@ export default function PremiumSubscriptionPage() {
                     className="w-full h-auto"
                   />
                 </div>
-                <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-gradient-to-r from-[#1e4e45] to-[#7a8c3b] rounded-full flex items-center justify-center text-white font-bold text-xl z-20">
+                <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-gradient-to-r from-[#1e4e45] to-[#7a8c3b] rounded-full flex items-center justify-center text-[#FFFFF0] font-bold text-xl z-20">
                   2
                 </div>
               </div>
@@ -428,7 +428,7 @@ export default function PremiumSubscriptionPage() {
                   ].map((item, i) => (
                     <li key={i} className="flex items-start">
                       <span className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-[#1e4e45] to-[#7a8c3b] rounded-full flex items-center justify-center mr-3 mt-0.5">
-                        <Check className="h-3.5 w-3.5 text-white" />
+                        <Check className="h-3.5 w-3.5 text-[#FFFFF0]" />
                       </span>
                       <span className="text-gray-300">{item}</span>
                     </li>
@@ -484,7 +484,7 @@ export default function PremiumSubscriptionPage() {
                   ].map((item, i) => (
                     <li key={i} className="flex items-start">
                       <span className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-[#1e4e45] to-[#7a8c3b] rounded-full flex items-center justify-center mr-3 mt-0.5">
-                        <Check className="h-3.5 w-3.5 text-white" />
+                        <Check className="h-3.5 w-3.5 text-[#FFFFF0]" />
                       </span>
                       <span className="text-gray-300">{item}</span>
                     </li>
@@ -519,7 +519,7 @@ export default function PremiumSubscriptionPage() {
                   ].map((item, i) => (
                     <li key={i} className="flex items-start">
                       <span className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-[#1e4e45] to-[#7a8c3b] rounded-full flex items-center justify-center mr-3 mt-0.5">
-                        <Check className="h-3.5 w-3.5 text-white" />
+                        <Check className="h-3.5 w-3.5 text-[#FFFFF0]" />
                       </span>
                       <span className="text-gray-300">{item}</span>
                     </li>
@@ -553,7 +553,7 @@ export default function PremiumSubscriptionPage() {
             transition={{ duration: 0.6 }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">What Our Premium Clients Say</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-[#FFFFF0]">What Our Premium Clients Say</h2>
             <div className="w-24 h-1 bg-gradient-to-r from-[#1e4e45] to-[#ffc107] mx-auto mb-6 rounded-full"></div>
             <p className="text-gray-400 max-w-2xl mx-auto">
               Hear from our satisfied premium clients who have transformed their investing journey with Rangaone Wealth
@@ -611,7 +611,7 @@ export default function PremiumSubscriptionPage() {
                     />
                   </div>
                   <div>
-                    <h4 className="font-bold text-white">{testimonial.name}</h4>
+                    <h4 className="font-bold text-[#FFFFF0]">{testimonial.name}</h4>
                     <p className="text-gray-400 text-sm">{testimonial.title}</p>
                   </div>
                 </div>
@@ -638,7 +638,7 @@ export default function PremiumSubscriptionPage() {
             transition={{ duration: 0.6 }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">Basic vs Premium</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-[#FFFFF0]">Basic vs Premium</h2>
             <div className="w-24 h-1 bg-gradient-to-r from-[#1e4e45] to-[#ffc107] mx-auto mb-6 rounded-full"></div>
             <p className="text-gray-400 max-w-2xl mx-auto">
               See how our Premium plan compares to the Basic plan and why it's worth the upgrade.
@@ -672,7 +672,7 @@ export default function PremiumSubscriptionPage() {
                   { feature: "Market Updates", basic: "✅", premium: "✅ (Priority access)" },
                 ].map((row, index) => (
                   <tr key={index} className="border-b border-gray-700 hover:bg-[#2a2a2a]">
-                    <td className="p-4 text-left text-white font-medium">{row.feature}</td>
+                    <td className="p-4 text-left text-[#FFFFF0] font-medium">{row.feature}</td>
                     <td className="p-4 text-center text-gray-400">{row.basic}</td>
                     <td className="p-4 text-center text-gray-300">{row.premium}</td>
                   </tr>
@@ -707,7 +707,7 @@ export default function PremiumSubscriptionPage() {
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Link
                   href="/#pricing"
-                  className="bg-[#1a1a1a] text-white hover:bg-gray-800 font-bold py-4 px-10 rounded-full transition-all inline-flex items-center shadow-lg"
+                  className="bg-[#1a1a1a] text-[#FFFFF0] hover:bg-gray-800 font-bold py-4 px-10 rounded-full transition-all inline-flex items-center shadow-lg"
                 >
                   <span>Subscribe Now</span>
                   <ChevronRight className="ml-2 h-5 w-5" />
@@ -722,7 +722,7 @@ export default function PremiumSubscriptionPage() {
                 className={`font-bold py-4 px-10 rounded-full transition-all inline-flex items-center shadow-lg border-2 ${
                   isInCart
                     ? "bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed"
-                    : "bg-transparent border-[#1a1a1a] text-[#1a1a1a] hover:bg-[#1a1a1a] hover:text-white"
+                    : "bg-transparent border-[#1a1a1a] text-[#1a1a1a] hover:bg-[#1a1a1a] hover:text-[#FFFFF0]"
                 }`}
               >
                 <ShoppingCart className="mr-2 h-5 w-5" />
@@ -743,7 +743,7 @@ export default function PremiumSubscriptionPage() {
             transition={{ duration: 0.6 }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">Frequently Asked Questions</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-[#FFFFF0]">Frequently Asked Questions</h2>
             <div className="w-24 h-1 bg-gradient-to-r from-[#1e4e45] to-[#ffc107] mx-auto mb-6 rounded-full"></div>
             <p className="text-gray-400 max-w-2xl mx-auto">
               Get answers to common questions about our Premium subscription plan.

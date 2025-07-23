@@ -24,7 +24,7 @@ import {
   Clock,
 } from "lucide-react";
 import { useParams, useSearchParams } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import {
   LineChart,
   Line,
@@ -47,6 +47,8 @@ import {
 } from "@/components/ui/carousel";
 import { PageHeader } from '@/components/page-header';
 import { useRouter } from "next/navigation";
+import { motion, useMotionValue, animate } from "framer-motion";
+import { format, isSameDay, addDays, differenceInDays } from "date-fns";
 
 export default function PortfolioDetailsPage() {
   const params = useParams();
@@ -973,7 +975,7 @@ export default function PortfolioDetailsPage() {
                   <p className="text-gray-600">{(portfolio as any)?.nextRebalanceDate ? new Date((portfolio as any).nextRebalanceDate).toLocaleDateString() : "N/A"}</p>
               </div>
               <div>
-            <p className="font-semibold text-gray-800">Created On</p>
+            <p className="font-semibold text-gray-800">Launched At</p>
             <p className="text-gray-600">{(portfolio as any)?.createdAt ? new Date((portfolio as any).createdAt).toLocaleDateString() : "N/A"}</p>
           </div>
         </div>
@@ -988,7 +990,7 @@ export default function PortfolioDetailsPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-blue-900 text-white">
+                  <tr className="bg-blue-900 text-[#FFFFF0]">
                 {trailingReturns.map((item, index) => (
                       <th key={index} className="px-2 sm:px-4 py-3 text-center font-medium text-xs sm:text-sm whitespace-nowrap">
                         {item.period}
@@ -1031,7 +1033,7 @@ export default function PortfolioDetailsPage() {
                   size="sm"
                   className={`text-xs px-2 py-1 sm:px-3 sm:py-2 sm:text-sm transition-all duration-200 whitespace-nowrap ${
                     key === selectedTimePeriod 
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-md' 
+                      ? 'bg-blue-600 text-[#FFFFF0] border-blue-600 shadow-md' 
                       : 'text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-400 hover:shadow-sm'
                   }`}
                   onClick={() => handleTimePeriodChange(key as TimePeriod)}
@@ -1159,7 +1161,7 @@ export default function PortfolioDetailsPage() {
             <div className="block lg:hidden overflow-x-auto">
             <table className="w-full">
               <thead>
-                  <tr className="bg-gray-600 text-white text-xs">
+                  <tr className="bg-gray-600 text-[#FFFFF0] text-xs">
                     <th className="px-2 py-2 text-left font-medium">Stock Name</th>
                     <th className="px-2 py-2 text-center font-medium">Type</th>
                     <th className="px-2 py-2 text-center font-medium">Wt (%)</th>
@@ -1173,7 +1175,7 @@ export default function PortfolioDetailsPage() {
                             refreshingPrices ? 'animate-spin' : 'hover:scale-110'
                           }`}
                         >
-                          <RefreshCw className={`h-3 w-3 text-white ${refreshingPrices ? 'animate-spin' : ''}`} />
+                          <RefreshCw className={`h-3 w-3 text-[#FFFFF0] ${refreshingPrices ? 'animate-spin' : ''}`} />
                         </button>
                       </div>
                   </th>
@@ -1195,7 +1197,7 @@ export default function PortfolioDetailsPage() {
                         <td className="px-2 py-2 text-center">
                           {holding.currentPrice ? (
                             <div>
-                              <div className={`inline-block font-medium px-2 py-1 rounded text-white text-xs ${
+                              <div className={`inline-block font-medium px-2 py-1 rounded text-[#FFFFF0] text-xs ${
                                 holding.changePercent && holding.changePercent >= 0 ? 'bg-green-500' : 'bg-red-500'
                               }`}>
                                 {holding.currentPrice.toFixed(2)}
@@ -1263,7 +1265,7 @@ export default function PortfolioDetailsPage() {
             <div className="hidden lg:block overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-gray-600 text-white text-xs">
+                  <tr className="bg-gray-600 text-[#FFFFF0] text-xs">
                     <th className="px-2 py-2 text-left font-medium">Stock Name</th>
                     <th className="px-2 py-2 text-center font-medium">Type</th>
                     <th className="px-2 py-2 text-center font-medium">Sector</th>
@@ -1279,7 +1281,7 @@ export default function PortfolioDetailsPage() {
                             refreshingPrices ? 'animate-spin' : 'hover:scale-110'
                           }`}
                         >
-                          <RefreshCw className={`h-3 w-3 text-white ${refreshingPrices ? 'animate-spin' : ''}`} />
+                          <RefreshCw className={`h-3 w-3 text-[#FFFFF0] ${refreshingPrices ? 'animate-spin' : ''}`} />
                         </button>
                       </div>
                     </th>
@@ -1306,7 +1308,7 @@ export default function PortfolioDetailsPage() {
                       <td className="px-2 py-2 text-center">
                         {holding.currentPrice ? (
                           <div>
-                            <div className={`inline-block font-medium px-2 py-1 rounded text-white text-xs ${
+                            <div className={`inline-block font-medium px-2 py-1 rounded text-[#FFFFF0] text-xs ${
                               holding.changePercent && holding.changePercent >= 0 ? 'bg-green-500' : 'bg-red-500'
                             }`}>
                               ₹{holding.currentPrice.toFixed(2)}
@@ -1650,7 +1652,7 @@ export default function PortfolioDetailsPage() {
               {(portfolio as any)?.downloadLinks && (portfolio as any).downloadLinks.length > 0 ? (
                 (portfolio as any).downloadLinks.map((link: any, index: number) => (
                   <div key={index} className="border-b border-gray-100 pb-6 last:border-b-0">
-                    <p className="text-blue-600 font-medium pb-2">
+                    <p className="px-2 sm:px-2.5 md:px-3 py-1 sm:py-1.5 rounded text-xs sm:text-sm md:text-base font-medium bg-gray-700 text-[#FFFFF0] inline-block whitespace-nowrap">
                       {link.linkType || 'Research document and analysis for portfolio subscribers.'}
                     </p>
                     <h4 className="font-semibold text-gray-900 text-lg mb-2">

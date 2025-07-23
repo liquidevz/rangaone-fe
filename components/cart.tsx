@@ -373,7 +373,7 @@ export default function CartPage() {
                 )}
                 
                 <Link href="/#portfolios">
-                  <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02]">
+                  <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-[#FFFFF0] px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02]">
                     Browse Portfolios
                   </Button>
                 </Link>
@@ -409,14 +409,14 @@ export default function CartPage() {
                           }}
                           className={`relative p-3 sm:p-4 rounded-xl font-medium transition-all duration-200 text-center ${
                             subscriptionType === option.key 
-                              ? "bg-blue-600 text-white shadow-lg transform scale-[1.02] ring-2 ring-blue-600 ring-offset-2" 
+                              ? "bg-blue-600 text-[#FFFFF0] shadow-lg transform scale-[1.02] ring-2 ring-blue-600 ring-offset-2" 
                               : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 hover:border-gray-300"
                           }`}
                         >
                           <div className="text-sm sm:text-base font-semibold">{option.label}</div>
                           {option.badge && (
                             <div className={`text-xs mt-1 ${
-                              subscriptionType === option.key ? "text-white/90" : "text-green-600"
+                              subscriptionType === option.key ? "text-[#FFFFF0]/90" : "text-green-600"
                             }`}>
                               {option.badge}
                             </div>
@@ -785,7 +785,7 @@ export default function CartPage() {
                       </div>
 
                       <Button
-                        className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 sm:py-4 text-sm sm:text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-[#FFFFF0] py-3 sm:py-4 text-sm sm:text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={() => {
                           clearError()
                           

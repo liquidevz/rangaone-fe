@@ -147,8 +147,8 @@ export default function ModelPortfoliosPage() {
       const homeCardDesc = desc.find((item: any) => item.key === "home card");
       if (homeCardDesc && homeCardDesc.value) {
         const textContent = homeCardDesc.value.replace(/<[^>]*>/g, "");
-        return textContent.length > 150
-          ? textContent.substring(0, 150) + "..."
+        return textContent.length > 250
+          ? textContent.substring(0, 250) + "..."
           : textContent;
       }
 
@@ -346,9 +346,9 @@ export default function ModelPortfoliosPage() {
               return (
                 <Card key={portfolio._id} className="overflow-hidden relative">
                   {isLocked && (
-                    <div className="absolute bottom-1/2 left-1/2 transform -translate-x-1/2 flex items-center gap-3 text-sm text-gray-700 z-20">
+                    <div className="absolute bottom-1/2 left-1/3 transform -translate-x-1/2 flex items-center gap-3 text-sm text-gray-700 z-20">
                       <div className="bg-gradient-to-br from-yellow-400 to-amber-500 rounded-full p-2 shadow-lg transition-transform hover:scale-110">
-                        <Lock className="h-5 w-5 text-white animate-[wiggle_1s_ease-in-out_infinite]" />
+                        <Lock className="h-5 w-5 text-[#FFFFF0] animate-[wiggle_1s_ease-in-out_infinite]" />
                       </div>
                     </div>
                   )}
@@ -425,8 +425,8 @@ export default function ModelPortfoliosPage() {
                               ? "-"
                               : `${safeString(portfolio.monthlyGains)}%`}
                             {safeNumber(portfolio.monthlyGains) === 0 && (
-                              <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-20">
-                                will change
+                              <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-[#FFFFF0] text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-20">
+                                Updates Frequently
                               </span>
                             )}
                           </p>
@@ -462,8 +462,8 @@ export default function ModelPortfoliosPage() {
                               ? "-"
                               : `${safeString(portfolio.oneYearGains)}%`}
                             {safeNumber(portfolio.oneYearGains) === 0 && (
-                              <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-20">
-                                will change
+                              <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-[#FFFFF0] text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-20">
+                                Updates Frequently
                               </span>
                             )}
                           </p>
@@ -499,8 +499,8 @@ export default function ModelPortfoliosPage() {
                               ? "-"
                               : `${safeString(portfolio.CAGRSinceInception)}%`}
                             {safeNumber(portfolio.CAGRSinceInception) === 0 && (
-                              <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-20">
-                                will change
+                              <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-[#FFFFF0] text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-20">
+                                Updates Frequently
                               </span>
                             )}
                           </p>
@@ -514,8 +514,8 @@ export default function ModelPortfoliosPage() {
                           <p className={`text-lg sm:text-xl font-semibold text-blue-600 ${portfolio.monthlyContribution === 0 ? 'cursor-help' : ''}`}>
                             {portfolio.monthlyContribution === 0 ? '-' : `₹${portfolio.monthlyContribution}`}
                             {portfolio.monthlyContribution === 0 && (
-                              <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-20">
-                                will change
+                              <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-[#FFFFF0] text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-20">
+                                Updates Frequently
                               </span>
                             )}
                           </p>
@@ -537,8 +537,8 @@ export default function ModelPortfoliosPage() {
                               ? "-"
                               : `₹${safeString(portfolio.minInvestment)}`}
                             {safeNumber(portfolio.minInvestment) === 0 && (
-                              <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-20">
-                                will change
+                              <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-[#FFFFF0] text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-20">
+                                Updates Frequently
                               </span>
                             )}
                           </p>

@@ -457,7 +457,7 @@ export function InvestmentCalculator() {
             <div className="flex flex-col space-y-3">
               <Button 
                 onClick={() => window.location.href = `/model-portfolios/${subscriptionPortfolio?._id}`}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-blue-600 hover:bg-blue-700 text-[#FFFFF0]"
               >
                 View Portfolio Details
               </Button>
@@ -602,7 +602,7 @@ export function InvestmentCalculator() {
             <div className="block lg:hidden overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-gray-600 text-white text-xs">
+                  <tr className="bg-gray-600 text-[#FFFFF0] text-xs">
                     <th className="px-2 py-2 text-left font-medium">Stock Name</th>
                     <th className="px-2 py-2 text-center font-medium">Wt (%)</th>
                     <th className="px-2 py-2 text-center font-medium">Price</th>
@@ -623,7 +623,7 @@ export function InvestmentCalculator() {
                       <td className="px-2 py-2 text-center">
                         {holding.currentPrice ? (
                           <div>
-                            <div className={`inline-block font-medium px-2 py-1 rounded text-white text-xs ${
+                            <div className={`inline-block font-medium px-2 py-1 rounded text-[#FFFFF0] text-xs ${
                               holding.changePercent && holding.changePercent >= 0 ? 'bg-green-500' : 'bg-red-500'
                             }`}>
                               {holding.currentPrice.toFixed(2)}
@@ -651,7 +651,7 @@ export function InvestmentCalculator() {
             <div className="hidden lg:block overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-gray-600 text-white text-xs">
+                  <tr className="bg-gray-600 text-[#FFFFF0] text-xs">
                     <th className="px-2 py-2 text-left font-medium">Stock Name</th>
                     <th className="px-2 py-2 text-center font-medium">Type</th>
                     <th className="px-2 py-2 text-center font-medium">Sector</th>
@@ -675,7 +675,7 @@ export function InvestmentCalculator() {
                       <td className="px-2 py-2 text-center">
                         {holding.currentPrice ? (
                           <div>
-                            <div className={`inline-block font-medium px-2 py-1 rounded text-white text-xs ${
+                            <div className={`inline-block font-medium px-2 py-1 rounded text-[#FFFFF0] text-xs ${
                               holding.changePercent && holding.changePercent >= 0 ? 'bg-green-500' : 'bg-red-500'
                             }`}>
                               ₹{holding.currentPrice.toFixed(2)}

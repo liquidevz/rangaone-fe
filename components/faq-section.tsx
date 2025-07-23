@@ -118,7 +118,7 @@ export default function FAQSection() {
               }}
               className={`px-4 py-1.5 text-sm font-medium rounded-md border ${
                 activeCategory === "basic"
-                  ? "bg-[#1e3a8a] text-white border-[#1e3a8a]"
+                  ? "bg-[#1e3a8a] text-[#FFFFF0] border-[#1e3a8a]"
                   : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
               }`}
             >
@@ -131,7 +131,7 @@ export default function FAQSection() {
               }}
               className={`px-4 py-1.5 text-sm font-medium rounded-md border ${
                 activeCategory === "modelPortfolio"
-                  ? "bg-[#1e3a8a] text-white border-[#1e3a8a]"
+                  ? "bg-[#1e3a8a] text-[#FFFFF0] border-[#1e3a8a]"
                   : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
               }`}
             >
@@ -144,7 +144,7 @@ export default function FAQSection() {
               }}
               className={`px-4 py-1.5 text-sm font-medium rounded-md border ${
                 activeCategory === "premium"
-                  ? "bg-[#1e3a8a] text-white border-[#1e3a8a]"
+                  ? "bg-[#1e3a8a] text-[#FFFFF0] border-[#1e3a8a]"
                   : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
               }`}
             >

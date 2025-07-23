@@ -112,7 +112,7 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
             <Button
               type="submit"
               disabled={isLoading}
-              className="bg-[#001633] hover:bg-[#002244] text-white"
+              className="bg-[#001633] hover:bg-[#002244] text-[#FFFFF0]"
             >
               {isLoading ? (
                 <div className="flex items-center gap-2">

@@ -77,9 +77,9 @@ export const RoundedDrawerNav = ({
   const { user, isAuthenticated, logout, isLoading } = useAuth();
   const { cartItemCount } = useCart();
   
-  const textColor = variant === "premium" ? "text-[#333333]" : "text-white";
+  const textColor = variant === "premium" ? "text-[#333333]" : "text-[#FFFFF0]";
   const buttonBg = variant === "premium" ? "bg-[#333333]" : "bg-white";
-  const buttonText = variant === "premium" ? "text-white" : "text-[#001633]";
+  const buttonText = variant === "premium" ? "text-[#FFFFF0]" : "text-[#001633]";
   const mobileMenuBg = variant === "premium" ? "bg-[#FFB800]" : "bg-[#001633]";
 
   const handleLogin = () => {
@@ -127,7 +127,7 @@ export const RoundedDrawerNav = ({
             >
               <span
                 className={`${
-                  variant === "premium" ? "text-white" : "text-[#001633]"
+                  variant === "premium" ? "text-[#FFFFF0]" : "text-[#001633]"
                 } text-2xl font-bold`}
               >
                 R
@@ -160,7 +160,7 @@ export const RoundedDrawerNav = ({
             >
               <FiShoppingCart className="w-5 h-5" />
               {cartItemCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-medium">
+                <span className="absolute -top-2 -right-2 bg-red-500 text-[#FFFFF0] text-xs rounded-full h-6 w-6 flex items-center justify-center font-medium">
                   {cartItemCount}
                 </span>
               )}
@@ -207,8 +207,8 @@ export const RoundedDrawerNav = ({
                             <div className="flex items-center gap-3">
                               <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-semibold text-sm ${
                               variant === "premium" 
-                                  ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white"
-                                  : "bg-gradient-to-br from-indigo-500 to-purple-600 text-white"
+                                  ? "bg-gradient-to-br from-blue-500 to-blue-600 text-[#FFFFF0]"
+                                  : "bg-gradient-to-br from-indigo-500 to-purple-600 text-[#FFFFF0]"
                               }`}>
                                 {user.username?.charAt(0)?.toUpperCase() || "U"}
                               </div>

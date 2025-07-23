@@ -92,7 +92,7 @@ export default function WealthRecommendationPage({
                   </div>
                   <div className="flex-shrink-0">
                     <p className="text-[10px] sm:text-xs md:text-sm text-gray-500 mb-0.5 sm:mb-1 leading-tight font-medium">Action</p>
-                    <div className="px-2 sm:px-2.5 md:px-3 py-1 sm:py-1.5 rounded text-xs sm:text-sm md:text-base font-medium bg-gray-700 text-white inline-block whitespace-nowrap">
+                    <div className="px-2 sm:px-2.5 md:px-3 py-1 sm:py-1.5 rounded text-xs sm:text-sm md:text-base font-medium bg-gray-700 text-[#FFFFF0] inline-block whitespace-nowrap">
                       {action}
                     </div>
                   </div>
@@ -117,7 +117,7 @@ export default function WealthRecommendationPage({
 
         {/* Recommendation Details Card (Big) */}
         <Card className="w-full mb-4 md:mb-6 md:mx-auto border-2 border-yellow-300 shadow-lg max-w-md md:max-w-2xl">
-          <CardHeader className="bg-blue-900 text-white px-2 md:px-4 py-1 md:py-2 rounded-t-lg">
+          <CardHeader className="bg-blue-900 text-[#FFFFF0] px-2 md:px-4 py-1 md:py-2 rounded-t-lg">
             <h3 className="text-sm md:text-lg font-bold text-center">Recommendation Details</h3>
           </CardHeader>
           <CardContent className="p-2 md:p-4">
@@ -179,7 +179,7 @@ export default function WealthRecommendationPage({
 
         {/* Why Buy This Card (Biggest) */}
         <Card className="w-full mb-4 md:mb-6 md:mx-auto border-2 border-yellow-300 shadow-lg max-w-lg md:max-w-4xl">
-          <CardHeader className="bg-blue-900 text-white px-2 md:px-6 py-1 md:py-3 rounded-t-lg">
+          <CardHeader className="bg-blue-900 text-[#FFFFF0] px-2 md:px-6 py-1 md:py-3 rounded-t-lg">
             <h3 className="text-sm md:text-xl font-bold text-center">Why Buy This?</h3>
           </CardHeader>
           <CardContent className="p-2 md:p-6">
@@ -202,7 +202,7 @@ export default function WealthRecommendationPage({
             </ul>
             
             <div className="mt-2 md:mt-6 text-center">
-              <Button className="w-full md:w-auto md:px-8 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 md:py-3 rounded-lg text-sm md:text-lg">
+              <Button className="w-full md:w-auto md:px-8 bg-green-600 hover:bg-green-700 text-[#FFFFF0] font-semibold py-2 md:py-3 rounded-lg text-sm md:text-lg">
                 View Detailed Report
               </Button>
             </div>

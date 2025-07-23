@@ -259,7 +259,7 @@ export default function ModelPortfolioSection() {
        <section className="py-8 sm:py-12">
          <div className="container mx-auto px-4">
            <div className="text-center mb-8 sm:mb-12">
-             <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">Model Portfolios</h1>
+             <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-[#FFFFF0]">Model Portfolios</h1>
              <p className="mt-2 text-lg text-gray-600 dark:text-gray-300">
                Smart investment strategies for every investor
              </p>
@@ -420,10 +420,10 @@ export default function ModelPortfolioSection() {
                  >
                    {/* Header Section */}
                    <div className="mb-4">
-                     <h2 className="font-serif text-2xl lg:text-3xl font-bold text-black dark:text-white">
+                     <h2 className="font-serif text-2xl lg:text-3xl font-bold text-black dark:text-[#FFFFF0]">
                        {portfolio.name}
                      </h2>
-                     <p className="text-base font-bold text-black dark:text-white mt-1">
+                     <p className="text-base font-bold text-black dark:text-[#FFFFF0] mt-1">
                        ₹{(quarterlyFee || monthlyFee || 0).toLocaleString()} / Quarter
                      </p>
                      <p className="text-xs text-gray-700 dark:text-gray-400">Annual, Billed Quarterly</p>
@@ -447,22 +447,22 @@ export default function ModelPortfolioSection() {
                              title="Read Methodology"
                            >
                              <div className="w-10 h-10 bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-600 rounded-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                               <FileText className="w-5 h-5 text-black dark:text-white" />
+                               <FileText className="w-5 h-5 text-black dark:text-[#FFFFF0]" />
                              </div>
                            </a>
                          )}
                          <a href="#" target="_blank" rel="noopener noreferrer" title="Watch Video">
                            <div className="w-10 h-10 bg-black dark:bg-white rounded-lg flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
-                             <Play className="w-5 h-5 text-white dark:text-black" fill="currentColor" />
+                             <Play className="w-5 h-5 text-[#FFFFF0] dark:text-black" fill="currentColor" />
                            </div>
                          </a>
                        </div>
                      </div>
 
                      <div className="flex flex-col">
-                       <h3 className="font-bold text-sm text-black dark:text-white mb-2">Min. Investment</h3>
+                       <h3 className="font-bold text-sm text-black dark:text-[#FFFFF0] mb-2">Min. Investment</h3>
                        <div className="flex items-center">
-                         <span className="text-lg font-bold text-black dark:text-white">
+                         <span className="text-lg font-bold text-black dark:text-[#FFFFF0]">
                            ₹{portfolio.minInvestment?.toLocaleString() || (monthlyFee * 12).toLocaleString()}
                          </span>
                        </div>
@@ -473,7 +473,7 @@ export default function ModelPortfolioSection() {
                    <div className="mt-4 pt-2">
                      <button
                        onClick={() => handleBuyNow(portfolio)}
-                       className="w-full border-2 border-black dark:border-gray-500 bg-black dark:bg-white px-3 py-2.5 text-center font-bold text-white dark:text-black transition-all duration-300 ease-in-out rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 text-sm flex items-center justify-center gap-2"
+                       className="w-full border-2 border-black dark:border-gray-500 bg-black dark:bg-white px-3 py-2.5 text-center font-bold text-[#FFFFF0] dark:text-black transition-all duration-300 ease-in-out rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 text-sm flex items-center justify-center gap-2"
                      >
                        <ShoppingCart className="w-4 h-4" />
                        <span>Buy Now</span>

@@ -13,11 +13,11 @@ export function PageHeader({ title, subtitle, showBackButton = true }: PageHeade
   const router = useRouter();
 
   return (
-    <div className="bg-indigo-900 text-white py-6 px-8 rounded-lg shadow-md mb-6 relative">
+    <div className="bg-[#131859] text-[#FFFFF0] py-6 px-8 rounded-lg shadow-md mb-6 relative">
       {showBackButton && (
         <button
           onClick={() => router.back()}
-          className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center text-white hover:text-blue-200 transition-colors"
+          className="absolute left-2 top-6   -translate-y-1/2 flex items-center text-[#FFFFF0] hover:text-blue-200 transition-colors"
         >
           <ArrowLeft className="w-5 h-5 mr-2" />
           <span className="font-medium text-base">Back</span>

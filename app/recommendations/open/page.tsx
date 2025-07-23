@@ -188,7 +188,7 @@ export default function OpenRecommendations() {
             {selectedStock && selectedStock.buyRange && (
               <div className="space-y-6">
                 <Card className="overflow-hidden border-2 border-yellow-300 shadow-lg hover:shadow-xl transition-shadow duration-300">
-                  <CardHeader className="bg-indigo-900 text-white p-4">
+                  <CardHeader className="bg-indigo-900 text-[#FFFFF0] p-4">
                     <CardTitle className="text-xl text-center">Recommendation Details</CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 bg-gradient-to-b from-white to-gray-50">
@@ -228,7 +228,7 @@ export default function OpenRecommendations() {
                 </Card>
 
                 <Card className="overflow-hidden border-2 border-yellow-300 shadow-lg hover:shadow-xl transition-shadow duration-300">
-                  <CardHeader className="bg-indigo-900 text-white p-4">
+                  <CardHeader className="bg-indigo-900 text-[#FFFFF0] p-4">
                     <CardTitle className="text-xl text-center">Why Buy This?</CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 bg-gradient-to-b from-white to-gray-50">
@@ -267,11 +267,11 @@ function StockCard({ stock, onClick, isSelected = false }) {
       case "Premium":
         return "bg-yellow-400 text-black font-semibold"
       case "Basic":
-        return "bg-blue-500 text-white font-semibold"
+        return "bg-blue-500 text-[#FFFFF0] font-semibold"
       case "Social Media":
-        return "bg-pink-500 text-white font-semibold"
+        return "bg-pink-500 text-[#FFFFF0] font-semibold"
       default:
-        return "bg-gray-500 text-white font-semibold"
+        return "bg-gray-500 text-[#FFFFF0] font-semibold"
     }
   }
 

@@ -14,6 +14,7 @@ export interface StockPriceData {
   high?: number;
   low?: number;
   open?: number;
+  portfolioName?: string;
 }
 
 export interface StockPriceResponse {
@@ -191,7 +192,7 @@ class StockPriceService {
       return this.parseStockByIdResponse(response.data, id);
 
     } catch (error: any) {
-      console.error(`❌ API call failed for stock ID ${id} (attempt ${retryCount + 1}):`, error.message);
+      console.error(`❌ API call failed for stock ID ${id} (attempt ${retryCount + 1}):`, error.message, error.response?.data);
       
       if (retryCount < this.MAX_RETRIES) {
         console.log(`🔄 Retrying stock ID ${id} (${retryCount + 1}/${this.MAX_RETRIES})`);
@@ -221,7 +222,7 @@ class StockPriceService {
       return this.parseStockResponse(response.data, symbol);
 
     } catch (error: any) {
-      console.error(`❌ API call failed for ${symbol} (attempt ${retryCount + 1}):`, error.message);
+      console.error(`❌ API call failed for ${symbol} (attempt ${retryCount + 1}):`, error.message, error.response?.data);
       
       if (retryCount < this.MAX_RETRIES) {
         console.log(`🔄 Retrying ${symbol} (${retryCount + 1}/${this.MAX_RETRIES})`);
