@@ -10,8 +10,9 @@ import { Toaster } from "@/components/ui/toaster";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Rangaone Finwala - Portfolio Management",
-  description: "Your trusted partner in financial growth and portfolio management",
+  title: "Rangaone Finance - SEBI Registered Research Analyst",
+  description: "Your growth, our priority",
+  images: [{ url: "../public/images/9.png" }],
 };
 
 export default function RootLayout({
