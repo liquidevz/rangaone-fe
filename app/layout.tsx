@@ -10,9 +10,9 @@ import { Toaster } from "@/components/ui/toaster";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Rangaone Finance - SEBI Registered Research Analyst",
-  description: "Your growth, our priority",
-  images: [{ url: "../public/images/9.png" }],
+  title: "RangaOne Finance - SEBI Registered Research Analyst",
+  description: "Your Growth, Our Priority",
+  images: [{ url: "../public/imgs/9.png" }],
 };
 
 export default function RootLayout({
