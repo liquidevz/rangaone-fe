@@ -119,7 +119,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed = false, onToggle
       {/* Mobile overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-md z-40 lg:hidden transition-all duration-300"
+          className="fixed inset-0 bg-white backdrop-blur-md z-40 lg:hidden transition-all duration-300"
           onClick={onClose}
         />
       )}
@@ -144,7 +144,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed = false, onToggle
               isCollapsed ? "lg:justify-center lg:w-full" : "space-x-3"
             )}>
               <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg ring-2 ring-blue-100">
-                <TrendingUp className="h-4 w-4 text-[#FFFFF0]" />
+                <TrendingUp className="h-4 w-4 text-white" />
               </div>
               {!isCollapsed && (
                 <div className="lg:block">
@@ -229,7 +229,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed = false, onToggle
                       "transition-all duration-200 group relative overflow-hidden",
                       isActive(item.href)
                         ? [
-                            "bg-gradient-to-r from-blue-600 to-indigo-600 text-[#FFFFF0] font-medium",
+                            "bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium",
                             "shadow-lg shadow-blue-500/30 transform translate-y-0",
                             "ring-2 ring-blue-200/50",
                             "before:absolute before:inset-0 before:bg-gradient-to-r before:from-white/0 before:to-white/10"
@@ -251,7 +251,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed = false, onToggle
                         className={cn(
                           "transition-all duration-200",
                           isActive(item.href)
-                            ? "text-[#FFFFF0] drop-shadow-sm"
+                            ? "text-white drop-shadow-sm"
                             : "text-gray-600 group-hover:text-gray-800",
                           isCollapsed && "lg:text-xl"
                         )}
@@ -291,7 +291,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed = false, onToggle
                 "transition-all duration-200 group relative overflow-hidden",
                 isActive("/settings")
                   ? [
-                      "bg-gradient-to-r from-gray-600 to-gray-700 text-[#FFFFF0] font-medium",
+                      "bg-gradient-to-r from-gray-600 to-gray-700 text-white font-medium",
                       "shadow-lg shadow-gray-500/30 ring-2 ring-gray-200/50",
                     ]
                   : [
@@ -310,7 +310,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed = false, onToggle
                 <span
                   className={cn(
                     "transition-colors duration-200",
-                    isActive("/settings") ? "text-[#FFFFF0]" : "text-gray-600 group-hover:text-gray-800",
+                    isActive("/settings") ? "text-white" : "text-gray-600 group-hover:text-gray-800",
                     isCollapsed && "lg:text-xl"
                   )}
                 >

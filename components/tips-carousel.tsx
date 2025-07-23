@@ -126,10 +126,10 @@ const getTipColorScheme = (
     return {
       gradient: "linear-gradient(90deg, #595CFF 30%, #3333330A 90%)",
       textColor: "#1E40AF",
-      bgGradient: "linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%)",
+      bgGradient: "linear-gradient(135deg, #18657B 0%, #131859 100%)",
       borderColor: "#595CFF",
       badge: {
-        bg: "#1E40AF",
+        bg: "#18657B",
         text: "#DBEAFE",
       },
     };
@@ -487,7 +487,7 @@ const TipCard = ({
                 "px-3 sm:px-4 py-1 sm:py-1.5 rounded text-xs sm:text-sm font-medium text-[#FFFFF0] transition-all",
                 tip.category === "premium"
                   ? "bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700"
-                  : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                  : "bg-gradient-to-r from-[#18657B] to-[#131859] hover:from-blue-600 hover:to-blue-700"
               )}
               onClick={(e) => {
                 e.stopPropagation();
@@ -666,7 +666,7 @@ export default function TipsCarousel({
     const maxDate = dates[dates.length - 1];
 
     // Add some padding to the date range for better UX
-    const paddingDays = 2;
+    const paddingDays = 0;
     const paddedMinDate = addDays(minDate, -paddingDays);
     const paddedMaxDate = addDays(maxDate, paddingDays);
 
@@ -679,7 +679,7 @@ export default function TipsCarousel({
     });
 
     return { min: paddedMinDate, max: paddedMaxDate };
-  }, [tips]);
+  }, [  tips]);
 
   // Update current tip date when carousel index changes
   useEffect(() => {
