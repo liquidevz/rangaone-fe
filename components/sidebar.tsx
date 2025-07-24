@@ -133,7 +133,8 @@ export default function Sidebar({ isOpen, onClose, isCollapsed = false, onToggle
           "fixed inset-y-0 left-0 z-50 lg:relative lg:z-10",
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           "w-80 lg:w-auto",
-          isCollapsed ? "lg:w-24" : "lg:w-72"
+          isCollapsed ? "lg:w-24" : "lg:w-72",
+          "max-w-xs"
         )}
       >
         {/* Header */}
@@ -141,7 +142,8 @@ export default function Sidebar({ isOpen, onClose, isCollapsed = false, onToggle
           <div className="flex items-center justify-between px-4 h-full">
             <div className={cn(
               "flex items-center transition-all duration-300",
-              isCollapsed ? "lg:justify-center lg:w-full" : "space-x-3"
+              isCollapsed ? "lg:justify-center" : "space-x-3",
+              !isCollapsed && "lg:w-full"
             )}>
               <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg ring-2 ring-blue-100">
                 <TrendingUp className="h-4 w-4 text-white" />

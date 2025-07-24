@@ -75,10 +75,22 @@ export default function WealthRecommendationPage({
                     </div>
                     <p className="text-xs sm:text-sm text-gray-500">NSE</p>
                   </div>
-                  <div className="relative bg-gradient-to-r from-[#00B7FF] to-[#85D437] p-[2px] rounded-lg flex-shrink-0">
-                    <div className="bg-cyan-50 rounded-md px-1.5 sm:px-2 md:px-2.5 py-1 sm:py-1.5 text-center min-w-[40px] sm:min-w-[44px] md:min-w-[50px]">
-                      <p className="text-[8px] sm:text-[9px] md:text-[10px] text-gray-700 mb-0 leading-tight font-medium">Weightage</p>
-                      <p className="text-xs sm:text-sm md:text-base font-bold text-black leading-tight">{targetPercentage}%</p>
+                  <div className={`relative p-[2px] rounded-lg flex-shrink-0 ${
+                    (stockData?.status === "closed" && stockData?.exitStatus?.toLowerCase().includes("loss")) 
+                      ? "bg-gradient-to-r from-red-500 to-red-600" 
+                      : "bg-green-500"
+                  }`}>
+                    <div className={`rounded-md px-1.5 sm:px-2 md:px-2.5 py-1 sm:py-1.5 text-center min-w-[40px] sm:min-w-[44px] md:min-w-[50px] ${
+                      (stockData?.status === "closed" && stockData?.exitStatus?.toLowerCase().includes("loss")) 
+                        ? "bg-gradient-to-r from-gray-100 to-gray-200" 
+                        : "bg-gradient-to-r from-green-50 to-green-100"
+                    }`}>
+                      <p className={`text-[8px] sm:text-[9px] md:text-[10px] mb-0 leading-tight font-medium ${
+                        (stockData?.status === "closed" && stockData?.exitStatus?.toLowerCase().includes("loss")) ? "text-white" : "text-black"
+                      }`}>{stockData?.status === 'closed' ? stockData?.exitStatus : 'Target'}</p>
+                      <p className={`text-xs sm:text-sm md:text-base font-bold leading-tight ${
+                        (stockData?.status === "closed" && stockData?.exitStatus?.toLowerCase().includes("loss")) ? "text-white" : "text-black"
+                      }`}>{stockData?.status === 'closed' ? stockData?.exitStatusPercentage : targetPercentage}%</p>
                     </div>
                   </div>
                 </div>

@@ -81,20 +81,24 @@ const MarqueeText = ({
   );
 };
 
-type TipCardData = {
+interface TipCardData {
   id: string;
   portfolioId?: string;
   portfolioName?: string;
   date: string;
   stockName: string;
   exchange: string;
-  weightage: number;
+  weightage?: number;
   buyRange: string;
   action: "HOLD" | "Partial Profit Booked" | "BUY" | "SELL";
   category: "basic" | "premium";
   title: string;
   message?: string;
-};
+  status?: string;
+  targetPercentage?: number;
+  exitStatus?: string;
+  exitStatusPercentage?: number;
+}
 
 const getTipColorScheme = (
   category: "basic" | "premium",
@@ -417,15 +421,19 @@ const TipCard = ({
                     </div>
                   </div>
                 ) : (
-                  <div
-                    className="text-xs sm:text-sm font-semibold rounded px-2 sm:px-2.5 py-0.5 sm:py-1 inline-block shadow-sm whitespace-nowrap"
-                    style={{
-                      backgroundColor: colorScheme.badge.bg,
-                      color: colorScheme.badge.text,
-                    }}
-                  >
-                    {tip.category.charAt(0).toUpperCase() +
-                      tip.category.slice(1)}
+                  <div className={`p-[2px] rounded inline-block shadow-sm whitespace-nowrap ${
+                    tip.category === 'premium' 
+                      ? 'bg-gradient-to-r from-yellow-400 to-yellow-700' 
+                      : 'bg-gradient-to-r from-blue-400 to-blue-700'
+                  }`}>
+                    <div className={`text-xs sm:text-sm font-semibold rounded px-2 sm:px-2.5 py-0.5 sm:py-1 text-white ${
+                      tip.category === 'premium' 
+                        ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' 
+                        : 'bg-gradient-to-r from-blue-500 to-blue-600'
+                    }`}>
+                      {tip.category.charAt(0).toUpperCase() +
+                        tip.category.slice(1)}
+                    </div>
                   </div>
                 )}
               </div>
@@ -435,13 +443,45 @@ const TipCard = ({
               </div>
               <p className="text-xs sm:text-sm text-gray-500">{tip.exchange}</p>
             </div>
-            <div className="relative bg-gradient-to-r from-[#00B7FF] to-[#85D437] p-[2px] rounded-lg flex-shrink-0">
-              <div className="bg-cyan-50 rounded-md px-1.5 sm:px-2 md:px-2.5 py-1 sm:py-1.5 text-center min-w-[40px] sm:min-w-[44px] md:min-w-[50px]">
-                <p className="text-[12px] sm:text-[12px] md:text-[12px] text-gray-700 mb-0 leading-tight font-medium">
-                  Weightage
+            <div className={`relative p-[2px] rounded-lg flex-shrink-0 ${
+              isModelPortfolio 
+                ? "bg-gradient-to-r from-[#00B7FF] to-[#85D437]" 
+                : tip.status === "closed"
+                  ? (tip.exitStatus?.toLowerCase().includes("loss") || (tip.exitStatusPercentage && tip.exitStatusPercentage < 0))
+                    ? "bg-gradient-to-r from-[#627281] to-[#A6AFB6]" 
+                    : "bg-[#219612]"
+                  : "bg-[#219612]"
+            }`}>
+              <div className={`rounded-md px-1.5 sm:px-2 md:px-2.5 py-1 sm:py-1.5 text-center min-w-[40px] sm:min-w-[44px] md:min-w-[50px] ${
+                isModelPortfolio 
+                  ? "bg-cyan-50" 
+                  : tip.status === "closed"
+                    ? (tip.exitStatus?.toLowerCase().includes("loss") || (tip.exitStatusPercentage && tip.exitStatusPercentage < 0))
+                      ? "bg-gradient-to-tr from-[#A6AFB6] to-[#627281]" 
+                      : "bg-gradient-to-r from-green-50 to-green-100"
+                    : "bg-gradient-to-r from-green-50 to-green-100"
+              }`}>
+                <p className={`text-[15px] sm:text-[15px] md:text-[15px] mb-0 leading-tight font-bold ${
+                  isModelPortfolio 
+                    ? "text-gray-700" 
+                    : tip.status === "closed"
+                      ? (tip.exitStatus?.toLowerCase().includes("loss") || (tip.exitStatusPercentage && tip.exitStatusPercentage < 0))
+                        ? "text-white" 
+                        : "text-black"
+                      : "text-black"
+                }`}>
+                  {isModelPortfolio ? "Weightage" : (tip.status === "closed" ? tip.exitStatus : "Target")}
                 </p>
-                <p className="text-right text-[25px] sm:text-[30px] md:text-[30px] font-bold text-black leading-tight">
-                  {tip.weightage}%
+                <p className={`text-right text-[25px] sm:text-[30px] md:text-[30px] font-bold leading-tight ${
+                  isModelPortfolio 
+                    ? "text-black" 
+                    : tip.status === "closed"
+                      ? (tip.exitStatus?.toLowerCase().includes("loss") || (tip.exitStatusPercentage && tip.exitStatusPercentage < 0))
+                        ? "text-white" 
+                        : "text-black"
+                      : "text-black"
+                }`}>
+                  {isModelPortfolio ? `${tip.weightage}%` : (tip.status === "closed" ? `${tip.exitStatusPercentage}%` : `${tip.targetPercentage}%`)}
                 </p>
               </div>
             </div>
@@ -764,16 +804,8 @@ export default function TipsCarousel({
           weightage
         );
       }
-      if (weightage === undefined) {
-        weightage = tip.targetPercentage
-          ? parseFloat(tip.targetPercentage.replace("%", ""))
-          : 5.0;
-        if (isModelPortfolio) {
-          console.log(
-            `[TipsCarousel] Fallback weightage for ${stockName}:`,
-            weightage
-          );
-        }
+      if (weightage === undefined && isModelPortfolio) {
+        weightage = 5.0;
       }
 
       // Extract portfolio name
@@ -803,6 +835,10 @@ export default function TipsCarousel({
         category: tip.category || "basic",
         title: tip.title,
         message: tip.message,
+        status: tip.status?.toLowerCase(),
+        targetPercentage: tip.targetPercentage ? parseFloat(tip.targetPercentage.replace("%", "")) : undefined,
+        exitStatus: tip.exitStatus,
+        exitStatusPercentage: tip.exitStatusPercentage ? parseFloat(tip.exitStatusPercentage.replace("%", "")) : undefined,
       };
     });
   };

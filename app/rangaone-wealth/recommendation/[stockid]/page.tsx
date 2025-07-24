@@ -13,6 +13,33 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 
+// Color scheme function from tips-carousel
+const getTipColorScheme = (category: "basic" | "premium") => {
+  if (category === "premium") {
+    return {
+      gradient: "linear-gradient(90deg, #FFD700 30%, #3333330A 90%)",
+      textColor: "#92400E",
+      bgGradient: "linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)",
+      borderColor: "#F59E0B",
+      badge: {
+        bg: "#92400E",
+        text: "#FEF3C7",
+      },
+    };
+  } else {
+    return {
+      gradient: "linear-gradient(90deg, #595CFF 30%, #3333330A 90%)",
+      textColor: "#1E40AF",
+      bgGradient: "linear-gradient(135deg, #18657B 0%, #131859 100%)",
+      borderColor: "#595CFF",
+      badge: {
+        bg: "#18657B",
+        text: "#DBEAFE",
+      },
+    };
+  }
+};
+
 export default function StockRecommendationPage() {
   const params = useParams();
   const stockId = params.stockid as string;
@@ -39,10 +66,17 @@ export default function StockRecommendationPage() {
         // Fetch stock data if stockId is available
         if (tipResult?.stockId) {
           try {
-            // Use stockPriceService to get stock data
-            const stockResponse = await stockPriceService.getStockPriceById(tipResult.stockId);
-            if (stockResponse.success && stockResponse.data) {
-              setStockData(stockResponse.data);
+            // First try the stock symbols API for current price
+            const symbolResponse = await fetch(`/api/stock-symbols/${tipResult.stockId}`);
+            if (symbolResponse.ok) {
+              const stockSymbolData = await symbolResponse.json();
+              setStockData(stockSymbolData);
+            } else {
+              // Fallback to stockPriceService for symbol extraction
+              const stockResponse = await stockPriceService.getStockPriceById(tipResult.stockId);
+              if (stockResponse.success && stockResponse.data) {
+                setStockData(stockResponse.data);
+              }
             }
           } catch (symbolError) {
             console.error("Failed to fetch stock data:", symbolError);
@@ -97,7 +131,7 @@ export default function StockRecommendationPage() {
         <div className="max-w-7xl mx-auto p-4">
           <div className="text-center py-12">
             <h2 className="text-2xl font-bold mb-4">Tip Not Found</h2>
-            <Link href="/recommendations/all">
+            <Link href="/rangaone-wealth/all-recommendations">
               <Button>Back to Recommendations</Button>
             </Link>
           </div>
@@ -113,7 +147,7 @@ export default function StockRecommendationPage() {
         <div className="max-w-7xl mx-auto p-4">
           <div className="mb-6">
             <Link
-              href="/recommendations/all"
+              href="/rangaone-wealth/all-recommendations"
               className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900"
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
@@ -144,7 +178,7 @@ export default function StockRecommendationPage() {
                   </Button>
                 </Link>
                 <div>
-                  <Link href="/recommendations/all">
+                  <Link href="/rangaone-wealth/all-recommendations">
                     <Button variant="outline">Back to Recommendations</Button>
                   </Link>
                 </div>
@@ -157,184 +191,218 @@ export default function StockRecommendationPage() {
   }
 
   const recommendedDate = tipData.createdAt ? format(new Date(tipData.createdAt), 'dd MMMM yyyy') : 'N/A';
+  const colorScheme = getTipColorScheme(tipData.category as "basic" | "premium" || "basic");
 
   return (
     <DashboardLayout>
-      {/* Header - RANGAONE WEALTH */}
-      <PageHeader title="RECOMMENDATIONS" subtitle="                             " />
-      <div className="min-h-screen bg-white">
-        <div className="max-w-6xl mx-auto px-4 py-6">
+      <PageHeader title="RANGAONE WEALTH" subtitle="" />
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4 py-6">
           
-          {/* Expert Recommendations Label */}
           <div className="text-center mb-6">
             <h2 className="text-xl font-bold">EXPERT RECOMMENDATIONS</h2>
           </div>
 
-          {/* Small Card - Stock Info */}
+          {/* Box 1 - Stock Info */}
           <div 
-            className="p-[3px] rounded-lg mb-6 mx-auto md:max-w-md relative max-w-[18rem]"
-            style={{ background: "linear-gradient(90deg, #00B7FF 0%, #85D437 100%)" }}
+            className="p-[3px] rounded-lg mb-6 mx-auto max-w-[18rem]"
+            style={{ background: colorScheme.gradient }}
           >
-            <div className="bg-white rounded-lg p-4 h-full">
+            <div className="bg-white rounded-lg p-4">
               <div className="flex justify-between items-start"> 
                 <div>
-                  {/* Premium Label */}
-                   <div className="relative bg-gradient-to-r from-[#00B7FF] to-[#85D437] p-[2px] rounded-lg overflow-hidden">
-                    <div className="bg-black text-xs sm:text-sm font-bold rounded-md px-2 sm:px-3 py-0.5 sm:py-1 overflow-hidden">
-                      <span className="bg-gradient-to-r from-[#00B7FF] to-[#85D437] bg-clip-text text-transparent font-bold">
-                        {tipData.category === 'premium' ? 'Premium' : 'Basic'}
-                      </span>
+                  <div className={`p-[2px] rounded inline-block mb-2 ${
+                    tipData.category === 'premium' 
+                      ? 'bg-gradient-to-r from-yellow-400 to-yellow-700' 
+                      : 'bg-gradient-to-r from-blue-400 to-blue-700'
+                  }`}>
+                    <div className={`text-xs font-semibold rounded px-2 py-1 text-white ${
+                      tipData.category === 'premium' 
+                        ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' 
+                        : 'bg-gradient-to-r from-blue-500 to-blue-600'
+                    }`}>
+                      {tipData.category === 'premium' ? 'Premium' : 'Basic'}
                     </div>
                   </div>
-                  
-                  {/* Stock Symbol and Exchange */}
                   <h3 className="text-xl font-bold">{stockData?.symbol || tipData.stockId || 'STOCK'}</h3>
-                  <p className="text-sm">{stockData?.exchange || 'NSE'}</p>
-                </div>
-                
-                {/* Weightage Box */}
-                <div className="flex-shrink-0">
-                  <div className="relative bg-gradient-to-r from-[#00B7FF] to-[#85D437] p-[2px] rounded-lg">
-                    <div className="bg-cyan-50 rounded-md px-2 py-1.5 text-center min-w-[60px]">
-                      <p className="text-xs text-gray-700 mb-0 leading-tight font-medium">Weightage</p>
-                      <p className="text-right text-2xl font-bold text-black leading-tight">
-                        {tipData.targetPercentage || '5%'}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {/* Profit Booked (if available) */}
-                  {tipData.exitStatusPercentage && (
-                    <div className="bg-green-100 border border-green-300 rounded p-2 mt-2">
-                      <p className="text-xs mb-0">Profit Booked</p>
-                      <p className="text-xl font-bold text-green-700">{tipData.exitStatusPercentage}</p>
+                  <p className="text-sm text-gray-600">{stockData?.exchange || 'NSE'}</p>
+                  {tipData.analysistConfidence && (
+                    <div className="mt-2">
+                      <p className="text-xs text-gray-600">Analyst Confidence</p>
+                      <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                        <div 
+                          className="h-2 rounded-full" 
+                          style={{
+                            width: `${(tipData.analysistConfidence || 0) * 10}%`,
+                            backgroundColor: colorScheme.textColor 
+                          }}
+                        ></div>
+                      </div>
+                      <p className="text-xs mt-1" style={{ color: colorScheme.textColor }}>High</p>
                     </div>
                   )}
-                  
                 </div>
+                
+                {(tipData.status?.toLowerCase() === 'closed' || tipData.exitStatus || tipData.exitStatusPercentage) ? (
+                  (tipData.exitStatus || tipData.exitStatusPercentage) && (
+                    <div className={`p-[2px] rounded-lg ${
+                      (tipData.exitStatus?.toLowerCase().includes('loss') || (tipData.exitStatusPercentage && parseFloat(tipData.exitStatusPercentage.replace('%', '')) < 0))
+                        ? 'bg-gradient-to-r from-[#627281] to-[#A6AFB6]' 
+                        : 'bg-[#219612]'
+                    }`}>
+                      <div className={`rounded-md px-4 py-2 text-center min-w-[80px] ${
+                        (tipData.exitStatus?.toLowerCase().includes('loss') || (tipData.exitStatusPercentage && parseFloat(tipData.exitStatusPercentage.replace('%', '')) < 0))
+                          ? 'bg-gradient-to-tr from-[#A6AFB6] to-[#627281]' 
+                          : 'bg-gradient-to-r from-green-50 to-green-100'
+                      }`}>
+                        <p className={`text-xl mb-1 font-semibold ${
+                          (tipData.exitStatus?.toLowerCase().includes('loss') || (tipData.exitStatusPercentage && parseFloat(tipData.exitStatusPercentage.replace('%', '')) < 0)) ? 'text-white' : 'text-black'
+                        }`}>{tipData.exitStatus || 'Exit Status'}</p>
+                        <p className={`text-2xl font-bold ${
+                          (tipData.exitStatus?.toLowerCase().includes('loss') || (tipData.exitStatusPercentage && parseFloat(tipData.exitStatusPercentage.replace('%', '')) < 0)) ? 'text-white' : 'text-black'
+                        }`}>{tipData.exitStatusPercentage?.includes('%') ? tipData.exitStatusPercentage : `${tipData.exitStatusPercentage || '0'}%`}</p>
+                      </div>
+                    </div>
+                  )
+                ) : (
+                  tipData.targetPercentage && (
+                    <div className="bg-[#219612] p-[2px] rounded-lg">
+                      <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-md px-4 py-2 text-center min-w-[80px]">
+                        <p className="text-sm mb-1 text-black font-bold">Target</p>
+                        <p className="text-2xl font-bold text-black">{tipData.targetPercentage?.includes('%') ? tipData.targetPercentage : `${tipData.targetPercentage || '0'}%`}</p>
+                      </div>
+                    </div>
+                  )
+                )}
               </div>
             </div>
           </div>
 
-          {/* Title */}
           {tipData.title && (
             <div className="mb-6 text-center">
-              <h2 className="text-xl font-bold">
-                Title:- {tipData.title}
-              </h2>
+              <h2 className="text-lg font-bold">Title:- {tipData.title}</h2>
             </div>
           )}
 
-          {/* Medium Card - Recommendation Details */}
+          {/* Box 2 - Recommendation Details */}
           <div 
-            className="p-[3px] rounded-lg mb-6 mx-auto md:max-w-2xl"
-            style={{ background: "linear-gradient(90deg, #00B7FF 0%, #85D437 100%)" }}
+            className="p-[3px] rounded-lg mb-6 mx-auto max-w-2xl"
+            style={{ background: colorScheme.gradient }}
           >
-            <div className="bg-white rounded-lg p-4 h-full">
-              {/* Header */}
-              <div className="text-center my-1">
-                <div className="bg-[#131859] text-[#FFFFF0] rounded-lg px-6 py-2 inline-block">
+            <div className="bg-white rounded-lg p-6">
+              <div className="text-center mb-4">
+                <div 
+                  className="text-white rounded-lg px-6 py-2 inline-block"
+                  style={{ background: colorScheme.bgGradient }}
+                >
                   <h3 className="text-lg font-bold">Recommendation Details</h3>
                 </div>
               </div>
               
-              {/* Grid of Details */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* Buy Range */}
+              <div className="grid grid-cols-2 gap-6">
+                {/* Common fields */}
                 {tipData.buyRange && (
-                  <div className="md:text-center sm:text-center text-left mt-2">
-                    <p className="font-bold mb-1">Buy Range</p>
-                    <p className="text-xl text-green-600 font-bold">{tipData.buyRange}</p>
-                  </div>
-                )}
-                
-                {/* Target Price */}
-                {tipData.targetPrice && (
                   <div className="text-center">
-                    <p className="font-bold mb-1">Target Price</p>
-                    <p className="text-xl text-green-600 font-bold">{tipData.targetPrice}</p>
+                    <p className="font-bold mb-2">Buy Range</p>
+                    <p className="text-xl font-bold text-green-600">{tipData.buyRange}</p>
                   </div>
                 )}
                 
-                {/* Add More At */}
-                {tipData.addMoreAt && (
-                  <div className="md:text-center sm:text-center text-left mt-2">
-                    <p className="font-bold mb-1">Add More At</p>
-                    <p className="text-xl text-green-600 font-bold">{tipData.addMoreAt}</p>
-                  </div>
-                )}
-
-                {/* Action */}
-                {tipData.action && (
-                  <div className="md:text-center sm:text-center text-left">
-                    <p className="font-bold mb-1">Action</p>
-                    <p className="text-xl text-green-600 font-bold">{tipData.action}</p>
-                  </div>
-                )}
-                
-                {/* Recommended Date */}
                 {tipData.createdAt && (
-                  <div className="md:text-center sm:text-center text-left">
-                    <p className="font-bold mb-1">Created On</p>
-                    <p className="text-xl text-green-600 font-bold">{recommendedDate}</p>
+                  <div className="text-center">
+                    <p className="font-bold mb-2">Recommended Date</p>
+                    <p className="text-xl font-bold text-green-600">{recommendedDate}</p>
                   </div>
                 )}
                 
-                {/* Exited Price */}
-                {tipData.exitPrice && (
+                {tipData.horizon && (
                   <div className="text-center">
-                    <p className="font-bold mb-1">Exited Price</p>
-                    <p className="text-xl text-green-600 font-bold">{tipData.exitPrice}</p>
+                    <p className="font-bold mb-2">Horizon</p>
+                    <p className="text-xl font-bold text-green-600">{tipData.horizon}</p>
                   </div>
                 )}
                 
-                {/* Exit Status */}
-                {tipData.exitStatus && (
-                  <div className="text-center">
-                    <p className="font-bold mb-1">Exit Status</p>
-                    <p className="text-xl text-green-600 font-bold">{tipData.exitStatus}</p>
-                  </div>
+                {/* Closed tip fields */}
+                {(tipData.status?.toLowerCase() === 'closed' || tipData.exitStatus) ? (
+                  <>
+                    {tipData.exitPrice && (
+                      <div className="text-center">
+                        <p className="font-bold mb-2">Exited Price</p>
+                        <p className="text-xl font-bold text-green-600">{tipData.exitPrice}</p>
+                      </div>
+                    )}
+                    
+                    {tipData.updatedAt && (
+                      <div className="text-center">
+                        <p className="font-bold mb-2">Exit Date</p>
+                        <p className="text-xl font-bold text-green-600">{format(new Date(tipData.updatedAt), 'dd MMMM yyyy')}</p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  /* Active tip fields */
+                  <>
+                    {tipData.targetPrice && (
+                      <div className="text-center">
+                        <p className="font-bold mb-2">Target Price</p>
+                        <p className="text-xl font-bold text-green-600">{tipData.targetPrice}</p>
+                      </div>
+                    )}
+                    
+                    {tipData.addMoreAt && (
+                      <div className="text-center">
+                        <p className="font-bold mb-2">Add More At</p>
+                        <p className="text-xl font-bold text-green-600">{tipData.addMoreAt}</p>
+                      </div>
+                    )}
+                    
+                    {stockData?.currentPrice && (
+                      <div className="text-center">
+                        <p className="font-bold mb-2">Live Price</p>
+                        <p className="text-xl font-bold text-blue-600">₹{stockData.currentPrice}</p>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Large Card - Why Buy This */}
+          {/* Box 3 - Why Buy This */}
           <div 
             className="p-[3px] rounded-lg mx-auto max-w-4xl"
-            style={{ background: "linear-gradient(90deg, #00B7FF 0%, #85D437 100%)" }}
+            style={{ background: colorScheme.gradient }}
           >
-            <div className="bg-white rounded-lg p-4 h-full">
-              {/* Header */}
+            <div className="bg-white rounded-lg p-6">
               <div className="mb-4">
-                <div className="bg-[#131859] text-[#FFFFF0] rounded-lg px-6 py-2 inline-block">
+                <div 
+                  className="text-white rounded-lg px-6 py-2 inline-block"
+                  style={{ background: colorScheme.bgGradient }}
+                >
                   <h3 className="text-lg font-bold">Why Buy This?</h3>
                 </div>
               </div>
               
-              {/* Bullet Points */}
-              <ul className="list-disc pl-6 space-y-3 mb-8">                
-                {tipData.description && (
-                  <div className="text-lg" dangerouslySetInnerHTML={{ __html: tipData.description }} />
-                )}
-              </ul>
+              {tipData.description && (
+                <div className="mb-6">
+                  <div 
+                    className="text-lg leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: tipData.description }} 
+                  />
+                </div>
+              )}
 
-              {/* Divider Line */}
-              {tipData.tipUrl && tipData.downloadLinks && tipData.downloadLinks.length > 0 && (
+              {tipData.downloadLinks && tipData.downloadLinks.length > 0 && (
                 <>
-                  <div className="border-t-2 border-gray-300 my-6"></div>
-
-                  {/* View Detailed Report Button */}
-                  <div className="flex justify-center">
-                    {tipData.downloadLinks && tipData.downloadLinks.length > 0 && (
-                      <button
-                        onClick={() => window.open(tipData.downloadLinks[0].linkUrl || tipData.downloadLinks[0].url, "_blank")}
-                        className="bg-green-600 hover:bg-green-700 text-[#FFFFF0] px-8 py-3 text-lg font-bold rounded-lg flex items-center"
-                      >
-                        View Detailed Report
-                        <ExternalLink className="ml-2 h-5 w-5" />
-                      </button>
-                    )}
+                  <hr className="my-6" />
+                  <div className="text-center">
+                    <button
+                      onClick={() => window.open(tipData.downloadLinks[0].linkUrl || tipData.downloadLinks[0].url, "_blank")}
+                      className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg font-bold rounded-lg inline-flex items-center"
+                    >
+                      View Detailed Report
+                      <ExternalLink className="ml-2 h-5 w-5" />
+                    </button>
                   </div>
                 </>
               )}
