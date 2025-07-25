@@ -14,8 +14,8 @@ export default function Footer() {
                 <span className="text-[#FFFFF0] text-2xl font-bold">R</span>
               </div>
               <div className="text-[#001633]">
-                <div className="font-bold text-lg leading-tight">RANGAONE</div>
-                <div className="font-bold text-lg leading-tight">FINWALA</div>
+                <div className="font-bold text-lg leading-tight">RangaOne</div>
+                <img src="/logo.png" alt="RangaOne Finance Logo" className="h-8 w-auto" />
               </div>
             </div>
             <p className="text-gray-600 mb-6">
@@ -28,11 +28,11 @@ export default function Footer() {
               </div>
               <div className="flex items-center">
                 <FiMail className="text-[#1e3a8a] mr-2" />
-                <span className="text-gray-700">For Inquiry - info@rangaonefinwala.com</span>
+                <span className="text-gray-700">For Inquiry - info@RangaOnefinwala.com</span>
               </div>
               <div className="flex items-center">
                 <FiMail className="text-[#1e3a8a] mr-2" />
-                <span className="text-gray-700">For Grievances - compliance@rangaonefinwala.com</span>
+                <span className="text-gray-700">For Grievances - compliance@RangaOnefinwala.com</span>
               </div>
             </div>
           </div>
@@ -153,25 +153,25 @@ export default function Footer() {
               <h3 className="text-lg font-bold mb-6 text-[#001633]">Social Media</h3>
               <div className="flex space-x-4">
                 <Link
-                  href="https://t.me/rangaonefinwala"
+                  href="https://t.me/RangaOnefinwala"
                   className="text-[#1e3a8a] hover:text-[#3b82f6] transition-colors"
                 >
                   <FaTelegram size={24} />
                 </Link>
                 <Link
-                  href="https://instagram.com/rangaonefinwala"
+                  href="https://instagram.com/RangaOnefinwala"
                   className="text-[#1e3a8a] hover:text-[#3b82f6] transition-colors"
                 >
                   <FaInstagram size={24} />
                 </Link>
                 <Link
-                  href="https://linkedin.com/company/rangaonefinwala"
+                  href="https://linkedin.com/company/RangaOnefinwala"
                   className="text-[#1e3a8a] hover:text-[#3b82f6] transition-colors"
                 >
                   <FaLinkedin size={24} />
                 </Link>
                 <Link
-                  href="https://twitter.com/rangaonefinwala"
+                  href="https://twitter.com/RangaOnefinwala"
                   className="text-[#1e3a8a] hover:text-[#3b82f6] transition-colors"
                 >
                   <FaTwitter size={24} />
@@ -197,7 +197,7 @@ export default function Footer() {
         <div className="grid md:grid-cols-3 gap-6 py-6 border-t border-gray-200 text-sm text-gray-600">
           <div>
             <h4 className="font-bold mb-2">SEBI Registered Research Analyst</h4>
-            <p>Name: RANGAONE FINWALA</p>
+            <p>Name: RangaOne FINWALA</p>
             <p>Type of Registration: Individual</p>
             <p>SEBI Registration No: INH000013350</p>
             <p>BSE Enlistment number: 5886</p>
@@ -217,7 +217,7 @@ export default function Footer() {
 
         {/* Copyright */}
         <div className="border-t border-gray-200 pt-6 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-gray-600 text-sm">RANGAONE FINWALA ©{new Date().getFullYear()} All Rights Reserved.</p>
+          <p className="text-gray-600 text-sm">RangaOne FINWALA ©{new Date().getFullYear()} All Rights Reserved.</p>
           <div className="flex items-center mt-4 md:mt-0">
             <span className="text-gray-600 text-sm mr-4">
               SCORES:{" "}

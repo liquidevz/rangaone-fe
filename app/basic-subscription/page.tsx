@@ -10,6 +10,7 @@ import { useAuth } from "@/components/auth/auth-context"
 import { useCart } from "@/components/cart/cart-context"
 import { useToast } from "@/components/ui/use-toast"
 import { bundleService, Bundle } from "@/services/bundle.service"
+import { Navbar } from "@/components/navbar"
 
 // Animation variants
 const fadeIn = {
@@ -89,6 +90,7 @@ export default function BasicSubscriptionPage() {
   return (
     <main className="min-h-screen bg-white overflow-x-hidden">
       <ScrollToTop />
+      <Navbar />
 
       {/* Hero Section */}
       <section className="relative pt-24 pb-16 overflow-hidden">
@@ -123,13 +125,13 @@ export default function BasicSubscriptionPage() {
               </h1>
               <div className="w-20 h-1 bg-blue-400 mb-6 rounded-full"></div>
               <p className="text-gray-200 mb-6 text-lg leading-relaxed">
-                Rangaone Wealth <span className="font-bold text-[#FFFFF0]">BASIC</span> - Get your investing journey
+                RangaOne Wealth <span className="font-bold text-[#FFFFF0]">BASIC</span> - Get your investing journey
                 started! For those who are new to the financial markets. Our basic plan provides you with essential
                 market insights, quality stock picks, and real-time updates to help you make informed investment
                 decisions.
               </p>
               <p className="text-blue-200 mb-8 italic">
-                Here's what makes <span className="font-semibold">Rangaone Wealth Basic</span> truly special:
+                Here's what makes <span className="font-semibold">RangaOne Wealth Basic</span> truly special:
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -441,7 +443,7 @@ export default function BasicSubscriptionPage() {
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">What Our Clients Say</h2>
             <div className="w-24 h-1 bg-blue-500 mx-auto mb-6 rounded-full"></div>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Hear from our satisfied clients who have transformed their investing journey with Rangaone Wealth Basic.
+              Hear from our satisfied clients who have transformed their investing journey with RangaOne Wealth Basic.
             </p>
           </motion.div>
 
@@ -514,11 +516,11 @@ export default function BasicSubscriptionPage() {
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-6">Forget the Guesswork</h2>
             <p className="text-xl mb-8 text-blue-100">
-              Rangaone Wealth Basic gives you the essential tools, expert market advice, and real-time insights to grow
+              RangaOne Wealth Basic gives you the essential tools, expert market advice, and real-time insights to grow
               your wealth with clarity and confidence. This isn't just a service—it's your gateway to smarter investing.
             </p>
             <p className="text-blue-200 mb-8">
-              Serious about building wealth? Start here. Subscribe to Rangaone Wealth Basic today!
+              Serious about building wealth? Start here. Subscribe to RangaOne Wealth Basic today!
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>

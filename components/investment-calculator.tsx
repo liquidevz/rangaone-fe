@@ -561,7 +561,7 @@ export function InvestmentCalculator() {
                     </span>
                   </div>
                   <div className="text-base font-bold text-blue-900">
-                    ₹{selectedPortfolio.cashBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ₹{((investmentAmount - (selectedPortfolio.totalValue - selectedPortfolio.cashBalance)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}
                   </div>
                   <div className="text-xs text-blue-600">Available</div>
                 </div>
@@ -571,7 +571,7 @@ export function InvestmentCalculator() {
                     <span className="text-xs font-medium text-indigo-700">Portfolio</span>
                   </div>
                   <div className="text-base font-bold text-indigo-900">
-                    ₹{selectedPortfolio.totalValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    ₹{investmentAmount}
                   </div>
                   <div className="text-xs text-indigo-600">Total Value</div>
                 </div>

@@ -161,7 +161,7 @@ export default function PortfolioTipDetailsPage() {
 
   return (
     <DashboardLayout>
-      {/* Header - RANGAONE WEALTH */}
+      {/* Header - RangaOne WEALTH */}
       <PageHeader title="MODEL PORTFOLIO" subtitle="                             " />
       <div className="min-h-screen bg-white">
         <div className="max-w-6xl mx-auto px-4 py-6">

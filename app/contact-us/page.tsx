@@ -94,7 +94,7 @@ export default function ContactUs() {
 
                   <div>
                     <h3 className="font-semibold mb-2">Email</h3>
-                    <p className="text-sm text-gray-600">support@rangaonefinwala.com</p>
+                    <p className="text-sm text-gray-600">support@RangaOnefinwala.com</p>
                   </div>
                 </div>
               </CardContent>

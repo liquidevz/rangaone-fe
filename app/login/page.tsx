@@ -251,7 +251,7 @@ export default function LoginPage() {
       <div className="hidden lg:flex flex-1 bg-[#001633] items-center justify-center p-8">
         <div className="text-center text-[#FFFFF0]">
           <h1 className="text-4xl font-bold mb-4">
-            Welcome to Rangaone Finwala
+            Welcome to RangaOne Finwala
           </h1>
           <p className="text-xl opacity-90 mb-8">
             Your trusted partner in financial growth and portfolio management

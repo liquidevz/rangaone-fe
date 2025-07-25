@@ -7,29 +7,31 @@ import { FaYoutube } from "react-icons/fa"
 import { FiBookOpen } from "react-icons/fi"
 import { twMerge } from "tailwind-merge"
 import { SectionHeading } from "@/components/ui/section-heading"
+import React from "react"
+import Image from "next/image"
 
 export const ModalPortfolioList = () => {
   const features = [
     {
-      icon: "/simplicity-icon.png",
+      icon: "/icons/simplicity.png",
       title: "Simplicity",
       description:
         "Designed for busy professionals (salaried person, businessmen) our portfolios remove the hassle of stock analysis and simplify the investment process that fits your lifestyle.",
     },
     {
-      icon: "/rebalancing-icon.png",
+      icon: "/icons/rebalancing.png",
       title: "Rebalancing",
       description:
-        "We don't just give stock names and leave. Every quarter, we adjust based on market conditions—guiding you on exits, profit booking, upward averaging, and downward averaging.",
+        "We don’t just give stock names and leave. Every quarter, we adjust based on market conditions—guiding you on exits, profit booking, upward averaging, and downward averaging.",
     },
     {
-      icon: "/diversification-icon.png",
+      icon: "/icons/diversification.png",
       title: "Diversification",
       description:
-        "Your money won't sit in one basket. We spread it smartly—across large, mid and small cap stocks, multiple sectors, and even assets like ETFs and gold—balancing risk and maximizing opportunity.",
+        "Your money won’t sit in one basket. We spread it smartly—across large, mid and small cap stocks, multiple sectors, and even assets like ETFs and gold—balancing risk and maximizing opportunity.",
     },
     {
-      icon: "/goal-based-investing-icon.png",
+      icon: "/icons/goalBasedInvesting.png",
       title: "Goal-Based Investing",
       description: "You choose the Goal, and the model portfolio provides an investment path that you can follow.",
     },
@@ -53,7 +55,7 @@ export const ModalPortfolioList = () => {
           <SectionHeading
             title="Model Portfolios"
             subtitle="Smart investment strategies for every investor"
-            className="mb-6"
+            className="mb-8"
           />
           <p className="text-center mx-auto text-lg mb-8">
             Model portfolios offer a simpler way to invest in a market that's filled with options and increasingly
@@ -70,9 +72,11 @@ export const ModalPortfolioList = () => {
                 className="bg-white rounded-md shadow-md pt-10 pb-6 px-4 relative border-t-4 border-[#2a2e86]"
               >
                 <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-white p-2 rounded-full border shadow-md">
-                  <img
-                    src={feature.icon || "/placeholder.svg"}
+                  <Image
+                    src={feature.icon}
                     alt={feature.title}
+                    width={40}
+                    height={40}
                     className="h-10 w-10 object-contain"
                   />
                 </div>
@@ -97,8 +101,7 @@ export const ModalPortfolioList = () => {
         <div className="mx-auto grid container grid-cols-1 gap-6 sm:grid-cols-2">
           <Card
             title="SIP Portfolio"
-            subtitle="Designed for busy professionals, our SIP portfolio offers a systematic approach to wealth building with carefully selected stocks for consistent growth."
-          />
+            subtitle="Designed for busy professionals, our SIP portfolio offers a systematic approach to wealth building with carefully selected stocks for consistent growth." className={undefined}          />
           <Card
             title="Growth Portfolio"
             subtitle="Focused on high-growth opportunities across emerging sectors, this portfolio aims to deliver above-market returns with calculated risk exposure."
@@ -120,8 +123,14 @@ export const ModalPortfolioList = () => {
   )
 }
 
-const Card = ({ title, subtitle, className }) => {
-  const [isHovered, setIsHovered] = useState(false)
+type CardProps = {
+  title: string
+  subtitle: string
+  className?: string
+}
+
+const Card: React.FC<CardProps> = ({ title, subtitle, className }) => {
+  const [isHovered, setIsHovered] = React.useState(false)
 
   const handleHoverStart = () => setIsHovered(true)
   const handleHoverEnd = () => setIsHovered(false)

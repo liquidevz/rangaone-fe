@@ -160,7 +160,7 @@ export default function StockRecommendationPage() {
 
   return (
     <DashboardLayout>
-      {/* Header - RANGAONE WEALTH */}
+      {/* Header - RangaOne WEALTH */}
       <PageHeader title="RECOMMENDATIONS" subtitle="                             " />
       <div className="min-h-screen bg-white">
         <div className="max-w-6xl mx-auto px-4 py-6">

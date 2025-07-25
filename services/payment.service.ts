@@ -235,7 +235,7 @@ export const paymentService = {
 
     const options = {
       key: razorpayKey,
-      name: "Rangaone Finwala",
+      name: "RangaOne Finwala",
       description: `${
         "planType" in orderData ? orderData.planType || "Monthly" : "Monthly"
       } Subscription Payment`,

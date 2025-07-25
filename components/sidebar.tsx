@@ -40,7 +40,7 @@ const navigationItems = [
       {
         label: "RangaOne Wealth",
         icon: <Briefcase className="h-6 w-6" />,
-        href: "/rangaone-wealth",
+        href: "/RangaOne-wealth",
         badge: null,
       },
       {
@@ -146,14 +146,9 @@ export default function Sidebar({ isOpen, onClose, isCollapsed = false, onToggle
               !isCollapsed && "lg:w-full"
             )}>
               <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg ring-2 ring-blue-100">
-                <TrendingUp className="h-4 w-4 text-white" />
+                <img src="/logo.png" alt="RangaOne Finance Logo" className="h-6 w-auto" />
               </div>
-              {!isCollapsed && (
-                <div className="lg:block">
-                  <h2 className="text-sm font-bold text-gray-900 tracking-tight">RangaOne</h2>
-                  <p className="text-xs text-gray-500">Investment Platform</p>
-                </div>
-              )}
+              {/* Remove text branding, logo only */}
             </div>
 
             {/* Desktop collapse toggle

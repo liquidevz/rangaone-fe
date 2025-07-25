@@ -72,7 +72,7 @@ export default function EnhancedContactForm() {
                   </div>
                   <div className="ml-4">
                     <h4 className="text-base font-medium text-slate-800">Email</h4>
-                    <p className="text-slate-600">support@rangaonefinance.com</p>
+                    <p className="text-slate-600">support@RangaOnefinance.com</p>
                     <p className="text-slate-500 text-sm">We'll respond within 24 hours</p>
                   </div>
                 </div>

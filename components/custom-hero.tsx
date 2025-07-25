@@ -13,11 +13,11 @@ export default function CustomHero() {
         <div className="mx-auto flex max-w-7xl items-end justify-between p-4 md:p-8">
           <div className="pointer-events-auto">
             <h1 className="mb-6 max-w-4xl text-5xl font-black leading-[1.1] text-[#FFFFF0] md:text-7xl">
-              Smart Investing with <span className="text-blue-400">RANGAONE</span>
+              Smart Investing with <span className="text-blue-400">RangaOne</span>
             </h1>
             <p className="max-w-xl text-gray-200 md:text-lg">
               Expert financial guidance to help you navigate the markets and build wealth for the future. Join thousands
-              of successful investors who trust RANGAONE FINWALA.
+              of successful investors who trust RangaOne FINWALA.
             </p>
             <motion.button
               whileHover={{ scale: 1.05 }}

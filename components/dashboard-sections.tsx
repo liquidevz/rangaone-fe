@@ -75,13 +75,13 @@ export function MarketIndicesSection() {
 
 // Expert Recommendations Component
 export function ExpertRecommendationsSection() {
-  const [activeTab, setActiveTab] = useState("rangaoneWealth")
+  const [activeTab, setActiveTab] = useState("RangaOneWealth")
   const [modelPortfolioTips, setModelPortfolioTips] = useState<Tip[]>([])
   const [subscriptionAccess, setSubscriptionAccess] = useState<SubscriptionAccess | null>(null)
   const [loading, setLoading] = useState(false)
   const { isAuthenticated } = useAuth()
 
-  const rangaoneWealthRecommendations = [
+  const RangaOneWealthRecommendations = [
     {
       id: 1,
       title: "Will Sona BLW's EV Strategy Pay Off Despite Global Challenges ?",
@@ -192,7 +192,7 @@ export function ExpertRecommendationsSection() {
     <div className="bg-white border border-gray-200 rounded-lg p-4">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-gray-900">Expert Recommendations</h2>
-        <Link href="/rangaone-wealth">
+        <Link href="/RangaOne-wealth">
           <Button variant="outline" size="sm" className="text-blue-600 border-blue-600 hover:bg-blue-50">
             View All
           </Button>
@@ -201,12 +201,12 @@ export function ExpertRecommendationsSection() {
 
       <div className="flex space-x-2 mb-4">
         <Button
-          variant={activeTab === "rangaoneWealth" ? "default" : "outline"}
+          variant={activeTab === "RangaOneWealth" ? "default" : "outline"}
           size="sm"
-          onClick={() => setActiveTab("rangaoneWealth")}
-          className={activeTab === "rangaoneWealth" ? "bg-blue-600 text-[#FFFFF0]" : ""}
+          onClick={() => setActiveTab("RangaOneWealth")}
+          className={activeTab === "RangaOneWealth" ? "bg-blue-600 text-[#FFFFF0]" : ""}
         >
-          Rangaone Wealth
+          RangaOne Wealth
         </Button>
         <Button
           variant={activeTab === "modelPortfolio" ? "default" : "outline"}
@@ -219,8 +219,8 @@ export function ExpertRecommendationsSection() {
       </div>
 
       <div className="space-y-4">
-        {activeTab === "rangaoneWealth" ? (
-          rangaoneWealthRecommendations.map((rec) => (
+        {activeTab === "RangaOneWealth" ? (
+          RangaOneWealthRecommendations.map((rec) => (
             <div key={rec.id} className="space-y-2">
               <h3 className="text-sm font-medium text-gray-900 line-clamp-2">
                 {rec.title}
@@ -472,7 +472,7 @@ function ModelPortfolioTipCard({ tip }: { tip: Tip }) {
     if (portfolioId) {
       router.push(`/model-portfolios/${portfolioId}/tips/${tip._id}`)
     } else {
-      router.push(`/rangaone-wealth/recommendation/${tip._id}`)
+      router.push(`/RangaOne-wealth/recommendation/${tip._id}`)
     }
   }
   

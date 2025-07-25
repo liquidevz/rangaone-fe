@@ -100,12 +100,12 @@ export default function PricingSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-4xl lg:text-8xl font-semibold text-gray-900 mb-4 font-times-new-roman">
+          <h2 className="text-3xl lg:text-8xl font-semibold text-gray-900 mb-4 font-times-new-roman">
             RANGAONE WEALTH
           </h2>
           <div className="w-24 h-1 bg-gradient-to-r from-blue-600 to-indigo-600 mx-auto rounded-full mb-6"></div>
-          <p className="text-lg lg:text-xl text-gray-700 max-w-4xl mx-auto leading-relaxed mb-8">
-            Welcome to Rangaone Wealth – your way to smarter investing and bigger gains! 
+          <p className="text-xs lg:text-xl font-bold text-gray-700 max-w-5xl mx-auto leading-relaxed mb-8">
+            Welcome to RangaOne Wealth – your way to smarter investing and bigger gains! 
             Stay ahead and make every move impactful—join now and start building unstoppable wealth! 
           </p>
           

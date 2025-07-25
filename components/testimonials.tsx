@@ -16,7 +16,7 @@ export default function Testimonials() {
               </div>
             </div>
             <p className="text-gray-600">
-              "RANGAONE FINWALA has transformed my investment strategy. Their expert recommendations have consistently
+              "RangaOne FINWALA has transformed my investment strategy. Their expert recommendations have consistently
               outperformed the market."
             </p>
             <div className="flex text-yellow-400 mt-4">★★★★★</div>
@@ -50,7 +50,7 @@ export default function Testimonials() {
               </div>
             </div>
             <p className="text-gray-600">
-              "I've tried several investment platforms, but RANGAONE FINWALA stands out for their research quality and
+              "I've tried several investment platforms, but RangaOne FINWALA stands out for their research quality and
               customer service."
             </p>
             <div className="flex text-yellow-400 mt-4">★★★★★</div>

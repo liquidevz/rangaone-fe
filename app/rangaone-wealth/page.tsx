@@ -41,7 +41,7 @@ const parseBuyRange = (buyRange: string) => {
   return { min: value || 0, max: value || 0 };
 };
 
-export default function RangaoneWealth() {
+export default function RangaOneWealth() {
   const [allTips, setAllTips] = useState<Tip[]>([]);
   const [activeTips, setActiveTips] = useState<Tip[]>([]);
   const [closedTips, setClosedTips] = useState<Tip[]>([]);
@@ -195,7 +195,7 @@ export default function RangaoneWealth() {
 
   // Navigation handler for tips
   const handleTipClick = (tipId: string) => {
-    router.push(`/rangaone-wealth/recommendation/${tipId}`);
+    router.push(`/RangaOne-wealth/recommendation/${tipId}`);
   };
 
   // Loading skeleton
@@ -204,7 +204,7 @@ export default function RangaoneWealth() {
       <DashboardLayout userId="1">
         <div className="space-y-8">
           <PageHeader
-            title="Rangaone Wealth"
+            title="RangaOne Wealth"
             subtitle="Expert stock recommendations and portfolio management"
           />
           <div className="space-y-8">

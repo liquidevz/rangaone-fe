@@ -3,13 +3,16 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { Check, ChevronRight, Star, ShoppingCart } from "lucide-react"
+import { Check, ChevronRight, Star, ShoppingCart, X } from "lucide-react"
 import { motion } from "framer-motion"
 import { useEffect, useState } from "react"
 import { useAuth } from "@/components/auth/auth-context"
 import { useCart } from "@/components/cart/cart-context"
 import { useToast } from "@/components/ui/use-toast"
 import { bundleService, Bundle } from "@/services/bundle.service"
+import { Navbar } from "@/components/navbar"
+import StackedCardTestimonials from "@/components/stacked-card-testimonials"
+import PricingTable from "@/components/pricingComponents"
 
 // Animation variants
 const fadeIn = {
@@ -87,13 +90,14 @@ export default function PremiumSubscriptionPage() {
   const isInCart = premiumBundle ? hasBundle(premiumBundle._id) : false
 
   return (
-    <main className="min-h-screen bg-[#1a1a1a] overflow-x-hidden">
+    <main className="min-h-screen overflow-x-hidden bg-gradient-to-br from-[#515151] to-[#333333]">
       <ScrollToTop />
+      <Navbar variant="premium" />
 
       {/* Hero Section */}
-      <section className="relative pt-24 pb-16 overflow-hidden">
+      <section className="relative pt-20 sm:pt-32 pb-12 sm:pb-16 overflow-hidden px-4 sm:px-6 lg:px-24">
         {/* Background gradient - using the new gradient */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#1e4e45] via-[#7a8c3b] to-[#ffc107] z-0"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#135058] to-[#FFCB50] z-0"></div>
 
         {/* Animated background elements */}
         <div className="absolute inset-0 z-0 opacity-10">
@@ -110,34 +114,38 @@ export default function PremiumSubscriptionPage() {
         </div>
 
         <div className="container mx-auto px-4 relative z-10">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+          <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-center">
             <motion.div
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.7, delay: 0.2 }}
             >
-              <h1 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900 leading-tight">
-                At RangaOne
-                <br />
-                <span className="text-[#1e4e45]">Your Growth, Our Priority</span>
-              </h1>
-              <div className="w-20 h-1 bg-[#1e4e45] mb-6 rounded-full"></div>
-              <p className="text-gray-800 mb-6 text-lg leading-relaxed">
-                Rangaone Wealth <span className="font-bold text-gray-900">PREMIUM</span> - Elevate Your Investing Game!
-                For those who don't want to be limited to basic features. Upgrade to gain access to our exclusive
-                premium features, designed to give you an edge in the market.
+              <div className="p-4 sm:p-6 rounded-lg mb-4 sm:mb-6 bg-gradient-to-r from-[#333333] via-[#230B0296] to-[#00000000]">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight text-[#FFD700]">
+                  At RangaOne
+                  <span className="block">Your Growth, Our Priority</span>
+                </h1>
+              </div>
+              <div className="w-16 sm:w-20 h-1 bg-[#1e4e45] mb-4 sm:mb-6 rounded-full"></div>
+              <p className="text-white mb-4 sm:mb-6 text-sm sm:text-base lg:text-lg leading-relaxed">
+                Rangaone Wealth <b className="font-extrabold">PREMIUM</b> – Elevate Your Investing Game! For those who
+                seek more than just market returns, Rangaone Wealth Premium is designed to
+                give you <b className="font-extrabold">exclusive, high-quality stock insights, advanced strategies, and direct
+                access to expert guidance</b>. This isn\'t just an investment plan - it\'s
+                your <b className="font-extrabold">personalized roadmap to wealth creation</b> with premium perks that set you
+                apart from regular investors.
               </p>
-              <p className="text-[#1e4e45] mb-8 italic">
-                Here's what makes <span className="font-semibold">Rangaone Wealth Premium</span> truly special:
+              <p className="text-gray-300 mb-6 sm:mb-8 italic text-sm sm:text-base">
+                Here\'s what makes <span className="font-semibold">Rangaone Wealth Premium</span> truly special:
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Link
                     href="/#pricing"
-                    className="bg-[#1e4e45] hover:bg-[#183a33] text-[#FFFFF0] font-bold py-4 px-10 rounded-full transition-all inline-flex items-center shadow-lg hover:shadow-[#1e4e45]/30"
+                    className="bg-[#1a1a1a] hover:bg-gray-800 text-[#FFD700] font-bold py-3 sm:py-4 px-6 sm:px-10 rounded-full transition-all inline-flex items-center justify-center shadow-lg hover:shadow-[#1a1a1a]/30 text-sm sm:text-base"
                   >
                     <span>BUY NOW</span>
-                    <ChevronRight className="ml-2 h-5 w-5" />
+                    <ChevronRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                   </Link>
                 </motion.div>
 
@@ -146,13 +154,13 @@ export default function PremiumSubscriptionPage() {
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleAddToCart("monthly")}
                   disabled={isInCart || loading}
-                  className={`font-bold py-4 px-10 rounded-full transition-all inline-flex items-center shadow-lg border-2 ${
+                  className={`font-bold py-3 sm:py-4 px-6 sm:px-10 rounded-full transition-all inline-flex items-center justify-center shadow-lg border-2 text-sm sm:text-base ${
                     isInCart
                       ? "bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed"
-                      : "bg-transparent border-[#1e4e45] text-[#1e4e45] hover:bg-[#1e4e45] hover:text-[#FFFFF0]"
+                      : "bg-transparent border-[#FFD700] text-[#FFD700] hover:bg-[#FFD700] hover:text-[#1a1a1a]"
                   }`}
                 >
-                  <ShoppingCart className="mr-2 h-5 w-5" />
+                  <ShoppingCart className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                   <span>{isInCart ? "In Cart" : "Add to Cart"}</span>
                 </motion.button>
               </div>
@@ -162,12 +170,12 @@ export default function PremiumSubscriptionPage() {
               initial={{ opacity: 0, x: 30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.7, delay: 0.4 }}
-              className="relative"
+              className="relative mt-8 md:mt-0"
             >
-              <div className="absolute -inset-4 bg-[#1e4e45]/20 rounded-2xl blur-xl z-0"></div>
+              <div className="absolute -inset-2 sm:-inset-4 bg-[#1e4e45]/20 rounded-2xl blur-xl z-0"></div>
               <div className="relative z-10 overflow-hidden rounded-2xl shadow-2xl">
                 <Image
-                  src="/bull-statue-gold.jpg"
+                  src="premium-subscription/premium_bull.jpg"
                   alt="Golden Bull Statue"
                   width={600}
                   height={400}
@@ -184,7 +192,7 @@ export default function PremiumSubscriptionPage() {
       <div className="w-full bg-[#1a1a1a] py-3 border-t border-b border-[#7a8c3b]/30 overflow-hidden">
         <div className="whitespace-nowrap animate-marquee">
           <span className="inline-block mx-4 text-[#7a8c3b] font-semibold">
-            Banner Banner Banner Banner Banner Banner Banner Banner Banner Banner Banner Banner
+            Banner Banner Banner Banner Banner Banner Banner Banner Banner Banner Banner Banner Banner
           </span>
           <span className="inline-block mx-4 text-[#7a8c3b] font-semibold">
             Banner Banner Banner Banner Banner Banner Banner Banner Banner Banner Banner Banner
@@ -193,7 +201,7 @@ export default function PremiumSubscriptionPage() {
       </div>
 
       {/* Features Overview */}
-      <section className="py-16 bg-[#222]">
+      <section className="py-16">
         <div className="container mx-auto px-4">
           <motion.div
             initial="hidden"
@@ -202,16 +210,17 @@ export default function PremiumSubscriptionPage() {
             variants={fadeIn}
             className="text-center mb-16"
           >
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-[#FFFFF0]">
-              Why become <span className="text-[#7a8c3b]">Premium</span>?
+            <h2 className="text-5xl md:text-7xl font-bold mb-6 text-[#FFFFF0]">
+              Why become <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] to-[#FFC706]">Premium</span>?
             </h2>
-            <div className="w-24 h-1 bg-gradient-to-r from-[#1e4e45] to-[#ffc107] mx-auto mb-6 rounded-full"></div>
-            <p className="text-gray-300 max-w-2xl mx-auto text-lg">
+            <div className="w-24 h-1 bg-gradient-to-r from-[#FFD700] to-[#FFC706] mx-auto mb-6 rounded-full"></div>
+            <p className="text-gray-300 max-w-5xl mx-auto text-lg">
               Our Premium plan is designed for serious investors who want comprehensive tools and exclusive insights.
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {/* Desktop Grid */}
+          <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               {
                 title: "Premium Quality Stocks",
@@ -252,11 +261,71 @@ export default function PremiumSubscriptionPage() {
                 transition={{ delay: index * 0.1 }}
                 className="bg-[#2a2a2a] rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow border border-[#7a8c3b]/10 group hover:border-[#7a8c3b]/30"
               >
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="text-xl font-bold mb-2 text-[#7a8c3b]">{feature.title}</h3>
-                <p className="text-gray-400 group-hover:text-gray-300 transition-colors">{feature.description}</p>
+                <div className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-[#FFD700] mb-4">
+                  <span className="text-lg font-bold text-[#FFD700]">{index + 1}</span>
+                </div>
+                <h3 className="text-xl font-bold mb-2 text-[#FFD700]">{feature.title}</h3>
+                <p className="text-white group-hover:text-gray-300 transition-colors">{feature.description}</p>
               </motion.div>
             ))}
+          </div>
+
+          {/* Mobile Swiper */}
+          <div className="md:hidden overflow-hidden">
+            <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {[
+                {
+                  title: "Premium Quality Stocks",
+                  description: "20-25 meticulously researched stocks with exceptional potential",
+                  icon: "📈",
+                },
+                {
+                  title: "Short-Term/Swing Trades",
+                  description: "10 high-potential trade recommendations each month",
+                  icon: "⚡",
+                },
+                {
+                  title: "Exclusive Model Portfolios",
+                  description: "NiftyPlus & Multibagger portfolios for diverse strategies",
+                  icon: "💼",
+                },
+                {
+                  title: "IPO Recommendations",
+                  description: "Exclusive analysis of upcoming public offerings",
+                  icon: "🚀",
+                },
+                {
+                  title: "Call Support",
+                  description: "Direct access to our expert analysts",
+                  icon: "📞",
+                },
+                {
+                  title: "Free Live Webinars",
+                  description: "Interactive sessions with top analysts",
+                  icon: "🎓",
+                },
+              ].map((feature, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-100px" }}
+                  transition={{ delay: index * 0.1 }}
+                  className="bg-[#2a2a2a] rounded-xl shadow-lg p-6 border border-[#7a8c3b]/10 flex-shrink-0 w-80 snap-center"
+                >
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-[#FFD700] mb-4">
+                    <span className="text-lg font-bold text-[#FFD700]">{index + 1}</span>
+                  </div>
+                  <h3 className="text-xl font-bold mb-2 text-[#FFD700]">{feature.title}</h3>
+                  <p className="text-white">{feature.description}</p>
+                </motion.div>
+              ))}
+            </div>
+            <div className="flex justify-center mt-4 gap-2">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div key={index} className="w-2 h-2 rounded-full bg-[#FFD700]/30"></div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -272,41 +341,45 @@ export default function PremiumSubscriptionPage() {
             className="space-y-32"
           >
             {/* Feature 1 */}
-            <motion.div variants={fadeIn} className="grid md:grid-cols-2 gap-12 items-center">
+            <motion.div variants={fadeIn} className="grid md:grid-cols-2 gap-12 items-center p-8">
               <div className="relative order-2 md:order-1">
                 <div className="absolute -inset-4 bg-gradient-to-r from-[#1e4e45]/10 to-[#ffc107]/10 rounded-2xl blur-lg z-0"></div>
                 <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#7a8c3b]/20">
                   <Image
-                    src="/premium-stocks.png"
+                    src="/premium-subscription/qualityStocks.jpg"
                     alt="Premium Stocks"
                     width={600}
                     height={400}
                     className="w-full h-auto"
                   />
                 </div>
-                <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-gradient-to-r from-[#1e4e45] to-[#7a8c3b] rounded-full flex items-center justify-center text-[#FFFFF0] font-bold text-xl z-20">
+                <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-[#FFC706] rounded-full flex items-center justify-center text-black font-bold text-2xl z-20">
                   20-25
                 </div>
               </div>
               <div className="order-1 md:order-2">
-                <div className="inline-block px-4 py-1 bg-gradient-to-r from-[#1e4e45]/10 to-[#7a8c3b]/10 text-[#7a8c3b] rounded-full text-sm font-semibold mb-4">
+              <div className="w-fit bg-[#f2be74] rounded-full justify-center mb-2">
+                  <div className=" content-center inline-block px-4 py-2 text-transparent bg-clip-text bg-[#9c600c] rounded-full text-sm font-semibold ">
                   Feature 1
+                  </div>
                 </div>
-                <h3 className="text-3xl font-bold mb-6 text-[#7a8c3b]">Premium Quality Stocks</h3>
-                <p className="text-gray-300 mb-6 text-lg leading-relaxed">
-                  Our team goes beyond basic market analysis to find the finest high-growth stocks with exceptional
-                  potential. We provide you with 20-25 meticulously researched stocks that have robust fundamentals,
-                  strong growth trajectories, and are strategically timed for optimal performance.
+                <h3 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] to-[#FFC706]">Get 20-25 Premium Quality Stocks</h3>
+                <p className="text-gray-300 mb-3 text-lg leading-relaxed">
+                Why settle for less when you can have the best? In the Basic Plan, 
+                you receive Only 10-15 quality stocks, but with Premium, you unlock 
+                20-25 high-potential stocks, carefully handpicked through deeper analysis 
+                and sharper insights. This means more opportunities, higher accuracy, and better 
+                diversification, giving you the ultimate edge in wealth creation
                 </p>
-                <ul className="space-y-3">
+                <ul className="space-y-3 p-8">
                   {[
-                    "Comprehensive fundamental analysis",
-                    "Strong growth trajectories",
-                    "Strategic timing for optimal performance",
-                    "Detailed rationale and analysis",
+                    "Advanced Stock Selection",
+                    "Elite Level Research Edge",
+                    "Superior Growth Potential Stocks",
+                    "Legacy Wealth Creation",
                   ].map((item, i) => (
                     <li key={i} className="flex items-start">
-                      <span className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-[#1e4e45] to-[#7a8c3b] rounded-full flex items-center justify-center mr-3 mt-0.5">
+                      <span className="flex-shrink-0 w-6 h-6 bg-[#FFC706] rounded-full flex items-center justify-center mr-3 mt-0.5">
                         <Check className="h-3.5 w-3.5 text-[#FFFFF0]" />
                       </span>
                       <span className="text-gray-300">{item}</span>
@@ -317,18 +390,21 @@ export default function PremiumSubscriptionPage() {
             </motion.div>
 
             {/* Feature 2 */}
-            <motion.div variants={fadeIn} className="grid md:grid-cols-2 gap-12 items-center">
+            <motion.div variants={fadeIn} className="grid md:grid-cols-2 gap-12 items-center p-8">
               <div>
-                <div className="inline-block px-4 py-1 bg-gradient-to-r from-[#1e4e45]/10 to-[#7a8c3b]/10 text-[#7a8c3b] rounded-full text-sm font-semibold mb-4">
+                <div className="w-fit bg-[#f2be74] rounded-full justify-center mb-2">
+                  <div className=" content-center inline-block px-4 py-2 text-transparent bg-clip-text bg-[#9c600c] rounded-full text-sm font-semibold ">
                   Feature 2
+                  </div>
                 </div>
-                <h3 className="text-3xl font-bold mb-6 text-[#7a8c3b]">Short-Term/Swing Trades</h3>
-                <p className="text-gray-300 mb-6 text-lg leading-relaxed">
+                
+                <h3 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] to-[#FFC706]">Short-Term/Swing Trades</h3>
+                <p className="text-gray-300 mb-3 text-lg leading-relaxed">
                   Timing is everything in trading, and with Premium, we give double the short-term opportunities
                   compared to our basic plan. Our expert technical analysts identify 10 high-potential short-term trades
                   each month, complete with precise entry and exit points, stop-loss levels, and target prices.
                 </p>
-                <ul className="space-y-3">
+                <ul className="space-y-3 p-8">
                   {[
                     "10 high-potential trade recommendations",
                     "Precise entry and exit points",
@@ -336,7 +412,7 @@ export default function PremiumSubscriptionPage() {
                     "Strategic timing for market volatility",
                   ].map((item, i) => (
                     <li key={i} className="flex items-start">
-                      <span className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-[#1e4e45] to-[#7a8c3b] rounded-full flex items-center justify-center mr-3 mt-0.5">
+                      <span className="flex-shrink-0 w-6 h-6 bg-[#FFC706] rounded-full flex items-center justify-center mr-3 mt-0.5">
                         <Check className="h-3.5 w-3.5 text-[#FFFFF0]" />
                       </span>
                       <span className="text-gray-300">{item}</span>
@@ -348,86 +424,91 @@ export default function PremiumSubscriptionPage() {
                 <div className="absolute -inset-4 bg-gradient-to-r from-[#1e4e45]/10 to-[#7a8c3b]/10 rounded-2xl blur-lg z-0"></div>
                 <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#7a8c3b]/20">
                   <Image
-                    src="/premium-swing-trades.png"
+                    src="/premium-subscription/10SwingTrades.jpg"
                     alt="Premium Swing Trades"
                     width={600}
                     height={400}
                     className="w-full h-auto"
                   />
                 </div>
-                <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-gradient-to-r from-[#1e4e45] to-[#7a8c3b] rounded-full flex items-center justify-center text-[#FFFFF0] font-bold text-xl z-20">
+                <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-[#FFC706] rounded-full flex items-center justify-center text-black font-bold text-2xl z-20">
                   10
                 </div>
               </div>
             </motion.div>
 
             {/* Feature 3 */}
-            <motion.div variants={fadeIn} className="grid md:grid-cols-2 gap-12 items-center">
+            <motion.div variants={fadeIn} className="grid md:grid-cols-2 gap-12 items-center p-8">
               <div className="relative order-2 md:order-1">
                 <div className="absolute -inset-4 bg-gradient-to-r from-[#1e4e45]/10 to-[#7a8c3b]/10 rounded-2xl blur-lg z-0"></div>
                 <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#7a8c3b]/20">
                   <Image
-                    src="/model-portfolios.png"
-                    alt="Model Portfolios"
+                    src="/premium-subscription/IPO.jpg"
+                    alt="Call Support"
                     width={600}
                     height={400}
                     className="w-full h-auto"
                   />
                 </div>
-                <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-gradient-to-r from-[#1e4e45] to-[#7a8c3b] rounded-full flex items-center justify-center text-[#FFFFF0] font-bold text-xl z-20">
-                  2
-                </div>
               </div>
               <div className="order-1 md:order-2">
-                <div className="inline-block px-4 py-1 bg-gradient-to-r from-[#1e4e45]/10 to-[#7a8c3b]/10 text-[#7a8c3b] rounded-full text-sm font-semibold mb-4">
+              <div className="w-fit bg-[#f2be74] rounded-full justify-center mb-2">
+                  <div className=" content-center inline-block px-4 py-2 text-transparent bg-clip-text bg-[#9c600c] rounded-full text-sm font-semibold ">
                   Feature 3
+                  </div>
                 </div>
-                <h3 className="text-3xl font-bold mb-6 text-[#7a8c3b]">Exclusive Model Portfolios</h3>
-                <p className="text-gray-300 mb-6 text-lg leading-relaxed">
-                  Get exclusive access to our strategically curated portfolios tailored for long-term wealth creation:
+                <h3 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] via-[#FFC107] to-[#D4AF37]">
+                  IPO Recommendations
+                  <span className="block text-xl mt-1 font-normal text-gray-400">(Direct Access to Experts)</span>
+                </h3>
+                <p className="text-gray-300 mb-3 text-lg leading-relaxed">
+                Be among the first to invest in the next big opportunity! Our premium subscribers 
+                get exclusive IPO recommendations with insights on which ones are worth investing 
+                in and which ones to avoid. Get detailed analysis, valuation breakdowns, and subscription 
+                strategies so you never miss a high-potential listing.
                 </p>
-
-                <div className="mb-6 p-4 bg-[#2a2a2a] rounded-lg border border-[#7a8c3b]/20">
-                  <h4 className="text-xl font-bold mb-2 text-[#7a8c3b]">NiftyPlus Portfolio</h4>
-                  <p className="text-gray-300">
-                    A carefully constructed portfolio designed for steady and consistent returns. It's built around core
-                    blue-chip stocks with reliable dividends, enhanced with select growth opportunities to outperform
-                    the market while maintaining stability.
-                  </p>
-                </div>
-
-                <div className="p-4 bg-[#2a2a2a] rounded-lg border border-[#7a8c3b]/20">
-                  <h4 className="text-xl font-bold mb-2 text-[#7a8c3b]">Multibagger Portfolio</h4>
-                  <p className="text-gray-300">
-                    Aimed to deliver higher growth! This portfolio consists of meticulously researched emerging
-                    companies with exceptional growth potential, positioned to multiply your investment over time with
-                    managed risk.
-                  </p>
-                </div>
+                <ul className="space-y-3 p-8">
+                  {[
+                    "Exclusive IPO Recommendations",
+                    "Allotment Maximisation Strategy",
+                    "Apply-or-Avoid guidance",
+                    "Expert Valuation Insights",
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start">
+                      <span className="flex-shrink-0 w-6 h-6 bg-[#FFC706] rounded-full flex items-center justify-center mr-3 mt-0.5">
+                        <Check className="h-3.5 w-3.5 text-[#FFFFF0]" />
+                      </span>
+                      <span className="text-gray-300">{item}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </motion.div>
 
             {/* Feature 4 */}
-            <motion.div variants={fadeIn} className="grid md:grid-cols-2 gap-12 items-center">
+            <motion.div variants={fadeIn} className="grid md:grid-cols-2 gap-12 items-center p-8">
               <div>
-                <div className="inline-block px-4 py-1 bg-gradient-to-r from-[#1e4e45]/10 to-[#7a8c3b]/10 text-[#7a8c3b] rounded-full text-sm font-semibold mb-4">
+              <div className="w-fit bg-[#f2be74] rounded-full justify-center mb-2">
+                  <div className=" content-center inline-block px-4 py-2 text-transparent bg-clip-text bg-[#9c600c] rounded-full text-sm font-semibold ">
                   Feature 4
+                  </div>
                 </div>
-                <h3 className="text-3xl font-bold mb-6 text-[#7a8c3b]">IPO Recommendations</h3>
-                <p className="text-gray-300 mb-6 text-lg leading-relaxed">
-                  Be among the first to know of the most promising IPO opportunities with our exclusive IPO analysis
-                  service. Our team conducts thorough research on upcoming public offerings and provides detailed
-                  recommendations on which IPOs are worth investing in and which to avoid.
+                <h3 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] to-[#FFC706]">Call Support <br className="text-xs"/>(Direct Access to Experts)</h3>
+                <p className="text-gray-300 mb-3 text-lg leading-relaxed">
+                Your investing journey should never feel like a guessing game. With Premium, 
+                you get priority call support where you can discuss your queries, seek clarifications, 
+                and get direct insights from our experts. You’re not just another investor—you’re part of 
+                an exclusive group that gets expert guidance on demand
                 </p>
-                <ul className="space-y-3">
+                <ul className="space-y-3 p-8">
                   {[
-                    "Comprehensive business model analysis",
-                    "Detailed financial evaluation",
-                    "Valuation assessment",
-                    "Growth trajectory projections",
+                    "Priority Call Support",
+                    "Expert-Led Guidance",
+                    "Query Resolution Access",
+                    "Exclusive Member Benefits",
                   ].map((item, i) => (
                     <li key={i} className="flex items-start">
-                      <span className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-[#1e4e45] to-[#7a8c3b] rounded-full flex items-center justify-center mr-3 mt-0.5">
+                      <span className="flex-shrink-0 w-6 h-6 bg-[#FFC706] rounded-full flex items-center justify-center mr-3 mt-0.5">
                         <Check className="h-3.5 w-3.5 text-[#FFFFF0]" />
                       </span>
                       <span className="text-gray-300">{item}</span>
@@ -439,7 +520,7 @@ export default function PremiumSubscriptionPage() {
                 <div className="absolute -inset-4 bg-gradient-to-r from-[#1e4e45]/10 to-[#7a8c3b]/10 rounded-2xl blur-lg z-0"></div>
                 <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#7a8c3b]/20">
                   <Image
-                    src="/ipo-recommendations.png"
+                    src="/premium-subscription/CallSupport.jpg"
                     alt="IPO Recommendations"
                     width={600}
                     height={400}
@@ -450,12 +531,12 @@ export default function PremiumSubscriptionPage() {
             </motion.div>
 
             {/* Feature 5 */}
-            <motion.div variants={fadeIn} className="grid md:grid-cols-2 gap-12 items-center">
+            <motion.div variants={fadeIn} className="grid md:grid-cols-2 gap-12 items-center p-8">
               <div className="relative order-2 md:order-1">
                 <div className="absolute -inset-4 bg-gradient-to-r from-[#1e4e45]/10 to-[#7a8c3b]/10 rounded-2xl blur-lg z-0"></div>
                 <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#7a8c3b]/20">
                   <Image
-                    src="/call-support.png"
+                    src="/premium-subscription/FreeLiveWebinars.jpg"
                     alt="Call Support"
                     width={600}
                     height={400}
@@ -464,79 +545,32 @@ export default function PremiumSubscriptionPage() {
                 </div>
               </div>
               <div className="order-1 md:order-2">
-                <div className="inline-block px-4 py-1 bg-gradient-to-r from-[#1e4e45]/10 to-[#7a8c3b]/10 text-[#7a8c3b] rounded-full text-sm font-semibold mb-4">
+              <div className="w-fit bg-[#f2be74] rounded-full justify-center mb-2">
+                  <div className=" content-center inline-block px-4 py-2 text-transparent bg-clip-text bg-[#9c600c] rounded-full text-sm font-semibold ">
                   Feature 5
+                  </div>
                 </div>
-                <h3 className="text-3xl font-bold mb-6 text-[#7a8c3b]">
-                  Call Support
-                  <span className="block text-xl mt-1 font-normal text-gray-400">(Direct Access to Experts)</span>
-                </h3>
-                <p className="text-gray-300 mb-6 text-lg leading-relaxed">
-                  Our premium service gives you direct access to our expert analysts. When markets get volatile or you
-                  need personalized guidance, simply schedule a call with our team.
+                <h3 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] to-[#FFC706]">
+                Free Live Webinars <br className="text-xs"/>– Learn, Interact & Grow! (Extra bonus)</h3>
+                <p className="text-gray-300 mb-3 text-lg leading-relaxed">
+                Most influencers offer chat support and pre-recorded videos, but we go beyond that! With Rangaone Wealth Premium, you get exclusive live webinars where our experts break down market trends, stock strategies, and upcoming opportunities—in real-time.*(more features chart)*
+                We don’t just share information; we take responsibility for answering your doubts, explaining concepts, and ensuring you truly understand the market. This isn’t just another webinar—it’s a premium experience designed to make you feel valued and empowered.
                 </p>
-                <ul className="space-y-3">
+                <ul className="space-y-3 p-8">
                   {[
-                    "One-on-one expert consultation",
-                    "Personalized investment guidance",
-                    "Strategy development for your goals",
-                    "Market volatility navigation",
+                    "Concept Clarity Sessions",
+                    "Real-time Insights",
+                    "Doubt Clearing Sessions",
+                    "Actionable Market Breakdowns",
                   ].map((item, i) => (
                     <li key={i} className="flex items-start">
-                      <span className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-[#1e4e45] to-[#7a8c3b] rounded-full flex items-center justify-center mr-3 mt-0.5">
+                      <span className="flex-shrink-0 w-6 h-6 bg-[#FFC706] rounded-full flex items-center justify-center mr-3 mt-0.5">
                         <Check className="h-3.5 w-3.5 text-[#FFFFF0]" />
                       </span>
                       <span className="text-gray-300">{item}</span>
                     </li>
                   ))}
                 </ul>
-              </div>
-            </motion.div>
-
-            {/* Feature 6 */}
-            <motion.div variants={fadeIn} className="grid md:grid-cols-2 gap-12 items-center">
-              <div>
-                <div className="inline-block px-4 py-1 bg-gradient-to-r from-[#1e4e45]/10 to-[#7a8c3b]/10 text-[#7a8c3b] rounded-full text-sm font-semibold mb-4">
-                  Feature 6
-                </div>
-                <h3 className="text-3xl font-bold mb-6 text-[#7a8c3b]">
-                  Free Live Webinars
-                  <span className="block text-xl mt-1 font-normal text-gray-400">
-                    — Learn, Interact & Grow! (Extra bonus)
-                  </span>
-                </h3>
-                <p className="text-gray-300 mb-6 text-lg leading-relaxed">
-                  Attend exclusive live "Ask me anything" sessions with our top analysts! Our interactive webinars give
-                  you direct access to our expert team, where you can ask questions, gain insights, and deepen your
-                  market knowledge.
-                </p>
-                <ul className="space-y-3">
-                  {[
-                    "Interactive Q&A sessions",
-                    "Market trends and sector analysis",
-                    "Investment strategy deep dives",
-                    "Recordings for future reference",
-                  ].map((item, i) => (
-                    <li key={i} className="flex items-start">
-                      <span className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-[#1e4e45] to-[#7a8c3b] rounded-full flex items-center justify-center mr-3 mt-0.5">
-                        <Check className="h-3.5 w-3.5 text-[#FFFFF0]" />
-                      </span>
-                      <span className="text-gray-300">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="relative">
-                <div className="absolute -inset-4 bg-gradient-to-r from-[#1e4e45]/10 to-[#7a8c3b]/10 rounded-2xl blur-lg z-0"></div>
-                <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#7a8c3b]/20">
-                  <Image
-                    src="/live-webinars.png"
-                    alt="Live Webinars"
-                    width={600}
-                    height={400}
-                    className="w-full h-auto"
-                  />
-                </div>
               </div>
             </motion.div>
           </motion.div>
@@ -544,7 +578,7 @@ export default function PremiumSubscriptionPage() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-20 bg-[#222]">
+      <section className="py-20">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -561,128 +595,14 @@ export default function PremiumSubscriptionPage() {
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                quote:
-                  "The exclusive model portfolios have been a game-changer for my long-term investment strategy. The returns have been exceptional.",
-                name: "Amit K.",
-                title: "Investment Banker",
-                rating: 5,
-                avatar: "/avatar-4.jpg",
-              },
-              {
-                quote:
-                  "The IPO recommendations have helped me get in on the ground floor of some incredible companies. The analysis is thorough and spot-on.",
-                name: "Neha R.",
-                title: "Financial Advisor",
-                rating: 5,
-                avatar: "/avatar-5.jpg",
-              },
-              {
-                quote:
-                  "The direct access to analysts has been invaluable during market volatility. Their guidance has helped me navigate uncertain times with confidence.",
-                name: "Sanjay M.",
-                title: "Business Owner",
-                rating: 5,
-                avatar: "/avatar-6.jpg",
-              },
-            ].map((testimonial, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-[#2a2a2a] p-8 rounded-xl shadow-lg relative border border-[#7a8c3b]/10"
-              >
-                <div className="absolute top-0 right-0 transform translate-x-2 -translate-y-2">
-                  <div className="text-6xl text-[#7a8c3b] opacity-20">"</div>
-                </div>
-                <p className="text-gray-300 mb-6 relative z-10">{testimonial.quote}</p>
-                <div className="flex items-center">
-                  <div className="w-12 h-12 rounded-full overflow-hidden mr-4 bg-gray-700">
-                    <Image
-                      src={testimonial.avatar || "/placeholder.svg"}
-                      alt={testimonial.name}
-                      width={48}
-                      height={48}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-[#FFFFF0]">{testimonial.name}</h4>
-                    <p className="text-gray-400 text-sm">{testimonial.title}</p>
-                  </div>
-                </div>
-                <div className="flex mt-4">
-                  {Array(testimonial.rating)
-                    .fill(0)
-                    .map((_, i) => (
-                      <Star key={i} className="h-4 w-4 text-[#ffc107] fill-[#ffc107]" />
-                    ))}
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          <StackedCardTestimonials />
         </div>
       </section>
 
-      {/* Comparison Table */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-[#FFFFF0]">Basic vs Premium</h2>
-            <div className="w-24 h-1 bg-gradient-to-r from-[#1e4e45] to-[#ffc107] mx-auto mb-6 rounded-full"></div>
-            <p className="text-gray-400 max-w-2xl mx-auto">
-              See how our Premium plan compares to the Basic plan and why it's worth the upgrade.
-            </p>
-          </motion.div>
+      {/* Pricing Section */}
+      <PricingTable />
 
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr>
-                  <th className="p-4 text-left text-gray-400 border-b border-gray-700"></th>
-                  <th className="p-4 text-center text-blue-400 border-b border-gray-700">
-                    <span className="block text-xl font-bold">Basic</span>
-                    <span className="text-sm text-gray-500">Essential Tools</span>
-                  </th>
-                  <th className="p-4 text-center text-[#7a8c3b] border-b border-gray-700">
-                    <span className="block text-xl font-bold">Premium</span>
-                    <span className="text-sm text-gray-500">Comprehensive Suite</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { feature: "Quality Stock Picks", basic: "10-15 stocks", premium: "20-25 stocks" },
-                  { feature: "Short-Term/Swing Trades", basic: "5 trades", premium: "10 trades" },
-                  { feature: "Model Portfolios", basic: "❌", premium: "✅ (2 exclusive portfolios)" },
-                  { feature: "IPO Recommendations", basic: "❌", premium: "✅" },
-                  { feature: "Call Support", basic: "❌", premium: "✅ (Direct access to experts)" },
-                  { feature: "Live Webinars", basic: "❌", premium: "✅ (Interactive sessions)" },
-                  { feature: "Entry & Exit Alerts", basic: "✅", premium: "✅ (Enhanced with detailed analysis)" },
-                  { feature: "Market Updates", basic: "✅", premium: "✅ (Priority access)" },
-                ].map((row, index) => (
-                  <tr key={index} className="border-b border-gray-700 hover:bg-[#2a2a2a]">
-                    <td className="p-4 text-left text-[#FFFFF0] font-medium">{row.feature}</td>
-                    <td className="p-4 text-center text-gray-400">{row.basic}</td>
-                    <td className="p-4 text-center text-gray-300">{row.premium}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
+      
       {/* CTA Section */}
       <section className="py-20 bg-gradient-to-r from-[#1e4e45] via-[#7a8c3b] to-[#ffc107] text-gray-900">
         <div className="container mx-auto px-4">
@@ -734,7 +654,7 @@ export default function PremiumSubscriptionPage() {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-20 bg-[#1a1a1a]">
+      <section className="py-20">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}

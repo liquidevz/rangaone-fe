@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Times New Roman", serif;
+  }
+}
+
 /* Checkout Description Styles for TinyMCE Content */
 .checkout-description {
   @apply text-sm text-gray-700;
@@ -210,6 +216,19 @@
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .text-soft-blue {
+    color: rgba(185, 217, 235, 0.55);
   }
 }
 

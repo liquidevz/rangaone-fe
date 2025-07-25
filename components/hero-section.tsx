@@ -40,7 +40,7 @@ export default function HeroSection() {
           transition={{ duration: 0.8 }}
           className="text-[#051838] text-lg md:text-xl max-w-3xl"
         >
-          At Rangaone - Your Growth, Our Priority, So we are here to help you create wealth sustainably and
+          At RangaOne - Your Growth, Our Priority, So we are here to help you create wealth sustainably and
           strategically.
         </motion.p>
 

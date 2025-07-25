@@ -850,7 +850,7 @@ export default function TipsCarousel({
       if (tip.portfolioId) {
         router.push(`/model-portfolios/${tip.portfolioId}/tips/${tip.id}`);
       } else {
-        router.push(`/rangaone-wealth/recommendation/${tip.id}`);
+        router.push(`/RangaOne-wealth/recommendation/${tip.id}`);
       }
     }
   };

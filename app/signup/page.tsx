@@ -164,7 +164,7 @@ export default function SignupPage() {
       <div className="hidden lg:flex flex-1 bg-[#001633] items-center justify-center p-8">
         <div className="text-center text-[#FFFFF0]">
           <h1 className="text-4xl font-bold mb-4">
-            Join Rangaone Finwala
+            Join RangaOne Finwala
           </h1>
           <p className="text-xl opacity-90 mb-8">
             Start your journey to financial success with expert portfolio management

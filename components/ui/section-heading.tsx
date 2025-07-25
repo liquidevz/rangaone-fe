@@ -18,7 +18,7 @@ export function SectionHeading({
   return (
     <div className={cn("mb-8", align === "center" && "text-center", align === "right" && "text-right", className)}>
       {subtitle && <p className={cn("text-sm text-gray-600 mb-2", subtitleClassName)}>{subtitle}</p>}
-      <h2 className="text-3xl md:text-4xl font-bold text-gray-900">{title}</h2>
+      <h2 className="text-7xl md:text-7xl font-bold text-gray-900">{title}</h2>
     </div>
   )
 }

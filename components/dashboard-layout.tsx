@@ -168,12 +168,7 @@ export default function DashboardLayout({
                 "lg:opacity-0 lg:pointer-events-none",
                 (sidebarCollapsed || !sidebarOpen) && "lg:opacity-100 lg:pointer-events-auto"
               )}>
-                <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg">
-                  <span className="text-[#FFFFF0] font-bold text-sm">R</span>
-                </div>
-                <div className="font-bold text-[#1e1b4b] text-sm">
-                  <div>RANGAONE</div>
-                </div>
+                <img src="/logo.png" alt="RangaOne Finance Logo" className="h-8 w-auto" />
               </div>
 
               {/* Search */}

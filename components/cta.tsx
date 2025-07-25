@@ -4,7 +4,7 @@ export default function CTA() {
       <div className="container mx-auto px-4 text-center">
         <h2 className="text-4xl font-bold mb-6">Ready to Start Investing?</h2>
         <p className="max-w-2xl mx-auto mb-10 text-gray-300">
-          Join thousands of investors who trust RANGAONE FINWALA for their financial future. Get access to expert
+          Join thousands of investors who trust RangaOne FINWALA for their financial future. Get access to expert
           recommendations, portfolio management, and personalized advice.
         </p>
         <div className="flex flex-col sm:flex-row justify-center gap-4">

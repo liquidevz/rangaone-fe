@@ -23,7 +23,7 @@ export function PageHeader({ title, subtitle, showBackButton = true }: PageHeade
           <span className="font-medium text-base">Back</span>
         </button>
       )}
-      <h1 className="text-5xl font-bold text-center">{title}</h1>
+      <h1 className="font-bold text-center text-7xl">{title}</h1>
       {subtitle && (
         <div className="text-center mt-2">
           <span className="text-lg">{subtitle}</span>

@@ -30,8 +30,8 @@ export interface LocalCart {
   lastUpdated: string;
 }
 
-const CART_STORAGE_KEY = "rangaone_local_cart";
-const CART_BACKUP_KEY = "rangaone_local_cart_backup";
+const CART_STORAGE_KEY = "RangaOne_local_cart";
+const CART_BACKUP_KEY = "RangaOne_local_cart_backup";
 
 export class LocalCartService {
   private static instance: LocalCartService;

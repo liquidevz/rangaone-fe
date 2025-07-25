@@ -96,7 +96,7 @@ export default function ContactFormSection() {
                 </div>
                 <div className="ml-4">
                   <h3 className="text-lg font-medium text-gray-900">Email</h3>
-                  <p className="text-gray-600">support@rangaonefinance.com</p>
+                  <p className="text-gray-600">support@RangaOnefinance.com</p>
                   <p className="text-gray-500 text-sm">We'll respond within 24 hours</p>
                 </div>
               </div>

@@ -13,8 +13,8 @@ import { Portfolio } from "@/lib/types"
 import { useAuth } from "@/components/auth/auth-context"
 import { useRouter } from "next/navigation";
 
-// Keep the rangaoneWealthRecommendations for the Rangaone Wealth tab
-const rangaoneWealthRecommendations = [
+// Keep the RangaOneWealthRecommendations for the RangaOne Wealth tab
+const RangaOneWealthRecommendations = [
   {
     id: 1,
     title: "Will Sona BLW's EV Strategy Pay Off Despite Global Challenges?",
@@ -60,7 +60,7 @@ const rangaoneWealthRecommendations = [
 ]
 
 export default function ExpertRecommendations() {
-  const [activeTab, setActiveTab] = useState("rangaoneWealth")
+  const [activeTab, setActiveTab] = useState("RangaOneWealth")
   const [portfolios, setPortfolios] = useState<Portfolio[]>([])
   const [modelPortfolioTips, setModelPortfolioTips] = useState<Tip[]>([])
   const [subscriptionAccess, setSubscriptionAccess] = useState<SubscriptionAccess | null>(null)
@@ -175,28 +175,28 @@ export default function ExpertRecommendations() {
     fetchModelPortfolioTips()
   }, [activeTab, portfolios, subscriptionAccess, isAuthenticated])
 
-  // Filter rangaone wealth recommendations based on subscription
-  const getFilteredRangaoneRecommendations = () => {
+  // Filter RangaOne wealth recommendations based on subscription
+  const getFilteredRangaOneRecommendations = () => {
     if (!isAuthenticated || !subscriptionAccess) {
       // Show only basic recommendations for non-authenticated users
-      return rangaoneWealthRecommendations.filter(rec => rec.category === "Basic")
+      return RangaOneWealthRecommendations.filter(rec => rec.category === "Basic")
     }
 
     if (subscriptionAccess.hasPremium) {
       // Premium users see all recommendations
-      return rangaoneWealthRecommendations
+      return RangaOneWealthRecommendations
     } else if (subscriptionAccess.hasBasic) {
       // Basic users see basic and social media recommendations
-      return rangaoneWealthRecommendations.filter(rec => 
+      return RangaOneWealthRecommendations.filter(rec => 
         rec.category === "Basic" || rec.category === "Social Media"
       )
     } else {
       // Individual portfolio users see basic recommendations
-      return rangaoneWealthRecommendations.filter(rec => rec.category === "Basic")
+      return RangaOneWealthRecommendations.filter(rec => rec.category === "Basic")
     }
   }
 
-  const recommendations = activeTab === "modelPortfolio" ? [] : getFilteredRangaoneRecommendations()
+  const recommendations = activeTab === "modelPortfolio" ? [] : getFilteredRangaOneRecommendations()
 
   const renderSubscriptionPrompt = () => {
     if (!isAuthenticated) {
@@ -269,7 +269,7 @@ export default function ExpertRecommendations() {
           )}
           
           <Button asChild variant="outline" size="sm" className="text-blue-600 border-blue-600 hover:bg-blue-50">
-            <Link href={activeTab === "rangaoneWealth" ? "/rangaone-wealth" : "/model-portfolios"}>
+            <Link href={activeTab === "RangaOneWealth" ? "/RangaOne-wealth" : "/model-portfolios"}>
               View All
             </Link>
           </Button>
@@ -282,13 +282,13 @@ export default function ExpertRecommendations() {
             variant="outline"
             size="sm"
             className={cn(
-              activeTab === "rangaoneWealth"
+              activeTab === "RangaOneWealth"
                 ? "bg-blue-600 text-[#FFFFF0] hover:bg-blue-700 hover:text-[#FFFFF0]"
                 : "border-blue-600 text-blue-600 hover:bg-blue-50",
             )}
-            onClick={() => setActiveTab("rangaoneWealth")}
+            onClick={() => setActiveTab("RangaOneWealth")}
           >
-            Rangaone Wealth
+            RangaOne Wealth
           </Button>
           <Button
             variant="outline"
@@ -357,7 +357,7 @@ export default function ExpertRecommendations() {
             )}
           </div>
         ) : (
-          // Rangaone Wealth Section (filtered by subscription)
+          // RangaOne Wealth Section (filtered by subscription)
           <div>
             {recommendations.length === 0 ? (
               <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
@@ -424,7 +424,7 @@ function ModelPortfolioTipCard({ tip }: { tip: Tip }) {
     if (portfolioId) {
       router.push(`/model-portfolios/${portfolioId}/tips/${tip._id}`);
     } else {
-      router.push(`/rangaone-wealth/recommendation/${tip._id}`);
+      router.push(`/RangaOne-wealth/recommendation/${tip._id}`);
     }
   };
   
@@ -465,7 +465,7 @@ function ModelPortfolioTipCard({ tip }: { tip: Tip }) {
         {/* Additional Details Link */}
         <div className="mt-5 pt-3 border-t border-gray-200">
           <Link 
-            href={`/rangaone-wealth/recommendation/${tip._id}`}
+            href={`/RangaOne-wealth/recommendation/${tip._id}`}
             className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
           >
             View Full Analysis →
@@ -476,7 +476,7 @@ function ModelPortfolioTipCard({ tip }: { tip: Tip }) {
   )
 }
 
-// Existing StockCard component for Rangaone Wealth
+// Existing StockCard component for RangaOne Wealth
 interface StockCardProps {
   category: string;
   stock: {

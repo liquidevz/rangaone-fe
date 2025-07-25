@@ -131,7 +131,7 @@ export default function AllRecommendations() {
     closedCalls: false,
   })
 
-  const handleFilterChange = (filter) => {
+  const handleFilterChange = (filter: string) => {
     setFilters((prev) => ({
       ...prev,
       [filter]: !prev[filter],
@@ -173,7 +173,7 @@ export default function AllRecommendations() {
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <Button asChild variant="ghost" className="self-start">
-            <Link href="/rangaone-wealth" className="flex items-center">
+            <Link href="/RangaOne-wealth" className="flex items-center">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Dashboard
             </Link>

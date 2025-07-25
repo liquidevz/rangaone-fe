@@ -120,21 +120,8 @@ export const RoundedDrawerNav = ({
         <div className="flex items-center justify-between">
           {/* Logo Section */}
           <div className="flex items-center gap-4">
-            <div
-              className={`w-12 h-12 ${
-                variant === "premium" ? "bg-[#333333]" : "bg-white"
-              } rounded-full flex items-center justify-center`}
-            >
-              <span
-                className={`${
-                  variant === "premium" ? "text-[#FFFFF0]" : "text-[#001633]"
-                } text-2xl font-bold`}
-              >
-                R
-              </span>
-            </div>
-            <Link href="/" className={`${textColor} font-serif text-xl font-bold tracking-wide`}>
-              RANGAONE <br /> FINWALA
+            <Link href="/">
+              <img src="/logos/logo.svg" alt="RangaOne Finance Logo" className="h-12 w-auto" />
             </Link>
           </div>
 

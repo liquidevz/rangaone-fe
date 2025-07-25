@@ -38,25 +38,25 @@ const portfolioColors = [
 
 const features = [
   {
-    icon: "/placeholder.svg?width=32&height=32",
+    icon: "/icons/simplicity.png",
     title: "Simplicity",
     description:
-      "Designed for busy professionals, our portfolios remove the hassle of stock analysis and simplify investing.",
+      "Designed for busy professionals (salaried person, businessmen) our portfolios remove the hassle of stock analysis and simplify the investment process that fits your lifestyle.",
   },
   {
-    icon: "/placeholder.svg?width=32&height=32",
+    icon: "/icons/rebalancing.png",
     title: "Rebalancing",
     description:
-      "Every quarter, we adjust based on market conditions—guiding you on exits, profit booking, and averaging.",
+      "We don’t just give stock names and leave. Every quarter, we adjust based on market conditions—guiding you on exits, profit booking, upward averaging, and downward averaging.",
   },
   {
-    icon: "/placeholder.svg?width=32&height=32",
+    icon: "/icons/diversification.png",
     title: "Diversification",
     description:
-      "We spread your money smartly across large, mid, and small-cap stocks to balance risk and maximize opportunity.",
+      "Your money won’t sit in one basket. We spread it smartly—across large, mid and small cap stocks, multiple sectors, and even assets like ETFs and gold—balancing risk and maximizing opportunity.",
   },
   {
-    icon: "/placeholder.svg?width=32&height=32",
+    icon: "/icons/goalBasedInvesting.png",
     title: "Goal-Based Investing",
     description: "You choose the Goal, and the model portfolio provides an investment path that you can follow.",
   },
@@ -259,9 +259,11 @@ export default function ModelPortfolioSection() {
        <section className="py-8 sm:py-12">
          <div className="container mx-auto px-4">
            <div className="text-center mb-8 sm:mb-12">
-             <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-[#FFFFF0]">Model Portfolios</h1>
+             <h1 className="text-7xl sm:text-7xl font-bold font-serif text-gray-900 dark:text-[#FFFFF0]">MODEL PORTFOLIOS</h1>
              <p className="mt-2 text-lg text-gray-600 dark:text-gray-300">
-               Smart investment strategies for every investor
+             Model portfolios offer a simpler way to invest in a market that’s filled with options and increasingly complex.You can<br></br>
+             consider a model portfolio as cost-efficient, diversified investment framework and a roadmap, where you choose<br></br>
+             the destination, and the model portfolio provides an investment path that you can follow.
              </p>
            </div>
            
@@ -279,7 +281,7 @@ export default function ModelPortfolioSection() {
                      className="h-8 w-8 object-contain"
                    />
                  </div>
-                 <h3 className="text-blue-900 dark:text-blue-300 font-bold text-lg mt-4 mb-2">{feature.title}</h3>
+                 <h3 className="text-blue-900 dark:text-blue-300 font-bold text-2xl mt-4 mb-2">{feature.title}</h3>
                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{feature.description}</p>
                </div>
              ))}

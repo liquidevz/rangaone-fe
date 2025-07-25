@@ -5,19 +5,19 @@ const users: User[] = [
   {
     id: "1",
     name: "Panduranga gawas",
-    company: "rangaone finwala",
+    company: "RangaOne finwala",
     avatar: "/abstract-geometric-shapes.png",
   },
   {
     id: "2",
     name: "Rahul Sharma",
-    company: "rangaone finwala",
+    company: "RangaOne finwala",
     avatar: "/abstract-geometric-blue.png",
   },
   {
     id: "3",
     name: "Priya Patel",
-    company: "rangaone finwala",
+    company: "RangaOne finwala",
     avatar: "/abstract-geometric-green.png",
   },
 ]

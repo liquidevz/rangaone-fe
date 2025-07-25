@@ -62,6 +62,8 @@ export interface YoutubeLink {
 }
 
 export interface Portfolio {
+  data: any;
+  portfolio: any;
   _id: string;
   name: string;
   description: string;
@@ -95,6 +97,7 @@ export interface TipDownloadLink {
 }
 
 export interface Tip {
+  analysistConfidence: any;
   _id: string;
   portfolio: string | {
     name: string;
