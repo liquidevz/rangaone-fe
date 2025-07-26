@@ -255,123 +255,76 @@ export default function ModelPortfolioSection() {
 
   return (
     <div className="bg-[#fefcea] dark:bg-gray-900">
-             {/* --- Features Section --- */}
-       <section className="py-8 sm:py-12">
-         <div className="container mx-auto px-4">
-           <div className="text-center mb-8 sm:mb-12">
-             <h2 className="text-5xl lg:text-8xl sm:text-7xl font-bold font-serif text-gray-900 dark:text-[#FFFFF0]">MODEL PORTFOLIO</h2>
-             <p className="px-1 mt-2 text-[1.1rem] font-medium text-gray-600 dark:text-gray-300">
-             Model portfolios make investing simple, smart, and stress-free. Offering a cost-effective solution, diversified investment framework and a roadmap, where you choose the destination, and the model portfolio provides an investment path.
+      {/* --- Features Section --- */}
+      <section className="py-8 sm:py-12">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-5xl lg:text-8xl sm:text-7xl font-bold font-serif text-gray-900 dark:text-[#FFFFF0]">MODEL PORTFOLIO</h2>
+            <p className="px-1 mt-2 text-[1.1rem] font-medium text-gray-600 dark:text-gray-300">
+              Model portfolios make investing simple, smart, and stress-free. Offering a cost-effective solution, diversified investment <br /> framework and a roadmap, where you choose the destination, and the model portfolio provides an investment path.
             </p>
-           </div>
-           
-           {/* Desktop Grid */}
-           <div className="hidden sm:grid max-w-7xl mx-auto grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-             {features.map((feature) => (
-               <div
-                 key={feature.title}
-                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 relative border-t-4 border-blue-800 dark:border-blue-500 hover:shadow-xl transition-shadow duration-300 flex flex-col text-center"
-               >
-                 <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-white dark:bg-gray-800 p-2 rounded-full border-2 border-blue-800 dark:border-blue-500 shadow-md">
-                   <img
-                     src={feature.icon || "/placeholder.svg"}
-                     alt={feature.title}
-                     className="h-8 w-8 object-contain"
-                   />
-                 </div>
-                 <h3 className="text-blue-900 dark:text-blue-300 font-bold text-2xl mt-4 mb-2">{feature.title}</h3>
-                 <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{feature.description}</p>
-               </div>
-             ))}
-           </div>
+          </div>
+          {/* Desktop Grid */}
 
-           {/* Mobile Carousel */}
-           <div className="sm:hidden relative overflow-hidden">
-             <div 
-               ref={carouselRef}
-               className={`flex ${isDragging ? 'transition-none' : 'transition-transform duration-300 ease-out'}`}
-               style={{ 
-                 transform: `translateX(calc(-${currentSlide * 100}% + ${dragOffset}px))`,
-                 cursor: isDragging ? 'grabbing' : 'grab'
-               }}
-               onTouchStart={onTouchStart}
-               onTouchMove={onTouchMove}
-               onTouchEnd={onTouchEnd}
-               onMouseDown={onMouseDown}
-               onMouseMove={onMouseMove}
-               onMouseUp={onMouseUp}
-               onMouseLeave={onMouseLeave}
-             >
-               {features.map((feature, index) => (
-                 <div
-                   key={feature.title}
-                   className="w-full flex-shrink-0 px-2"
-                 >
-                   <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 relative border-t-4 border-blue-800 dark:border-blue-500 hover:shadow-xl transition-shadow duration-300 flex flex-col text-center">
-                     <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-white dark:bg-gray-800 p-2 rounded-full border-2 border-blue-800 dark:border-blue-500 shadow-md">
-                       <img
-                         src={feature.icon || "/placeholder.svg"}
-                         alt={feature.title}
-                         className="h-8 w-8 object-contain"
-                       />
-                     </div>
-                     <h3 className="text-blue-900 dark:text-blue-300 font-bold text-lg mt-4 mb-2">{feature.title}</h3>
-                     <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{feature.description}</p>
-                   </div>
-                 </div>
-               ))}
-             </div>
-
-             {/* Navigation Arrows */}
-             <button
-               onClick={() => {
-                 stopAutoPlay()
-                 prevSlide()
-                 startAutoPlay()
-               }}
-               onMouseEnter={stopAutoPlay}
-               onMouseLeave={startAutoPlay}
-               className="absolute left-2 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 rounded-full p-3 shadow-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors z-10"
-             >
-               <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-             </button>
-             <button
-               onClick={() => {
-                 stopAutoPlay()
-                 nextSlide()
-                 startAutoPlay()
-               }}
-               onMouseEnter={stopAutoPlay}
-               onMouseLeave={startAutoPlay}
-               className="absolute right-2 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 rounded-full p-3 shadow-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors z-10"
-             >
-               <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-             </button>
-
-             {/* Dots Indicator */}
-             <div className="flex justify-center mt-4 space-x-2">
-               {features.map((_, index) => (
-                 <button
-                   key={index}
-                   onClick={() => {
-                     stopAutoPlay()
-                     goToSlide(index)
-                     startAutoPlay()
-                   }}
-                   onMouseEnter={stopAutoPlay}
-                   onMouseLeave={startAutoPlay}
-                   className={`w-3 h-3 rounded-full transition-colors ${
-                     index === currentSlide 
-                       ? 'bg-blue-600 dark:bg-blue-400' 
-                       : 'bg-gray-300 dark:bg-gray-600'
-                   }`}
-                 />
-               ))}
-             </div>
-           </div>
-         </div>
-       </section>
-
+          {/* Mobile Carousel */}
+          <div className="sm:hidden relative overflow-hidden py-8">
+            <div
+              ref={carouselRef}
+              className={`flex ${isDragging ? 'transition-none' : 'transition-transform duration-300 ease-out'}`}
+              style={{
+                transform: `translateX(calc(-${currentSlide * 100}% + ${dragOffset}px))`,
+                cursor: isDragging ? 'grabbing' : 'grab'
+              }}
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+              onMouseDown={onMouseDown}
+              onMouseMove={onMouseMove}
+              onMouseUp={onMouseUp}
+              onMouseLeave={onMouseLeave}
+            >
+              {features.map((feature, index) => (
+                <div
+                  key={feature.title}
+                  className="w-full flex-shrink-0 px-2"
+                >
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 relative border-t-4 border-blue-800 dark:border-blue-500 hover:shadow-xl transition-shadow duration-300 flex flex-col text-center">
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-white dark:bg-gray-800 p-2 rounded-full border-2 border-blue-800 dark:border-blue-500 shadow-md">
+                      <img
+                        src={feature.icon || "/placeholder.svg"}
+                        alt={feature.title}
+                        className="h-8 w-8 object-contain"
+                      />
+                    </div>
+                    <h3 className="text-blue-900 dark:text-blue-300 font-bold text-lg mt-4 mb-2">{feature.title}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{feature.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Dots Indicator */}
+            <div className="flex justify-center mt-4 space-x-2">
+              {features.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => {
+                    stopAutoPlay()
+                    goToSlide(index)
+                    startAutoPlay()
+                  }}
+                  onMouseEnter={stopAutoPlay}
+                  onMouseLeave={startAutoPlay}
+                  className={`w-3 h-3 rounded-full transition-colors ${
+                    index === currentSlide
+                      ? 'bg-blue-600 dark:bg-blue-400'
+                      : 'bg-gray-300 dark:bg-gray-600'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
       {/* --- Portfolio Cards Section --- */}
       <section className="bg-[#fefcea] dark:bg-gray-900 py-8 sm:py-12">
         <div className="mx-auto container px-4 grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -480,7 +433,7 @@ export default function ModelPortfolioSection() {
                      </button>
                    </div>
                 </motion.div>
-              </motion.div>
+              </motion.div> 
             )
           })}
         </div>
