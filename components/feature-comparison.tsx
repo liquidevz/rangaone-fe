@@ -54,7 +54,7 @@ export default function FeatureComparison() {
                 <Link href={plan.href}>
                   <Button 
                     variant="outline" 
-                    className={`w-full text-xs sm:text-sm py-2 sm:py-3 bg-transparent backdrop-blur-sm border-2 ${
+                    className={`w-full text-[1.2rem] py-2 sm:py-3 bg-transparent backdrop-blur-sm border-2 ${
                       plan.isPremium 
                         ? "border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black" 
                         : "border-[#131859] text-[#131859] hover:bg-[#131859] hover:text-white"
@@ -65,8 +65,8 @@ export default function FeatureComparison() {
                 </Link>
                 
                 <Button 
-                  className={`w-full text-xs sm:text-sm py-2 sm:py-3 ${
-                    plan.isPremium ? "text-black" : "text-white"
+                  className={`w-full h-[3.5rem] md:text-[1.5rem] text-[1.5rem] py-2 sm:py-3 font-extrabold ${
+                    plan.isPremium ? "text-slate-800" : "text-white"
                   }`}
                   style={{ 
                     background: plan.isPremium 
