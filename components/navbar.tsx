@@ -116,12 +116,13 @@ export const RoundedDrawerNav = ({
 
   return (
     <>
-      <nav className="px-6 py-3">
+      <nav className="px-2 py-3">
         <div className="flex items-center justify-between">
           {/* Logo Section */}
           <div className="flex items-center gap-4">
-            <Link href="/">
-              <img src="/logos/logo.svg" alt="RangaOne Finance Logo" className="h-12 w-auto" />
+            <Link href="/" className="flex items-center gap-2">
+              <img src="/landing-page/rlogo.png" alt="RangaOne Logo" className="h-10 w-auto" />
+              <img src="/landing-page/namelogo.png" alt="RangaOne Name" className="h-8 w-auto" />
             </Link>
           </div>
 
@@ -139,7 +140,7 @@ export const RoundedDrawerNav = ({
           </div>
 
           {/* Authentication & Cart Section */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1">
             {/* Cart Icon - Show for all users */}
             <button
               onClick={handleCartClick}
@@ -286,7 +287,7 @@ export const RoundedDrawerNav = ({
             {/* Mobile Menu Toggle */}
             <button
               onClick={() => setMobileNavOpen(!mobileNavOpen)}
-              className={`md:hidden ${textColor} hover:opacity-75 transition-opacity`}
+              className={`md:hidden ${textColor} hover:opacity-75 transition-opacity px-4`}
             >
               {mobileNavOpen ? <FiX size={24} /> : <FiMenu size={24} />}
             </button>
