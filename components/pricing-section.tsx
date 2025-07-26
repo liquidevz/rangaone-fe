@@ -131,7 +131,8 @@ export default function PricingSection() {
       </div>
 
       {/* Pricing Cards with Prices */}
-      <div className="flex justify-between sm:gap-8 gap-8 md:gap-16 lg:gap-16  mx-auto relative z-10 container max-w-4xl mb-16">
+      
+      <div className="p-4 flex justify-between sm:gap-8 gap-8 md:gap-16 lg:gap-16  mx-auto relative z-10 container max-w-4xl mb-16">
         {bundles
           .filter((bundle) => bundle.category === (selected === "M" ? "basic" : "premium"))
           .map((bundle) =>

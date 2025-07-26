@@ -79,12 +79,12 @@ const WatermarkWrapper = () => {
 const Watermark = ({ reverse = false, text }: { reverse?: boolean; text: string }) => (
   <div className="flex -translate-y-12 select-none overflow-hidden">
     <TranslateWrapper reverse={reverse}>
-      <span className="w-fit whitespace-nowrap text-[10vmax] font-black uppercase leading-[0.75] text-[#B9D9EB8C]">
+      <span className="w-fit whitespace-nowrap text-[10vmax] md:text-[20vmax] font-black uppercase leading-[0.75] text-[#B9D9EB8C]">
         {text}
       </span>
     </TranslateWrapper>
     <TranslateWrapper reverse={reverse}>
-      <span className="ml-48 w-fit whitespace-nowrap text-[10vmax] font-black uppercase leading-[0.75] text-[#B9D9EB8C]">
+      <span className="ml-48 w-fit whitespace-nowrap text-[10vmax] md:text-[20vmax] font-black uppercase leading-[0.75] text-[#B9D9EB8C]">
         {text}
       </span>
     </TranslateWrapper>

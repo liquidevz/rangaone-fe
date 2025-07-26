@@ -24,16 +24,16 @@ const wealthPlans = [
 
 export default function FeatureComparison() {
   return (
-    <div className="w-full py-8 sm:py-12 lg:py-16">
+    <div className="w-full">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-8 sm:mb-12 lg:mb-16">
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-            Choose Your Plan
+          <h2 className="text-3xl sm:text-3xl lg:text-4xl font-serif font-bold text-gray-900 mb-4">
+            Which One to Choose?
           </h2>
-          <div className="w-20 h-1 bg-gradient-to-r from-blue-600 to-indigo-600 mx-auto rounded-full mb-4"></div>
+          {/* <div className="w-20 h-1 bg-gradient-to-r from-blue-600 to-indigo-600 mx-auto rounded-full mb-4"></div> */}
           <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
-            Compare our Basic and Premium plans to find the perfect fit for your investment journey.
+            Compare Basic and Premium plans to find the perfect fit for your investment journey.
           </p>
         </div>
 
