@@ -40,53 +40,30 @@ export const ImageTrailHero = () => {
 const Copy = () => {
   return (
     <div className="absolute bottom-8 left-4 right-0 z-40">
-  <div className="mx-auto max-w-7xl flex flex-col md:flex-row items-start md:items-end justify-between px-4 md:px-8">
-    <div className="relative">
-      {/* Background glow/mist effect */}
-      <img
-        src="/icons/cloud.png"
-        alt="Hero background"
-        className="absolute -inset-10 w-full h-full object-cover rounded-full opacity-80 pointer-events-none z-[-1]"
-      />
+      <div className="mx-auto max-w-7xl flex flex-col md:flex-row items-start md:items-end justify-between px-4 md:px-8">
+        <div className="relative w-full">
+          {/* Background glow/mist effect */}
+          <img
+            src="/icons/cloud.png"
+            alt="Hero background"
+            className="absolute -inset-10 w-full h-full object-cover rounded-full opacity-80 pointer-events-none z-[-1]"
+          />
 
-      {/* Tagline */}
-      <p className="text-sm md:text-lg font-bold text-black mb-2">
-        <i>At <span className="font-semibold">RangaOne</span> – Your Growth, Our Priority.</i>
-      </p>
-
-      {/* Main Heading */}
-      <h1 className="font-times-serif font-bold drop-shadow-sm text-black">
-        <span
-          className="text-3xl sm:text-5xl md:text-7xl lg:text-9xl text-blue-900 drop-shadow-md"
-          style={{
-            WebkitTextStroke: '2px black',
-            textShadow: '2px 2px 6px #000, 0 0 2px #000',
-          }}
-        >
-          Wealth
-        </span>{' '}
-        <span className="text-2xl sm:text-4xl md:text-9xl font-semibold text-black">
-          Isn’t Found,
-        </span>
-        <br />
-        <span className="text-lg sm:text-2xl md:text-7xl font-semibold text-black">
-          it is built with
-        </span>{' '}
-        <span
-          className="text-3xl sm:text-5xl md:text-7xl lg:text-9xl font-extrabold text-blue-900 drop-shadow-md"
-          style={{  
-            WebkitTextStroke: '2px black',
-            textShadow: '2px 2px 6px #000, 0 0 2px #000',
-          }}
-        >
-          Knowledge
-        </span>
-      </h1>
+          {/* Hero Image */}
+          <div className="relative z-10">
+            <img
+              src="/landing-page/HeroImage.png"
+              alt="RangaOne Hero"
+              className="w-full h-auto max-w-full object-contain"
+              style={{
+                maxHeight: '60vh',
+                minHeight: '200px'
+              }}
+            />
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
-
-
   )
 }
 

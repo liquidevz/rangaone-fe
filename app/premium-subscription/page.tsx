@@ -95,7 +95,7 @@ export default function PremiumSubscriptionPage() {
       <Navbar variant="premium" />
 
       {/* Hero Section */}
-      <section className="relative pt-16 pb-12 px-4 sm:px-6 lg:px-24 overflow-hidden">
+      <section className="relative pt-36 pb-12 px-4 sm:px-6 lg:px-24 overflow-hidden">
   {/* Background gradient */}
   <div className="absolute inset-0 bg-gradient-to-r from-[#135058] to-[#FFCB50] z-0"></div>
 
@@ -121,7 +121,7 @@ export default function PremiumSubscriptionPage() {
         initial={{ opacity: 0, x: -30 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.7, delay: 0.2 }}
-        className="w-[55%] min-w-[270px] max-w-[600px]"
+        className="w-[55%] min-w-[200px] max-w-[600px]"
       >
         <div className="p-4 sm:p-6 rounded-lg mb-4 sm:mb-6 bg-gradient-to-r from-[#333333] via-[#230B0296] to-[#00000000] inline-block">
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight text-[#FFD700]">

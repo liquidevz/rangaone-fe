@@ -260,11 +260,9 @@ export default function ModelPortfolioSection() {
          <div className="container mx-auto px-4">
            <div className="text-center mb-8 sm:mb-12">
              <h2 className="text-5xl lg:text-8xl sm:text-7xl font-bold font-serif text-gray-900 dark:text-[#FFFFF0]">MODEL PORTFOLIO</h2>
-             <p className="px-1 mt-2 text-[1.2rem] font-medium text-gray-600 dark:text-gray-300">
-             Model portfolios offer a simpler way to invest in a market that’s filled with options and increasingly complex.You can
-             consider a model portfolio as cost-efficient, diversified investment framework and a roadmap, where you choose
-             the destination, and the model portfolio provides an investment path that you can follow.
-             </p>
+             <p className="px-1 mt-2 text-[1.1rem] font-medium text-gray-600 dark:text-gray-300">
+             Model portfolios make investing simple, smart, and stress-free. Offering a cost-effective solution, diversified investment framework and a roadmap, where you choose the destination, and the model portfolio provides an investment path.
+            </p>
            </div>
            
            {/* Desktop Grid */}
