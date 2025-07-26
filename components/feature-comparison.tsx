@@ -32,7 +32,7 @@ export default function FeatureComparison() {
             Which One to Choose?
           </h2>
           {/* <div className="w-20 h-1 bg-gradient-to-r from-blue-600 to-indigo-600 mx-auto rounded-full mb-4"></div> */}
-          <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg text-gray-600 max-w-3xl mx-auto">
             Compare Basic and Premium plans to find the perfect fit for your investment journey.
           </p>
         </div>
