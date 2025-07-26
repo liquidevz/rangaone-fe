@@ -261,7 +261,7 @@ export default function ModelPortfolioSection() {
            <div className="text-center mb-8 sm:mb-12">
              <h2 className="text-5xl lg:text-8xl sm:text-7xl font-bold font-serif text-gray-900 dark:text-[#FFFFF0]">MODEL PORTFOLIO</h2>
              <p className="px-1 mt-2 text-[1.1rem] font-medium text-gray-600 dark:text-gray-300">
-             Model portfolios make investing simple, smart, and stress-free. Offering a cost-effective solution, diversified investment framework and a roadmap, where you choose the destination, and the model portfolio provides an investment path.
+             Model portfolios make investing simple, smart, and stress-free. Offering a cost-effective solution, diversified investment <br></br> framework and a roadmap, where you choose the destination, and the model portfolio provides an investment path.
             </p>
            </div>
            
@@ -286,7 +286,7 @@ export default function ModelPortfolioSection() {
            </div>
 
            {/* Mobile Carousel */}
-           <div className="sm:hidden relative overflow-hidden">
+           <div className="sm:hidden relative overflow-hidden py-8">
              <div 
                ref={carouselRef}
                className={`flex ${isDragging ? 'transition-none' : 'transition-transform duration-300 ease-out'}`}
@@ -322,7 +322,7 @@ export default function ModelPortfolioSection() {
                ))}
              </div>
 
-             {/* Navigation Arrows */}
+             {/* Navigation Arrows
              <button
                onClick={() => {
                  stopAutoPlay()
@@ -346,7 +346,7 @@ export default function ModelPortfolioSection() {
                className="absolute right-2 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 rounded-full p-3 shadow-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors z-10"
              >
                <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-             </button>
+             </button> */}
 
              {/* Dots Indicator */}
              <div className="flex justify-center mt-4 space-x-2">

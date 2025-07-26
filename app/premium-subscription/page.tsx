@@ -123,55 +123,71 @@ export default function PremiumSubscriptionPage() {
         transition={{ duration: 0.7, delay: 0.2 }}
         className="w-[55%] min-w-[200px] max-w-[600px]"
       >
-        <div className="p-4 sm:p-6 rounded-lg mb-4 sm:mb-6 bg-gradient-to-r from-[#333333] via-[#230B0296] to-[#00000000] inline-block">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight text-[#FFD700]">
+        {/* Updated heading to match second image */}
+        <div className="mb-6">
+          <h1 className="text-3xl sm:text-4xl font-bold text-white">
             At RangaOne
-            <span className="block">Your Growth, Our Priority</span>
           </h1>
+          <h2 className="text-2xl sm:text-3xl font-bold text-[#FFD700] mt-2">
+            Your Growth, Our Priority
+          </h2>
         </div>
 
-        <div className="w-16 h-1 bg-[#1e4e45] mb-4 sm:mb-6 rounded-full"></div>
-
-        <p className="text-white mb-4 text-sm sm:text-base leading-relaxed">
-          RangaOne Wealth <b className="font-extrabold">PREMIUM</b> – Elevate Your Investing Game! For those who
-          seek more than just market returns, RangaOne Wealth Premium is designed to
-          give you <b className="font-extrabold">exclusive, high-quality stock insights, advanced strategies, and direct
-          access to expert guidance</b>. This isn’t just an investment plan – it’s your <b className="font-extrabold">personalized roadmap to wealth creation</b> with premium perks that set you apart from regular investors.
-        </p>
+        {/* Updated premium section */}
+        <div className="mb-4">
+          <h3 className="text-xl sm:text-2xl font-bold text-white">
+            RangaOne Wealth
+          </h3>
+          <h4 className="text-xl sm:text-2xl font-bold text-[#FFD700] mb-3">
+            PREMIUM – Elevate Your Investing Game!
+          </h4>
+          
+          {/* Paragraphs broken up as in second image */}
+          <p className="text-white text-sm sm:text-base mb-3">
+            For those who seek more than just market returns,
+          </p>
+          <p className="text-white text-sm sm:text-base mb-3">
+            RangaOne Wealth Premium is designed to give you exclusive,
+          </p>
+          <p className="text-white text-sm sm:text-base mb-3">
+            high-quality stock insights, advanced strategies, and direct access to expert guidance.
+          </p>
+          <p className="text-white text-sm sm:text-base">
+            This isn't just an investment plan - it's your personalized roadmap to wealth creation with premium perks that set you apart from regular investors.
+          </p>
+        </div>
 
         <p className="text-gray-300 mb-6 italic text-sm sm:text-base">
-          Here’s what makes <span className="font-semibold">RangaOne Wealth Premium</span> truly special:
+          Here's what makes <span className="font-semibold">RangaOne Wealth Premium</span> truly special:
         </p>
 
+        {/* Buttons updated to match design */}
         <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs sm:max-w-none">
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-full">
-            <Link
-              href="/#pricing"
-              className="w-full bg-[#1a1a1a] hover:bg-gray-800 text-[#FFD700] font-bold py-3 px-6 rounded-full transition-all inline-flex items-center justify-center shadow-lg hover:shadow-[#1a1a1a]/30 text-sm"
-            >
-              <span>BUY NOW</span>
-              <ChevronRight className="ml-2 h-4 w-4" />
-            </Link>
-          </motion.div>
-
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="w-full bg-[#FFD700] text-[#1a1a1a] font-bold py-3 px-6 rounded-full transition-all shadow-lg hover:shadow-xl"
+          >
+            BUY NOW
+          </motion.button>
+          
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => handleAddToCart("monthly")}
             disabled={isInCart || loading}
-            className={`w-full font-bold py-3 px-6 rounded-full transition-all inline-flex items-center justify-center shadow-lg border-2 text-sm ${
+            className={`w-full font-bold py-3 px-6 rounded-full transition-all border-2 ${
               isInCart
                 ? "bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed"
-                : "bg-transparent border-[#FFD700] text-[#FFD700] hover:bg-[#FFD700] hover:text-[#1a1a1a]"
+                : "bg-transparent border-[#FFD700] text-[#FFD700] hover:bg-[#FFD700]/10"
             }`}
           >
-            <ShoppingCart className="mr-2 h-4 w-4" />
-            <span>{isInCart ? "In Cart" : "Add to Cart"}</span>
+            {isInCart ? "In Cart" : "Add to Cart"}
           </motion.button>
         </div>
       </motion.div>
 
-      {/* Right: Image */}
+      {/* Right: Image - unchanged */}
       <motion.div
         initial={{ opacity: 0, x: 30 }}
         animate={{ opacity: 1, x: 0 }}

@@ -100,14 +100,12 @@ export default function PricingSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-3xl lg:text-8xl font-semibold text-gray-900 mb-4 font-times-new-roman">
-            RANGAONE WEALTH
-          </h2>
-          <div className="w-24 h-1 bg-gradient-to-r from-blue-600 to-indigo-600 mx-auto rounded-full mb-6"></div>
-          <p className="text-xs lg:text-xl font-bold text-gray-700 max-w-5xl mx-auto leading-relaxed mb-8">
-            Welcome to RangaOne Wealth – your way to smarter investing and bigger gains! 
-            Stay ahead and make every move impactful—join now and start building unstoppable wealth! 
-          </p>
+           <div className="text-center mb-8 sm:mb-12">
+             <h2 className="text-5xl lg:text-8xl sm:text-7xl font-bold font-serif text-gray-900 dark:text-[#FFFFF0]">RANGAONE WEALTH</h2>
+             <p className="px-1 mt-2 text-[1.1rem] font-medium text-gray-600 dark:text-gray-300">
+             Your way to smarter investing and long-term wealth creation! Stay ahead and make every move impactful
+            </p>
+           </div>
           
           {/* Plan Selector */}
           <div className="flex items-center justify-center gap-3">
@@ -133,7 +131,7 @@ export default function PricingSection() {
       </div>
 
       {/* Pricing Cards with Prices */}
-      <div className="flex flex-col lg:flex-row gap-8 lg:gap-10 mx-auto relative z-10 container max-w-4xl mb-16">
+      <div className="flex justify-between sm:gap-8 gap-8 md:gap-16 lg:gap-16  mx-auto relative z-10 container max-w-4xl mb-16">
         {bundles
           .filter((bundle) => bundle.category === (selected === "M" ? "basic" : "premium"))
           .map((bundle) =>
@@ -152,17 +150,17 @@ export default function PricingSection() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -30 }}
                       transition={{ duration: 0.4 }}
-                      className={`w-full p-6 ${isYearly ? 'border-[3px]' : 'border-0'} rounded-xl transition-transform duration-300 ease-in-out hover:scale-105 ${
+                      className={`w-full p-3 sm:p-6 ${isYearly ? 'border-[3px]' : 'border-0'} rounded-xl transition-transform duration-300 ease-in-out hover:scale-105 ${
                         isPremium
                           ? isYearly
                             ? "bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)] text-[#333333] border-[#333333] shadow-[0px_4px_21.5px_8px_#AD9000]"
-                            : "bg-[#333333] shadow-[0px_4px_21.5px_8px_#333333]"
+                            : "bg-[#333333]"
                           : isYearly
                             ? "bg-[linear-gradient(295.3deg,_#131859_11.58%,_rgba(24,101,123,0.8)_108.02%)] text-[#FFFFF0] border-slate-300 shadow-[0px_4px_21.5px_8px_#00A6E8]"
-                            : "bg-[linear-gradient(295.3deg,_#131859_11.58%,_rgba(24,101,123,0.8)_108.02%)] text-[#FFFFF0] shadow-[0px_4px_21.5px_8px_#00A6E8]"
+                            : "bg-[linear-gradient(295.3deg,_#131859_11.58%,_rgba(24,101,123,0.8)_108.02%)] text-[#FFFFF0]"
                       }`}
                     >
-                      <p className={`text-2xl font-bold mb-2 ${
+                      <p className={`text-xm sm:text-2xl font-bold font-serif ${
                         isPremium && !isYearly ? "text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" : ""
                       }`}>
                         {priceType === "quarterlyPrice" ? "Yearly" : "Monthly"}
@@ -174,42 +172,36 @@ export default function PricingSection() {
                           animate={{ y: 0, opacity: 1 }}
                           exit={{ y: 50, opacity: 0 }}
                           transition={{ ease: "linear", duration: 0.25 }}
-                          className={`text-6xl font-bold ${
+                          className={`text-2xl sm:text-6xl font-semibold ${
                             isPremium && !isYearly ? "text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" : ""
                           }`}
                         >
                           <span>&#8377;{bundle[priceType as keyof Bundle] as number}</span>
-                          <span className="font-normal text-xl">/month</span>
+                          <span className="font-normal text-xs sm:text-xl">/month</span>
                         </motion.p>
                       </div>
 
                       <div className={`flex items-center gap-2 mb-2 ${
                         isPremium && !isYearly ? "text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" : ""
                       }`}>
-                        <span className="text-lg">
+                        <span className="text-[0.5rem] sm:text-lg">
                           {priceType === "quarterlyPrice"
                             ? "(Annual, Billed Monthly)"
                             : "(Flexible, but higher cost)"}
                         </span>
                       </div>
-
+{/* 
                       <div className={`flex items-center gap-2 mb-4 ${priceType === "quarterlyPrice" ? "" : "invisible"} ${
                         isPremium && !isYearly ? "text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" : ""
                       }`}>
-                        <span className="text-lg">
-                          Save {Math.round(
-                            ((bundle.monthlyPrice * 12 - bundle.quarterlyPrice * 12) /
-                              (bundle.monthlyPrice * 12)) * 100
-                          )}%
-                        </span>
-                      </div>
+                      </div> */}
 
                       {/* Buy Now Button */}
                       <motion.button
                         whileHover={{ scale: 1.015 }}
                         whileTap={{ scale: 0.985 }}
                         onClick={() => handleBundlePurchase(bundle, subscriptionType)}
-                        className={`w-full py-4 font-semibold rounded-lg uppercase ${
+                        className={`w-full py-2 sm:py-4 text-sm sm:text-base font-semibold rounded-2xl uppercase ${
                           isPremium
                             ? isYearly
                               ? "bg-[#333333] text-[#D4AF37] hover:text-[#FFD700]"

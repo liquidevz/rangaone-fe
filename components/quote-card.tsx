@@ -1,34 +1,114 @@
+"use client"
+
+import { useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+
 export default function QuoteCard() {
+  const [currentIndex, setCurrentIndex] = useState(0)
+
+  const cards = [
+    {
+      icon: "/icons/goalBasedInvesting.png",
+      title: "Goal-Based Investing",
+      description: "You choose the Goal, and the model portfolio provides an investment path that you can follow.",
+      color: "bg-blue-600"
+    },
+    {
+      icon: "/icons/simplicity.png", 
+      title: "Simplicity",
+      description: "Designed for busy professionals (salaried person, businessmen) our portfolios remove the hassle of stock analysis and simplify the investment process that fits your lifestyle.",
+      color: "bg-blue-600"
+    },
+    {
+      icon: "/icons/diversification.png",
+      title: "Diversification", 
+      description: "Your money won't sit in one basket. We spread it smartly—across large, mid and small cap stocks, multiple sectors, and even assets like ETFs and gold—balancing risk and maximizing opportunity.",
+      color: "bg-blue-600"
+    },
+    {
+      icon: "/icons/rebalancing.png",
+      title: "Rebalancing",
+      description: "We don't just give stock names and leave. Every quarter, we adjust based on market conditions—guiding you on exits, profit booking, upward averaging, and downward averaging.",
+      color: "bg-blue-600"
+    }
+  ]
+
+  const nextCard = () => {
+    setCurrentIndex((prev) => (prev + 1) % cards.length)
+  }
+
+  const prevCard = () => {
+    setCurrentIndex((prev) => (prev - 1 + cards.length) % cards.length)
+  }
+
   return (
-    <div className="w-full max-w-2xl md:max-w-7xl">
-      <div className="relative overflow-hidden rounded-xl bg-trasnparent md:p-12 shadow-xl">
-        {/* Background Image */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: 'url(/Quote.jpg)' }}
-        />
+    <div className="w-full max-w-4xl mx-auto px-4">
+      <div className="relative bg-white rounded-2xl shadow-xl p-6 md:p-8 min-h-[300px] md:min-h-[400px]">
+        {/* Blue bar at top */}
+        <div className="absolute top-0 left-0 right-0 h-2 bg-blue-600 rounded-t-2xl"></div>
         
-        {/* Overlay for better text readability */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/80 to-indigo-900/80" />
-        
-        <div className="relative z-10 flex flex-col py-10 md:py-20 px-5 md:px-12">
-          <h2 className="text-3xl md:text-7xl font-bold text-[#FFFFF0] leading-tight">
-            Transforming today&apos;s opportunities
-            <div className="relative">
-              <span className="inline-block">into tomorrow&apos;s success</span>
-              <div className="absolute top-20 left-0 w-full h-[2px] bg-blue-400"></div>
-            </div>
-          </h2>
-
-          <p className="text-xm md:text-3xl text-[#FFFFF0] mt-4">
-            Partner with someone who puts <span className="font-bold">you first.</span>
-          </p>
-
+        {/* Icon positioned above the blue bar */}
+        <div className="relative -mt-8 mb-6 flex justify-center">
+          <div className="bg-white rounded-full p-3 shadow-lg border-2 border-blue-600">
+            <img 
+              src={cards[currentIndex].icon}
+              alt={cards[currentIndex].title}
+              className="w-8 h-8 md:w-12 md:h-12 object-contain"
+            />
+          </div>
         </div>
 
-        {/* Decorative elements */}
-        <div className="absolute -bottom-6 -right-6 w-24 h-24 rounded-full bg-blue-500/20 blur-xl z-5"></div>
-        <div className="absolute top-10 -right-6 w-16 h-16 rounded-full bg-indigo-400/20 blur-xl z-5"></div>
+        {/* Content */}
+        <div className="text-center mb-8">
+          <h2 className="text-2xl md:text-4xl font-bold text-blue-900 mb-4">
+            {cards[currentIndex].title}
+          </h2>
+          <p className="text-sm md:text-lg text-gray-700 leading-relaxed px-4">
+            {cards[currentIndex].description}
+          </p>
+        </div>
+
+        {/* Navigation arrows */}
+        <div className="absolute bottom-6 left-6 right-6 flex justify-between items-center">
+          <button
+            onClick={prevCard}
+            className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors flex items-center justify-center"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-600" />
+          </button>
+          
+          <div className="flex space-x-2">
+            {cards.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentIndex(index)}
+                className={`w-2 h-2 rounded-full transition-colors ${
+                  index === currentIndex ? 'bg-blue-600' : 'bg-gray-300'
+                }`}
+              />
+            ))}
+          </div>
+          
+          <button
+            onClick={nextCard}
+            className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors flex items-center justify-center"
+          >
+            <ChevronRight className="w-5 h-5 text-gray-600" />
+          </button>
+        </div>
+
+        {/* Animate content changes */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentIndex}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="absolute inset-0 pointer-events-none"
+          />
+        </AnimatePresence>
       </div>
     </div>
   )

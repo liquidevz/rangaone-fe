@@ -28,7 +28,7 @@ export const ImageTrailHero = () => {
           "/imgs/active/15.png",
         ]}
       >
-        <section className="h-[30rem] md:h-screen bg-[#d7faff] op w-screen overflow-hidden">
+        <section className="h-[30rem] md:h-screen bg-[#bce7ff8c] op w-screen overflow-hidden">
           <Copy />
           <WatermarkWrapper />
         </section>
@@ -41,22 +41,16 @@ const Copy = () => {
   return (
     <div className="absolute bottom-8 left-4 right-0 z-40">
       <div className="mx-auto max-w-7xl flex flex-col md:flex-row items-start md:items-end justify-between px-4 md:px-8">
-        <div className="relative w-full">
-          {/* Background glow/mist effect */}
-          <img
-            src="/icons/cloud.png"
-            alt="Hero background"
-            className="absolute -inset-10 w-full h-full object-cover rounded-full opacity-80 pointer-events-none z-[-1]"
-          />
+        <div className="relative w-full"> 
 
           {/* Hero Image */}
-          <div className="relative z-10">
+          <div className="relative z-10 top-10 right-5 md:right-20 md:top-10">
             <img
               src="/landing-page/HeroImage.png"
               alt="RangaOne Hero"
               className="w-full h-auto max-w-full object-contain"
               style={{
-                maxHeight: '60vh',
+                maxHeight: '50vh',
                 minHeight: '200px'
               }}
             />
@@ -85,12 +79,12 @@ const WatermarkWrapper = () => {
 const Watermark = ({ reverse = false, text }: { reverse?: boolean; text: string }) => (
   <div className="flex -translate-y-12 select-none overflow-hidden">
     <TranslateWrapper reverse={reverse}>
-      <span className="w-fit whitespace-nowrap text-[20vmax] font-black uppercase leading-[0.75] text-slate-300">
+      <span className="w-fit whitespace-nowrap text-[15vmax] font-black uppercase leading-[0.75] text-[#B9D9EB8C]">
         {text}
       </span>
     </TranslateWrapper>
     <TranslateWrapper reverse={reverse}>
-      <span className="ml-48 w-fit whitespace-nowrap text-[20vmax] font-black uppercase leading-[0.75] text-slate-300">
+      <span className="ml-48 w-fit whitespace-nowrap text-[15vmax] font-black uppercase leading-[0.75] text-[#B9D9EB8C]">
         {text}
       </span>
     </TranslateWrapper>
