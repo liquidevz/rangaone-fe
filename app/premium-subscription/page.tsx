@@ -93,9 +93,8 @@ export default function PremiumSubscriptionPage() {
     <main className="min-h-screen overflow-x-hidden bg-gradient-to-br from-[#515151] to-[#333333]">
       <ScrollToTop />
       <Navbar variant="premium" />
-
-      {/* Hero Section */}
-      <section className="relative pt-36 pb-12 px-4 sm:px-6 lg:px-24 overflow-hidden">
+{/* Hero Section - Perfect Mobile Layout */}
+<section className="relative pt-36 pb-12 px-4 sm:px-6 lg:px-24 overflow-hidden">
   {/* Background gradient */}
   <div className="absolute inset-0 bg-gradient-to-r from-[#135058] to-[#FFCB50] z-0"></div>
 
@@ -123,7 +122,7 @@ export default function PremiumSubscriptionPage() {
         transition={{ duration: 0.7, delay: 0.2 }}
         className="w-[55%] min-w-[200px] max-w-[600px]"
       >
-        {/* Updated heading to match second image */}
+        {/* Updated heading to match screenshot */}
         <div className="mb-6">
           <h1 className="text-3xl sm:text-4xl font-bold text-white">
             At RangaOne
@@ -136,18 +135,18 @@ export default function PremiumSubscriptionPage() {
         {/* Updated premium section */}
         <div className="mb-4">
           <h3 className="text-xl sm:text-2xl font-bold text-white">
-            RangaOne Wealth
+            Rangaone Wealth
           </h3>
           <h4 className="text-xl sm:text-2xl font-bold text-[#FFD700] mb-3">
             PREMIUM – Elevate Your Investing Game!
           </h4>
           
-          {/* Paragraphs broken up as in second image */}
+          {/* Paragraphs broken up as in screenshot */}
           <p className="text-white text-sm sm:text-base mb-3">
             For those who seek more than just market returns,
           </p>
           <p className="text-white text-sm sm:text-base mb-3">
-            RangaOne Wealth Premium is designed to give you exclusive,
+            Rangaone Wealth Premium is designed to give you exclusive,
           </p>
           <p className="text-white text-sm sm:text-base mb-3">
             high-quality stock insights, advanced strategies, and direct access to expert guidance.
@@ -158,7 +157,7 @@ export default function PremiumSubscriptionPage() {
         </div>
 
         <p className="text-gray-300 mb-6 italic text-sm sm:text-base">
-          Here's what makes <span className="font-semibold">RangaOne Wealth Premium</span> truly special:
+          Here's what makes <span className="font-semibold">Rangaone Wealth Premium</span> truly special:
         </p>
 
         {/* Buttons updated to match design */}
@@ -182,12 +181,12 @@ export default function PremiumSubscriptionPage() {
                 : "bg-transparent border-[#FFD700] text-[#FFD700] hover:bg-[#FFD700]/10"
             }`}
           >
-            {isInCart ? "In Cart" : "Add to Cart"}
+            {isInCart ? "In Cart" : "🛒 Add to Cart"}
           </motion.button>
         </div>
       </motion.div>
 
-      {/* Right: Image - unchanged */}
+      {/* Right: Image */}
       <motion.div
         initial={{ opacity: 0, x: 30 }}
         animate={{ opacity: 1, x: 0 }}

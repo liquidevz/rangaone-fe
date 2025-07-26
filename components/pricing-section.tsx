@@ -185,7 +185,7 @@ export default function PricingSection() {
                       <div className={`flex items-center gap-2 mb-2 ${
                         isPremium && !isYearly ? "text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" : ""
                       }`}>
-                        <span className="text-[0.5rem] sm:text-lg">
+                        <span className="text-[0.6rem] sm:text-lg">
                           {priceType === "quarterlyPrice"
                             ? "(Annual, Billed Monthly)"
                             : "(Flexible, but higher cost)"}
