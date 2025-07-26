@@ -95,98 +95,106 @@ export default function PremiumSubscriptionPage() {
       <Navbar variant="premium" />
 
       {/* Hero Section */}
-      <section className="relative pt-20 sm:pt-32 pb-12 sm:pb-16 overflow-hidden px-4 sm:px-6 lg:px-24">
-        {/* Background gradient - using the new gradient */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#135058] to-[#FFCB50] z-0"></div>
+      <section className="relative pt-16 pb-12 px-4 sm:px-6 lg:px-24 overflow-hidden">
+  {/* Background gradient */}
+  <div className="absolute inset-0 bg-gradient-to-r from-[#135058] to-[#FFCB50] z-0"></div>
 
-        {/* Animated background elements */}
-        <div className="absolute inset-0 z-0 opacity-10">
-          <div className="absolute top-0 left-0 w-full h-full">
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full">
-              <path d="M0,0 L100,0 L100,100 L0,100 Z" fill="url(#grid-pattern-gold)" />
-            </svg>
-            <defs>
-              <pattern id="grid-pattern-gold" width="10" height="10" patternUnits="userSpaceOnUse">
-                <path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(0,0,0,0.2)" strokeWidth="0.5" />
-              </pattern>
-            </defs>
-          </div>
+  {/* Grid pattern */}
+  <div className="absolute inset-0 z-0 opacity-10">
+    <div className="absolute top-0 left-0 w-full h-full">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full">
+        <path d="M0,0 L100,0 L100,100 L0,100 Z" fill="url(#grid-pattern-gold)" />
+        <defs>
+          <pattern id="grid-pattern-gold" width="10" height="10" patternUnits="userSpaceOnUse">
+            <path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(0,0,0,0.2)" strokeWidth="0.5" />
+          </pattern>
+        </defs>
+      </svg>
+    </div>
+  </div>
+
+  {/* Content container */}
+  <div className="relative z-10 max-w-7xl mx-auto">
+    <div className="flex flex-row gap-4 items-start">
+      {/* Left: Text Content */}
+      <motion.div
+        initial={{ opacity: 0, x: -30 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.7, delay: 0.2 }}
+        className="w-[55%] min-w-[270px] max-w-[600px]"
+      >
+        <div className="p-4 sm:p-6 rounded-lg mb-4 sm:mb-6 bg-gradient-to-r from-[#333333] via-[#230B0296] to-[#00000000] inline-block">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight text-[#FFD700]">
+            At RangaOne
+            <span className="block">Your Growth, Our Priority</span>
+          </h1>
         </div>
 
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.7, delay: 0.2 }}
-            >
-              <div className="p-4 sm:p-6 rounded-lg mb-4 sm:mb-6 bg-gradient-to-r from-[#333333] via-[#230B0296] to-[#00000000]">
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight text-[#FFD700]">
-                  At RangaOne
-                  <span className="block">Your Growth, Our Priority</span>
-                </h1>
-              </div>
-              <div className="w-16 sm:w-20 h-1 bg-[#1e4e45] mb-4 sm:mb-6 rounded-full"></div>
-              <p className="text-white mb-4 sm:mb-6 text-sm sm:text-base lg:text-lg leading-relaxed">
-                Rangaone Wealth <b className="font-extrabold">PREMIUM</b> – Elevate Your Investing Game! For those who
-                seek more than just market returns, Rangaone Wealth Premium is designed to
-                give you <b className="font-extrabold">exclusive, high-quality stock insights, advanced strategies, and direct
-                access to expert guidance</b>. This isn\'t just an investment plan - it\'s
-                your <b className="font-extrabold">personalized roadmap to wealth creation</b> with premium perks that set you
-                apart from regular investors.
-              </p>
-              <p className="text-gray-300 mb-6 sm:mb-8 italic text-sm sm:text-base">
-                Here\'s what makes <span className="font-semibold">Rangaone Wealth Premium</span> truly special:
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Link
-                    href="/#pricing"
-                    className="bg-[#1a1a1a] hover:bg-gray-800 text-[#FFD700] font-bold py-3 sm:py-4 px-6 sm:px-10 rounded-full transition-all inline-flex items-center justify-center shadow-lg hover:shadow-[#1a1a1a]/30 text-sm sm:text-base"
-                  >
-                    <span>BUY NOW</span>
-                    <ChevronRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
-                  </Link>
-                </motion.div>
+        <div className="w-16 h-1 bg-[#1e4e45] mb-4 sm:mb-6 rounded-full"></div>
 
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => handleAddToCart("monthly")}
-                  disabled={isInCart || loading}
-                  className={`font-bold py-3 sm:py-4 px-6 sm:px-10 rounded-full transition-all inline-flex items-center justify-center shadow-lg border-2 text-sm sm:text-base ${
-                    isInCart
-                      ? "bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed"
-                      : "bg-transparent border-[#FFD700] text-[#FFD700] hover:bg-[#FFD700] hover:text-[#1a1a1a]"
-                  }`}
-                >
-                  <ShoppingCart className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                  <span>{isInCart ? "In Cart" : "Add to Cart"}</span>
-                </motion.button>
-              </div>
-            </motion.div>
+        <p className="text-white mb-4 text-sm sm:text-base leading-relaxed">
+          RangaOne Wealth <b className="font-extrabold">PREMIUM</b> – Elevate Your Investing Game! For those who
+          seek more than just market returns, RangaOne Wealth Premium is designed to
+          give you <b className="font-extrabold">exclusive, high-quality stock insights, advanced strategies, and direct
+          access to expert guidance</b>. This isn’t just an investment plan – it’s your <b className="font-extrabold">personalized roadmap to wealth creation</b> with premium perks that set you apart from regular investors.
+        </p>
 
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.7, delay: 0.4 }}
-              className="relative mt-8 md:mt-0"
+        <p className="text-gray-300 mb-6 italic text-sm sm:text-base">
+          Here’s what makes <span className="font-semibold">RangaOne Wealth Premium</span> truly special:
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs sm:max-w-none">
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-full">
+            <Link
+              href="/#pricing"
+              className="w-full bg-[#1a1a1a] hover:bg-gray-800 text-[#FFD700] font-bold py-3 px-6 rounded-full transition-all inline-flex items-center justify-center shadow-lg hover:shadow-[#1a1a1a]/30 text-sm"
             >
-              <div className="absolute -inset-2 sm:-inset-4 bg-[#1e4e45]/20 rounded-2xl blur-xl z-0"></div>
-              <div className="relative z-10 overflow-hidden rounded-2xl shadow-2xl">
-                <Image
-                  src="premium-subscription/premium_bull.jpg"
-                  alt="Golden Bull Statue"
-                  width={600}
-                  height={400}
-                  className="w-full h-auto object-cover transform hover:scale-105 transition-transform duration-700"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#1e4e45]/50 to-transparent"></div>
-              </div>
-            </motion.div>
-          </div>
+              <span>BUY NOW</span>
+              <ChevronRight className="ml-2 h-4 w-4" />
+            </Link>
+          </motion.div>
+
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => handleAddToCart("monthly")}
+            disabled={isInCart || loading}
+            className={`w-full font-bold py-3 px-6 rounded-full transition-all inline-flex items-center justify-center shadow-lg border-2 text-sm ${
+              isInCart
+                ? "bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed"
+                : "bg-transparent border-[#FFD700] text-[#FFD700] hover:bg-[#FFD700] hover:text-[#1a1a1a]"
+            }`}
+          >
+            <ShoppingCart className="mr-2 h-4 w-4" />
+            <span>{isInCart ? "In Cart" : "Add to Cart"}</span>
+          </motion.button>
         </div>
-      </section>
+      </motion.div>
+
+      {/* Right: Image */}
+      <motion.div
+        initial={{ opacity: 0, x: 30 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.7, delay: 0.4 }}
+        className="relative w-[45%] min-w-[140px]"
+      >
+        <div className="absolute -inset-2 sm:-inset-4 bg-[#1e4e45]/20 rounded-2xl blur-xl z-0"></div>
+        <div className="relative z-10 overflow-hidden rounded-2xl shadow-2xl">
+          <Image
+            src="/premium-subscription/premium_bull.jpg"
+            alt="Golden Bull Statue"
+            width={600}
+            height={400}
+            className="w-full h-auto object-cover transform hover:scale-105 transition-transform duration-700 rounded-2xl"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#1e4e45]/50 to-transparent"></div>
+        </div>
+      </motion.div>
+    </div>
+  </div>
+</section>
+
+
 
       {/* Banner */}
       <div className="w-full bg-[#1a1a1a] py-3 border-t border-b border-[#7a8c3b]/30 overflow-hidden">
@@ -219,8 +227,7 @@ export default function PremiumSubscriptionPage() {
             </p>
           </motion.div>
 
-          {/* Desktop Grid */}
-          <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               {
                 title: "Premium Quality Stocks",
@@ -268,64 +275,6 @@ export default function PremiumSubscriptionPage() {
                 <p className="text-white group-hover:text-gray-300 transition-colors">{feature.description}</p>
               </motion.div>
             ))}
-          </div>
-
-          {/* Mobile Swiper */}
-          <div className="md:hidden overflow-hidden">
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-              {[
-                {
-                  title: "Premium Quality Stocks",
-                  description: "20-25 meticulously researched stocks with exceptional potential",
-                  icon: "📈",
-                },
-                {
-                  title: "Short-Term/Swing Trades",
-                  description: "10 high-potential trade recommendations each month",
-                  icon: "⚡",
-                },
-                {
-                  title: "Exclusive Model Portfolios",
-                  description: "NiftyPlus & Multibagger portfolios for diverse strategies",
-                  icon: "💼",
-                },
-                {
-                  title: "IPO Recommendations",
-                  description: "Exclusive analysis of upcoming public offerings",
-                  icon: "🚀",
-                },
-                {
-                  title: "Call Support",
-                  description: "Direct access to our expert analysts",
-                  icon: "📞",
-                },
-                {
-                  title: "Free Live Webinars",
-                  description: "Interactive sessions with top analysts",
-                  icon: "🎓",
-                },
-              ].map((feature, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-100px" }}
-                  transition={{ delay: index * 0.1 }}
-                  className="bg-[#2a2a2a] rounded-xl shadow-lg p-6 border border-[#7a8c3b]/10 flex-shrink-0 w-80 snap-center"
-                >
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-[#FFD700] mb-4">
-                    <span className="text-lg font-bold text-[#FFD700]">{index + 1}</span>
-                  </div>
-                  <h3 className="text-xl font-bold mb-2 text-[#FFD700]">{feature.title}</h3>
-                  <p className="text-white">{feature.description}</p>
-                </motion.div>
-              ))}
-            </div>
-            <div className="flex justify-center mt-4 gap-2">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <div key={index} className="w-2 h-2 rounded-full bg-[#FFD700]/30"></div>
-              ))}
-            </div>
           </div>
         </div>
       </section>
@@ -553,7 +502,7 @@ export default function PremiumSubscriptionPage() {
                 <h3 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] to-[#FFC706]">
                 Free Live Webinars <br className="text-xs"/>– Learn, Interact & Grow! (Extra bonus)</h3>
                 <p className="text-gray-300 mb-3 text-lg leading-relaxed">
-                Most influencers offer chat support and pre-recorded videos, but we go beyond that! With Rangaone Wealth Premium, you get exclusive live webinars where our experts break down market trends, stock strategies, and upcoming opportunities—in real-time.*(more features chart)*
+                Most influencers offer chat support and pre-recorded videos, but we go beyond that! With RangaOne Wealth Premium, you get exclusive live webinars where our experts break down market trends, stock strategies, and upcoming opportunities—in real-time.*(more features chart)*
                 We don’t just share information; we take responsibility for answering your doubts, explaining concepts, and ensuring you truly understand the market. This isn’t just another webinar—it’s a premium experience designed to make you feel valued and empowered.
                 </p>
                 <ul className="space-y-3 p-8">
@@ -590,7 +539,7 @@ export default function PremiumSubscriptionPage() {
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-[#FFFFF0]">What Our Premium Clients Say</h2>
             <div className="w-24 h-1 bg-gradient-to-r from-[#1e4e45] to-[#ffc107] mx-auto mb-6 rounded-full"></div>
             <p className="text-gray-400 max-w-2xl mx-auto">
-              Hear from our satisfied premium clients who have transformed their investing journey with Rangaone Wealth
+              Hear from our satisfied premium clients who have transformed their investing journey with RangaOne Wealth
               Premium.
             </p>
           </motion.div>
@@ -615,7 +564,7 @@ export default function PremiumSubscriptionPage() {
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-6">Unlock Exclusive Access – Invest Like a Pro!</h2>
             <p className="text-xl mb-8 text-gray-800">
-              Stop following the crowd—start making power moves in the market. With Rangaone Wealth Premium, you're not
+              Stop following the crowd—start making power moves in the market. With RangaOne Wealth Premium, you're not
               just subscribing, you're elevating your investment game with expert-backed stock picks, real-time
               insights, and hands-on guidance.
             </p>

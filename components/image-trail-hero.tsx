@@ -39,46 +39,53 @@ export const ImageTrailHero = () => {
 
 const Copy = () => {
   return (
-    <div className="absolute bottom-8 left-4 right-0 z-[40]">
-      <div className="mx-auto flex max-w-7xl items-end justify-between md:p-8">
-        <div className="relative">
-          {/* Simulated mist/fog glow */}
-          {/* <div className="absolute -inset-10 bg-white blur-2xl rounded-full opacity-80 pointer-events-none z-[-1]" /> */}
-          <img
-            src="/icons/cloud.png"
-            alt="Hero background"
-            className="absolute -inset-10 w-full h-full object-cover rounded-full opacity-80 pointer-events-none z-[-1]"
-          />
+    <div className="absolute bottom-8 left-4 right-0 z-40">
+  <div className="mx-auto max-w-7xl flex flex-col md:flex-row items-start md:items-end justify-between px-4 md:px-8">
+    <div className="relative">
+      {/* Background glow/mist effect */}
+      <img
+        src="/icons/cloud.png"
+        alt="Hero background"
+        className="absolute -inset-10 w-full h-full object-cover rounded-full opacity-80 pointer-events-none z-[-1]"
+      />
 
-          <p className="text-[0.9rem] md:text-lg text-black font-bold mb-2">
-            At RangaOne – Your Growth, Our Priority. </p>
-          <h1 className="text-4xl md:text-8xl font-bold leading-tight font-times-serif text-black drop-shadow-sm">
-            <span
-              className="text-blue-900 drop-shadow-md"
-              style={{
-                WebkitTextStroke: '2px black',
-                textShadow: '2px 2px 6px #000, 0 0 2px #000',
-              }}
-            >
-              Wealth
-            </span> <span className="text-3xl md:text-5xl font-semibold text-black">Isn’t Found,</span>
-            <br />
-            <span className="text-3xl md:text-5xl font-semibold text-black" style={{ verticalAlign: "super" }}>
-              it is built with
-            </span>{' '}
-            <span
-              className="text-blue-900 font-extrabold drop-shadow-md"
-              style={{
-                WebkitTextStroke: '2px black',
-                textShadow: '2px 2px 6px #000, 0 0 2px #000',
-              }}
-            >
-              Knowledge
-            </span>
-          </h1>
-        </div>
-      </div>
+      {/* Tagline */}
+      <p className="text-sm md:text-lg font-bold text-black mb-2">
+        <i>At <span className="font-semibold">RangaOne</span> – Your Growth, Our Priority.</i>
+      </p>
+
+      {/* Main Heading */}
+      <h1 className="font-times-serif font-bold drop-shadow-sm text-black">
+        <span
+          className="text-3xl sm:text-5xl md:text-7xl lg:text-9xl text-blue-900 drop-shadow-md"
+          style={{
+            WebkitTextStroke: '2px black',
+            textShadow: '2px 2px 6px #000, 0 0 2px #000',
+          }}
+        >
+          Wealth
+        </span>{' '}
+        <span className="text-2xl sm:text-4xl md:text-9xl font-semibold text-black">
+          Isn’t Found,
+        </span>
+        <br />
+        <span className="text-lg sm:text-2xl md:text-7xl font-semibold text-black">
+          it is built with
+        </span>{' '}
+        <span
+          className="text-3xl sm:text-5xl md:text-7xl lg:text-9xl font-extrabold text-blue-900 drop-shadow-md"
+          style={{  
+            WebkitTextStroke: '2px black',
+            textShadow: '2px 2px 6px #000, 0 0 2px #000',
+          }}
+        >
+          Knowledge
+        </span>
+      </h1>
     </div>
+  </div>
+</div>
+
 
   )
 }
