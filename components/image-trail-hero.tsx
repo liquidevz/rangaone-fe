@@ -39,24 +39,38 @@ export const ImageTrailHero = () => {
 
 const Copy = () => {
   return (
-        <div className="absolute lg:bottom-10 bottom-0 left-0 right-0 z-40">
-          <div className="mx-auto max-w-7xl flex flex-col md:flex-row items-start md:items-end justify-between px-4 md:px-8 relative">
-            <div className="relative w-full">
-              {/* Hero Image pinned to bottom-left for all views */}
-              <div className="absolute bottom-0 left-0 z-10">
-                <img
-                  src="/landing-page/HeroImage.png"
-                  alt="RangaOne Hero"
-                  className="w-full h-auto max-w-full object-contain"
-                  style={{
-                    maxHeight: '40vh',
-                    minHeight: '200px',
-                  }}
-                />
-              </div>
-            </div>
-          </div>
+    <div className="absolute bottom-0 left-0 right-0 z-40">
+    <div className="mx-auto max-w-7xl flex flex-col md:flex-row items-start md:items-end justify-between px-4 md:px-8 relative">
+      <div className="relative w-full">
+        {/* Mobile Hero Image */}
+        <div className="absolute bottom-0 left-0 z-10 block md:hidden">
+          <img
+            src="/landing-page/mobileHeroImage.png"
+            alt="RangaOne Hero Mobile"
+            className="w-full h-auto max-w-full object-contain"
+            style={{
+              maxHeight: '40vh',
+              minHeight: '150px',
+            }}
+          />
         </div>
+  
+        {/* Desktop Hero Image */}
+        <div className="absolute bottom-0 left-0 z-10 hidden md:block">
+          <img
+            src="/landing-page/HeroImage.png"
+            alt="RangaOne Hero Desktop"
+            className="w-full h-auto max-w-full object-contain"
+            style={{
+              maxHeight: '50vh',
+              minHeight: '250px',
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+  
 
   )
 }
