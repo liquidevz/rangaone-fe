@@ -101,7 +101,7 @@ export default function FAQSection() {
   }
 
   return (
-    <section className="py-16 bg-[#fffef0]" id="faq">
+    <section className="py-16 bg-[#fefcea]" id="faq">
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
           <div className="text-left mb-8">
@@ -119,7 +119,7 @@ export default function FAQSection() {
               className={`px-4 py-1.5 text-sm font-medium rounded-md border ${
                 activeCategory === "basic"
                   ? "bg-[#1e3a8a] text-[#FFFFF0] border-[#1e3a8a]"
-                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                  : "bg-[#fefcea] text-gray-700 border-gray-300 hover:bg-gray-50"
               }`}
             >
               Basic

@@ -139,7 +139,7 @@ export default function FAQContactSection() {
   }
 
   return (
-    <section className="py-16 bg-white" id="faq-contact">
+    <section className="py-16 bg-[#fefcea]" id="faq-contact">
       <div className="container mx-auto px-4">
         <div className="grid md:grid-cols-2 gap-8">
           {/* FAQ Section */}
@@ -156,7 +156,7 @@ export default function FAQContactSection() {
                 className={`px-4 py-1.5 text-sm font-medium rounded-md border ${
                   activeCategory === "basic"
                     ? "bg-[#1e3a8a] text-[#FFFFF0] border-[#1e3a8a]"
-                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                    : "bg-[#fefcea] text-gray-700 border-gray-300 hover:bg-gray-50"
                 }`}
               >
                 Basic
@@ -169,7 +169,7 @@ export default function FAQContactSection() {
                 className={`px-4 py-1.5 text-sm font-medium rounded-md border ${
                   activeCategory === "modelPortfolio"
                     ? "bg-[#1e3a8a] text-[#FFFFF0] border-[#1e3a8a]"
-                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                    : "bg-[#fefcea] text-gray-700 border-gray-300 hover:bg-gray-50"
                 }`}
               >
                 Model Portfolio
@@ -182,7 +182,7 @@ export default function FAQContactSection() {
                 className={`px-4 py-1.5 text-sm font-medium rounded-md border ${
                   activeCategory === "premium"
                     ? "bg-[#1e3a8a] text-[#FFFFF0] border-[#1e3a8a]"
-                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                    : "bg-[#fefcea] text-gray-700 border-gray-300 hover:bg-gray-50"
                 }`}
               >
                 Premium
@@ -197,7 +197,7 @@ export default function FAQContactSection() {
                   className="border border-gray-300 rounded-lg overflow-hidden transition-all duration-200"
                 >
                   <button
-                    className="flex justify-between items-center w-full px-4 py-3 text-left bg-white hover:bg-gray-50"
+                    className="flex justify-between items-center w-full px-4 py-3 text-left bg-[#fefcea] hover:bg-gray-50"
                     onClick={() => toggleFAQ(index)}
                   >
                     <span className="font-medium text-gray-900">{faq.question}</span>
@@ -244,7 +244,7 @@ export default function FAQContactSection() {
                     onClick={() => handleRepresentChange("BASIC")}
                     className={`py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                       formData.represent === "BASIC"
-                        ? "bg-white text-[#0f1d59]"
+                        ? "bg-[#fefcea] text-[#0f1d59]"
                         : "bg-[#1a2a6c] text-[#FFFFF0] hover:bg-[#2a3a7c]"
                     }`}
                   >
@@ -255,7 +255,7 @@ export default function FAQContactSection() {
                     onClick={() => handleRepresentChange("PREMIUM")}
                     className={`py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                       formData.represent === "PREMIUM"
-                        ? "bg-white text-[#0f1d59]"
+                        ? "bg-[#fefcea] text-[#0f1d59]"
                         : "bg-[#1a2a6c] text-[#FFFFF0] hover:bg-[#2a3a7c]"
                     }`}
                   >
@@ -266,7 +266,7 @@ export default function FAQContactSection() {
                     onClick={() => handleRepresentChange("MODEL PORTFOLIO")}
                     className={`py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                       formData.represent === "MODEL PORTFOLIO"
-                        ? "bg-white text-[#0f1d59]"
+                        ? "bg-[#fefcea] text-[#0f1d59]"
                         : "bg-[#1a2a6c] text-[#FFFFF0] hover:bg-[#2a3a7c]"
                     }`}
                   >
@@ -291,7 +291,7 @@ export default function FAQContactSection() {
               <button
                 type="submit"
                 disabled={isSubmitting || isSubmitted}
-                className="w-full bg-white text-[#0f1d59] py-3 rounded-md font-medium hover:bg-gray-100 transition-colors"
+                className="w-full bg-[#fefcea] text-[#0f1d59] py-3 rounded-md font-medium hover:bg-gray-100 transition-colors"
               >
                 {isSubmitting ? "Submitting..." : isSubmitted ? "Submitted!" : "Submit"}
               </button>

@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
 export default function QuoteCard() {
@@ -12,25 +11,21 @@ export default function QuoteCard() {
       icon: "/icons/goalBasedInvesting.png",
       title: "Goal-Based Investing",
       description: "You choose the Goal, and the model portfolio provides an investment path that you can follow.",
-      color: "bg-blue-600"
     },
     {
       icon: "/icons/simplicity.png", 
       title: "Simplicity",
       description: "Designed for busy professionals (salaried person, businessmen) our portfolios remove the hassle of stock analysis and simplify the investment process that fits your lifestyle.",
-      color: "bg-blue-600"
     },
     {
       icon: "/icons/diversification.png",
       title: "Diversification", 
       description: "Your money won't sit in one basket. We spread it smartly—across large, mid and small cap stocks, multiple sectors, and even assets like ETFs and gold—balancing risk and maximizing opportunity.",
-      color: "bg-blue-600"
     },
     {
       icon: "/icons/rebalancing.png",
       title: "Rebalancing",
       description: "We don't just give stock names and leave. Every quarter, we adjust based on market conditions—guiding you on exits, profit booking, upward averaging, and downward averaging.",
-      color: "bg-blue-600"
     }
   ]
 
@@ -97,18 +92,6 @@ export default function QuoteCard() {
             <ChevronRight className="w-5 h-5 text-gray-600" />
           </button>
         </div>
-
-        {/* Animate content changes */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentIndex}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="absolute inset-0 pointer-events-none"
-          />
-        </AnimatePresence>
       </div>
     </div>
   )

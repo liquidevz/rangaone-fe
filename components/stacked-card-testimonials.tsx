@@ -17,7 +17,11 @@ interface Testimonial {
   title: string;
 }
 
-const StackedCardTestimonials = () => {
+interface StackedCardTestimonialsProps {
+  color?: string;
+}
+
+const StackedCardTestimonials = ({ color = "#FFD700" }: StackedCardTestimonialsProps) => {
   const [selected, setSelected] = useState(0);
 
   return (
@@ -31,12 +35,14 @@ const StackedCardTestimonials = () => {
           numTracks={testimonials.length}
           setSelected={setSelected}
           selected={selected}
+          color={color}
         />
       </div>
       <Cards
         testimonials={testimonials}
         setSelected={setSelected}
         selected={selected}
+        color={color}
       />
     </section>
   );
@@ -46,7 +52,8 @@ const SelectBtns = ({
   numTracks,
   setSelected,
   selected,
-}: { numTracks: number; setSelected: Dispatch<SetStateAction<number>>; selected: number }) => {
+  color,
+}: { numTracks: number; setSelected: Dispatch<SetStateAction<number>>; selected: number; color: string }) => {
   return (
     <div className="flex gap-1 mt-8">
       {Array.from(Array(numTracks).keys()).map((n) => {
@@ -58,7 +65,8 @@ const SelectBtns = ({
           >
             {selected === n ? (
               <motion.span
-                className="absolute top-0 left-0 bottom-0 bg-[#FFD700]"
+                className="absolute top-0 left-0 bottom-0"
+                style={{ backgroundColor: color }}
                 initial={{
                   width: "0%",
                 }}
@@ -74,9 +82,10 @@ const SelectBtns = ({
               />
             ) : (
               <span
-                className="absolute top-0 left-0 bottom-0 bg-[#FFD700]"
+                className="absolute top-0 left-0 bottom-0"
                 style={{
                   width: selected > n ? "100%" : "0%",
+                  backgroundColor: color,
                 }}
               />
             )}
@@ -91,10 +100,12 @@ const Cards = ({
   testimonials,
   selected,
   setSelected,
+  color,
 }: {
   testimonials: Testimonial[];
   selected: number;
   setSelected: Dispatch<SetStateAction<number>>;
+  color: string;
 }) => {
   return (
     <div className="p-4 relative h-[450px] lg:h-[500px] shadow-xl">
@@ -106,6 +117,7 @@ const Cards = ({
             position={i}
             selected={selected}
             setSelected={setSelected}
+            color={color}
           />
         );
       })}
@@ -121,15 +133,17 @@ const Card = ({
   position,
   selected,
   setSelected,
+  color,
 }: Testimonial & {
   position: number;
   selected: number;
   setSelected: Dispatch<SetStateAction<number>>;
+  color: string;
 }) => {
   const scale = position <= selected ? 1 : 1 + 0.015 * (position - selected);
   const offset = position <= selected ? 0 : 95 + (position - selected) * 3;
   const background = position % 2 ? "#2a2a2a" : "#3a3a3a"; // Adjusted for dark theme
-  const color = "white"; // All text white for readability on dark backgrounds
+  const textColor = "white"; // All text white for readability on dark backgrounds
 
   return (
     <motion.div
@@ -138,7 +152,7 @@ const Card = ({
         zIndex: position,
         transformOrigin: "left bottom",
         background,
-        color,
+        color: textColor,
       }}
       animate={{
         x: `${offset}%`,
@@ -154,7 +168,7 @@ const Card = ({
       onClick={() => setSelected(position)}
       className="absolute top-0 left-0 w-full min-h-full p-8 lg:p-12 cursor-pointer flex flex-col justify-between rounded-xl border border-[#7a8c3b]/10"
     >
-      <Icon className="text-7xl mx-auto text-[#FFD700]" /> {/* Icon color changed to yellow */}
+      <Icon className="text-7xl mx-auto" style={{ color }} />
       <p className="text-lg lg:text-xl font-light italic my-8 text-gray-300">
         "{description}"
       </p>
