@@ -122,7 +122,7 @@ export const RoundedDrawerNav = ({
           <div className="flex items-center gap-4">
             <Link href="/" className="flex items-center gap-2">
               <img src="/landing-page/rlogo.png" alt="RangaOne Logo" className="h-10 w-auto" />
-              <img src="/landing-page/namelogo.png" alt="RangaOne Name" className="h-8 w-auto" />
+              <img src="/landing-page/namelogo.png" alt="RangaOne Name" className="h-10 w-auto" />
             </Link>
           </div>
 
