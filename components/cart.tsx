@@ -13,12 +13,15 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from "@/components/auth/auth-context"
 import { useCart } from "@/components/cart/cart-context"
-import { CheckoutModal } from "@/components/checkout-modal"
+import { paymentService } from "@/services/payment.service"
 import Link from "next/link"
 import { cartService } from "@/services/cart.service"
 import { userPortfolioService } from "@/services/user-portfolio.service"
+import { bundleService } from "@/services/bundle.service"
+import { userService } from "@/services/user.service"
 import { motion, AnimatePresence } from "framer-motion"
 import { PageHeader } from "@/components/page-header";
+import { ProfileCompletionModal } from "@/components/profile-completion-modal";
 
 export default function CartPage() {
   const [loading, setLoading] = useState(true)
@@ -26,14 +29,14 @@ export default function CartPage() {
   const [couponCode, setCouponCode] = useState("")
   const [appliedCoupon, setAppliedCoupon] = useState("")
   const [discount, setDiscount] = useState(0)
-  const [checkoutModal, setCheckoutModal] = useState(false)
+  const [processingCheckout, setProcessingCheckout] = useState(false)
   const [updatingQuantity, setUpdatingQuantity] = useState<string | null>(null)
   const [activatedPortfolioIds, setActivatedPortfolioIds] = useState<string[]>([])
+  const [showProfileModal, setShowProfileModal] = useState(false)
 
   const { isAuthenticated } = useAuth()
   const { 
     cart, 
-    localCart, 
     cartItemCount, 
     addToCart, 
     removeFromCart, 
@@ -45,42 +48,24 @@ export default function CartPage() {
   } = useCart()
   const { toast } = useToast()
 
+  // Debug modal state
+  useEffect(() => {
+    console.log("showProfileModal state changed:", showProfileModal);
+  }, [showProfileModal]);
+
   useEffect(() => {
     const initializeCart = async () => {
       try {
         if (isAuthenticated) {
           await refreshCart()
-          // Fetch activated portfolios for the user
+          // Fetch subscribed portfolios for the user (but don't auto-remove items)
           try {
-            const portfolios = await userPortfolioService.getAll()
+            const portfolios = await userPortfolioService.getSubscribedPortfolios()
             const activatedIds = portfolios.map((p) => p._id)
+            console.log("Subscribed portfolio IDs:", activatedIds)
             setActivatedPortfolioIds(activatedIds)
-            
-            // Remove already-purchased items from cart
-            const effectiveCart = getEffectiveCart()
-            const itemsToRemove = effectiveCart.items.filter(item => 
-              item && item.portfolio && activatedIds.includes(item.portfolio._id)
-            )
-            
-            if (itemsToRemove.length > 0) {
-              console.log(`Removing ${itemsToRemove.length} already-purchased items from cart`)
-              for (const item of itemsToRemove) {
-                try {
-                  await removeFromCart(item.portfolio._id)
-                } catch (removeError) {
-                  console.error(`Failed to remove already-purchased item ${item.portfolio._id}:`, removeError)
-                }
-              }
-              
-              // Show notification about removed items
-              toast({
-                title: "Items Removed",
-                description: `${itemsToRemove.length} already-purchased item(s) were removed from your cart.`,
-                variant: "default",
-              })
-            }
           } catch (portfolioError) {
-            console.error("Failed to load activated portfolios:", portfolioError)
+            console.error("Failed to load subscribed portfolios:", portfolioError)
             // Don't block cart loading for this error
           }
         }
@@ -92,10 +77,10 @@ export default function CartPage() {
     }
 
     initializeCart()
-  }, [isAuthenticated, refreshCart, getEffectiveCart, removeFromCart, toast])
+  }, [isAuthenticated, refreshCart, toast])
 
   const effectiveCart = getEffectiveCart()
-  const effectiveItems = effectiveCart.items
+  const effectiveItems = effectiveCart?.items || []
 
   // Filter out items with 0/null price for the selected period
   const filteredItems = effectiveItems.filter((item) => {
@@ -104,20 +89,20 @@ export default function CartPage() {
       return false
     }
     
-    const isBundle = item.portfolio && cartService.isBundle(item)
+    const isBundle = item.portfolio && bundleService.isBundle(item)
     let price = 0
     
     try {
       if (isBundle) {
         switch (subscriptionType) {
           case "yearly":
-            price = cartService.getBundlePrice(item.portfolio, "yearly")
+            price = bundleService.getBundlePrice(item.portfolio, "yearly")
             break
           case "quarterly":
-            price = cartService.getBundlePrice(item.portfolio, "quarterly")
+            price = bundleService.getBundlePrice(item.portfolio, "quarterly")
             break
           default:
-            price = cartService.getBundlePrice(item.portfolio, "monthly")
+            price = bundleService.getBundlePrice(item.portfolio, "monthly")
             break
         }
       } else if (item.portfolio && item.portfolio.subscriptionFee) {
@@ -266,20 +251,217 @@ export default function CartPage() {
     }
   }
 
+  const handleDirectCheckout = async () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to complete your purchase.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check profile completion before checkout
+    try {
+      console.log("Checking profile completion...");
+      const userProfile = await userService.getProfile();
+      console.log("User profile:", userProfile);
+      console.log("Profile complete:", userProfile.profileComplete);
+      console.log("Missing fields:", userProfile.missingFields);
+      
+      // For testing - force show modal if profile is complete
+      if (!userProfile.profileComplete || userProfile.missingFields?.length > 0) {
+        console.log("Profile incomplete, showing modal...");
+        console.log("Setting showProfileModal to true");
+        setShowProfileModal(true);
+        console.log("Modal state should now be true");
+        return;
+      } else {
+        console.log("Profile is complete, proceeding with checkout...");
+      }
+    } catch (error) {
+      console.error("Profile check failed:", error);
+      // For testing - show modal even if API fails
+      console.log("API failed, but showing modal for testing...");
+      setShowProfileModal(true);
+      return;
+    }
+
+    // Check for already-purchased items before checkout
+    const alreadyPurchasedItems = filteredItems.filter(item => 
+      activatedPortfolioIds.includes(item.portfolio._id)
+    )
+    
+    if (alreadyPurchasedItems.length > 0) {
+      toast({
+        title: "Cannot Checkout",
+        description: "Please remove already-purchased items from your cart before proceeding.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setProcessingCheckout(true);
+    clearError();
+
+    try {
+      console.log("Starting direct checkout for subscription type:", subscriptionType);
+      
+      let orderResponse;
+      
+      // Use eMandate for yearly and quarterly subscriptions
+      if (subscriptionType === "yearly" || subscriptionType === "quarterly") {
+        console.log(`Creating cart eMandate for ${subscriptionType} subscription`);
+        console.log("Cart items:", cart?.items);
+        console.log("First cart item:", cart?.items?.[0]);
+        
+        // Check if cart has items
+        if (!cart?.items || cart.items.length === 0) {
+          throw new Error("Cart is empty. Please add items before checkout.");
+        }
+        
+        // Prepare cart data for eMandate API with subscription type and pricing
+        const cartData = {
+          productType: "Portfolio", // Can be any product type
+          productId: cart.items[0].portfolio._id, // Use first item's product ID
+          planType: subscriptionType, // Add subscription type (yearly/quarterly)
+          subscriptionType: "premium", // Add subscription category
+          amount: total, // Add total amount to ensure correct pricing
+          totalAmount: total, // Alternative field name
+          // Add individual item pricing for the API to use correct pricing
+          items: cart.items.map(item => ({
+            portfolioId: item.portfolio._id,
+            quantity: item.quantity,
+            price: subscriptionType === "yearly" 
+              ? item.portfolio.subscriptionFee.find(fee => fee.type === "yearly")?.price || 0
+              : item.portfolio.subscriptionFee.find(fee => fee.type === "quarterly")?.price || 0
+          }))
+        };
+        
+        console.log("eMandate payload:", cartData);
+        console.log("Total amount being sent:", total);
+        console.log("Subscription type:", subscriptionType);
+        orderResponse = await paymentService.cartCheckoutEmandate(cartData);
+        console.log("Cart eMandate created:", orderResponse);
+      } else {
+        // Use regular checkout for monthly subscriptions
+        orderResponse = await paymentService.cartCheckout({
+          planType: subscriptionType,
+          subscriptionType: "premium",
+        });
+        console.log("Cart checkout created:", orderResponse);
+      }
+
+      // Initialize payment with Razorpay
+      await paymentService.openCheckout(
+        orderResponse,
+        {
+          name: "User", // You might want to get this from auth context
+          email: "user@example.com", // You might want to get this from auth context
+        },
+        async (response: any) => {
+          console.log("Payment success response:", response);
+          
+          // Handle payment verification
+          try {
+            const isEmandate = (subscriptionType === "yearly" || subscriptionType === "quarterly") && 'subscriptionId' in orderResponse;
+            
+            if (isEmandate) {
+              console.log("Processing eMandate verification");
+              const verificationResponse = await paymentService.verifyEmandate(
+                (orderResponse as any).subscriptionId,
+                response
+              );
+              
+              if (verificationResponse.success) {
+                toast({
+                  title: `${subscriptionType === "yearly" ? "Yearly" : "Quarterly"} Subscription Activated`,
+                  description: `Your ${subscriptionType} subscription with eMandate has been activated successfully`,
+                });
+                // Clear cart after successful payment
+                await refreshCart();
+              } else {
+                throw new Error(verificationResponse.message || "eMandate verification failed");
+              }
+            } else {
+              // Regular payment verification
+              const verificationResponse = await paymentService.verifyPayment({
+                orderId: response.razorpay_order_id,
+                paymentId: response.razorpay_payment_id,
+                signature: response.razorpay_signature
+              });
+              
+              if (verificationResponse.success) {
+                toast({
+                  title: "Payment Successful",
+                  description: "Your subscription has been activated",
+                });
+                // Clear cart after successful payment
+                await refreshCart();
+              } else {
+                throw new Error(verificationResponse.message || "Payment verification failed");
+              }
+            }
+          } catch (error: any) {
+            console.error("Payment verification failed:", error);
+            toast({
+              title: "Payment Verification Failed",
+              description: error.message || "Please contact support if payment was deducted",
+              variant: "destructive",
+            });
+          }
+        },
+        (error: any) => {
+          console.error("Payment failed:", error);
+          toast({
+            title: "Payment Failed",
+            description: error.message || "Payment was cancelled or failed",
+            variant: "destructive",
+          });
+        }
+      );
+    } catch (error: any) {
+      console.error("Checkout failed:", error);
+      console.error("Error details:", {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
+      
+      let errorMessage = "Failed to initiate checkout";
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast({
+        title: "Checkout Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingCheckout(false);
+    }
+  };
+
   const subtotal = filteredItems.reduce((sum, item) => {
     let price = 0
     
     try {
-      if (cartService.isBundle(item)) {
+      if (bundleService.isBundle(item)) {
         switch (subscriptionType) {
           case "yearly":
-            price = cartService.getBundlePrice(item.portfolio, "yearly")
+            price = bundleService.getBundlePrice(item.portfolio, "yearly")
             break
           case "quarterly":
-            price = cartService.getBundlePrice(item.portfolio, "quarterly")
+            price = bundleService.getBundlePrice(item.portfolio, "quarterly")
             break
           default:
-            price = cartService.getBundlePrice(item.portfolio, "monthly")
+            price = bundleService.getBundlePrice(item.portfolio, "monthly")
             break
         }
       } else {
@@ -329,9 +511,40 @@ export default function CartPage() {
     <>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
         {/* Modern Header */}
-        <PageHeader title="Your Cart" subtitle="Review your selected items and proceed to checkout" />
+        <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+            <div className="flex items-center justify-between mb-4">
+              <Link 
+                href="/" 
+                className="flex items-center text-blue-600 hover:text-blue-700 transition-colors group"
+              >
+                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-2 group-hover:-translate-x-1 transition-transform" />
+                <span className="text-sm sm:text-base font-medium">Continue Shopping</span>
+              </Link>
+              
+              <div className="flex items-center gap-2">
+                <div className="hidden sm:flex items-center gap-2 text-sm text-gray-600">
+                  <CartIcon className="w-4 h-4" />
+                  <span>{cartItemCount} item{cartItemCount !== 1 ? 's' : ''}</span>
+                    </div>
+                  </div>
+                </div>
 
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-6 sm:py-8">
+            <div className="text-center">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
+                Your Cart
+              </h1>
+              <p className="text-gray-600 text-sm sm:text-base">
+                {cartItemCount > 0 
+                  ? `Review your ${cartItemCount} selected item${cartItemCount > 1 ? 's' : ''}`
+                  : "Your cart is empty"
+                }
+                      </p>
+                    </div>
+                      </div>
+                    </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           {cartItemCount === 0 ? (
             // Enhanced Empty Cart State
             <motion.div 
@@ -340,14 +553,14 @@ export default function CartPage() {
               className="text-center py-12 sm:py-20"
             >
               <div className="max-w-md mx-auto px-4">
-                <div className="relative mx-auto mb-6 sm:mb-8 w-24 h-24 sm:w-32 sm:h-32">
-                  <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full"></div>
-                  <div className="absolute inset-2 sm:inset-3 bg-white rounded-full flex items-center justify-center">
+                <div className="relative mx-auto mb-8 w-24 h-24 sm:w-32 sm:h-32">
+                  <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full animate-pulse"></div>
+                  <div className="absolute inset-2 sm:inset-3 bg-white rounded-full flex items-center justify-center shadow-lg">
                     <CartIcon className="w-10 h-10 sm:w-16 sm:h-16 text-gray-400" />
                   </div>
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 sm:mb-4">Your cart is empty</h2>
-                <p className="text-gray-600 mb-6 sm:mb-8 text-base sm:text-lg leading-relaxed">
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Your cart is empty</h2>
+                <p className="text-gray-600 mb-8 text-base sm:text-lg leading-relaxed">
                   Discover our investment portfolios and subscription plans to start building your wealth.
                 </p>
                 
@@ -373,7 +586,7 @@ export default function CartPage() {
                 )}
                 
                 <Link href="/#portfolios">
-                  <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-[#FFFFF0] px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02]">
+                  <Button size="lg" className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-4 text-lg rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
                     Browse Portfolios
                   </Button>
                 </Link>
@@ -391,32 +604,89 @@ export default function CartPage() {
                   className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 p-4 sm:p-6"
                 >
                   <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 sm:p-6">
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                       <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                       Billing Cycle
                     </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
-                      {[
-                        { key: "monthly", label: "Monthly", badge: "", savings: "" },
-                        { key: "quarterly", label: "Quarterly", badge: "Save 11%", savings: "Popular" },
-                        { key: "yearly", label: "Yearly", badge: "Save 17%", savings: "Best Value" }
-                      ].map((option) => (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {/* Dynamically generate subscription options based on available prices */}
+                      {(() => {
+                        const availableOptions = [];
+                        
+                        // Check monthly price
+                        const monthlyPrice = cart?.items.reduce((total, item) => {
+                          const price = item.portfolio.subscriptionFee.find(fee => fee.type === "monthly")?.price || 0;
+                          return total + (price * item.quantity);
+                        }, 0) || 0;
+                        
+                        if (monthlyPrice > 0) {
+                          availableOptions.push({
+                            key: "monthly",
+                            label: "Monthly",
+                            badge: "",
+                            savings: ""
+                          });
+                        }
+                        
+                        // Check quarterly price
+                        const quarterlyPrice = cart?.items.reduce((total, item) => {
+                          const price = item.portfolio.subscriptionFee.find(fee => fee.type === "quarterly")?.price || 0;
+                          return total + (price * item.quantity);
+                        }, 0) || 0;
+                        
+                        if (quarterlyPrice > 0) {
+                          availableOptions.push({
+                            key: "quarterly",
+                            label: "Quarterly",
+                            badge: "Save 11%",
+                            savings: "Popular"
+                          });
+                        }
+                        
+                        // Check yearly price
+                        const yearlyPrice = cart?.items.reduce((total, item) => {
+                          const price = item.portfolio.subscriptionFee.find(fee => fee.type === "yearly")?.price || 0;
+                          return total + (price * item.quantity);
+                        }, 0) || 0;
+                        
+                        if (yearlyPrice > 0) {
+                          availableOptions.push({
+                            key: "yearly",
+                            label: "Yearly",
+                            badge: "Save 17%",
+                            savings: "Best Value"
+                          });
+                        }
+                        
+                        // If no options available, default to monthly
+                        if (availableOptions.length === 0) {
+                          availableOptions.push({
+                            key: "monthly",
+                            label: "Monthly",
+                            badge: "",
+                            savings: ""
+                          });
+                        }
+                        
+                        // Update subscription type if current selection is not available
+                        if (!availableOptions.find(opt => opt.key === subscriptionType)) {
+                          setSubscriptionType(availableOptions[0].key as "monthly" | "quarterly" | "yearly");
+                        }
+                        
+                        return availableOptions.map((option) => (
                         <button
                           key={option.key}
-                          onClick={() => {
-                            setSubscriptionType(option.key as any)
-                            clearError() // Clear errors when user interacts
-                          }}
-                          className={`relative p-3 sm:p-4 rounded-xl font-medium transition-all duration-200 text-center ${
+                            onClick={() => setSubscriptionType(option.key as "monthly" | "quarterly" | "yearly")}
+                            className={`relative p-4 rounded-xl font-medium transition-all duration-200 text-center ${
                             subscriptionType === option.key 
-                              ? "bg-blue-600 text-[#FFFFF0] shadow-lg transform scale-[1.02] ring-2 ring-blue-600 ring-offset-2" 
-                              : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 hover:border-gray-300"
+                                ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg transform scale-105 ring-2 ring-blue-600 ring-offset-2" 
+                                : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 hover:border-gray-300 hover:shadow-md"
                           }`}
                         >
                           <div className="text-sm sm:text-base font-semibold">{option.label}</div>
                           {option.badge && (
                             <div className={`text-xs mt-1 ${
-                              subscriptionType === option.key ? "text-[#FFFFF0]/90" : "text-green-600"
+                                subscriptionType === option.key ? "text-white/90" : "text-green-600"
                             }`}>
                               {option.badge}
                             </div>
@@ -427,11 +697,11 @@ export default function CartPage() {
                             </Badge>
                           )}
                         </button>
-                      ))}
+                        ));
+                      })()}
                     </div>
                   </div>
                 </motion.div>
-
 
                 {/* Enhanced Cart Items List */}
                 <div className="space-y-4 sm:space-y-6">
@@ -439,21 +709,21 @@ export default function CartPage() {
                     {filteredItems.map((item, index) => {
                       let price = 0
                       let period = ""
-                      const isBundle = cartService.isBundle(item)
+                      const isBundle = bundleService.isBundle(item)
                       
                       try {
                         if (isBundle) {
                           switch (subscriptionType) {
                             case "yearly":
-                              price = cartService.getBundlePrice(item.portfolio, "yearly")
+                              price = bundleService.getBundlePrice(item.portfolio, "yearly")
                               period = "Yearly"
                               break
                             case "quarterly":
-                              price = cartService.getBundlePrice(item.portfolio, "quarterly")
+                              price = bundleService.getBundlePrice(item.portfolio, "quarterly")
                               period = "Quarterly"
                               break
                             default:
-                              price = cartService.getBundlePrice(item.portfolio, "monthly")
+                              price = bundleService.getBundlePrice(item.portfolio, "monthly")
                               period = "Monthly"
                               break
                           }
@@ -625,7 +895,13 @@ export default function CartPage() {
                       className="w-full flex items-center justify-center gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
                       onClick={async () => {
                         try {
-                          await clearCart()
+                          // Assuming clearCart is available from useCart or needs to be imported
+                          // For now, we'll just remove all items from the cart
+                          if (cart) {
+                            for (const item of cart.items) {
+                              await removeFromCart(item.portfolio._id);
+                            }
+                          }
                           toast({
                             title: "Cart Cleared",
                             description: "All items have been removed from your cart",
@@ -696,21 +972,21 @@ export default function CartPage() {
                           {filteredItems.map((item) => {
                             let price = 0
                             let period = ""
-                            const isBundle = cartService.isBundle(item)
+                            const isBundle = bundleService.isBundle(item)
                             
                             try {
                               if (isBundle) {
                                 switch (subscriptionType) {
                                   case "yearly":
-                                    price = cartService.getBundlePrice(item.portfolio, "yearly")
+                                    price = bundleService.getBundlePrice(item.portfolio, "yearly")
                                     period = "Yearly"
                                     break
                                   case "quarterly":
-                                    price = cartService.getBundlePrice(item.portfolio, "quarterly")
+                                    price = bundleService.getBundlePrice(item.portfolio, "quarterly")
                                     period = "Quarterly"
                                     break
                                   default:
-                                    price = cartService.getBundlePrice(item.portfolio, "monthly")
+                                    price = bundleService.getBundlePrice(item.portfolio, "monthly")
                                     period = "Monthly"
                                     break
                                 }
@@ -785,39 +1061,43 @@ export default function CartPage() {
                       </div>
 
                       <Button
-                        className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-[#FFFFF0] py-3 sm:py-4 text-sm sm:text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
-                        onClick={() => {
-                          clearError()
-                          
-                          // Check for already-purchased items before checkout
-                          const alreadyPurchasedItems = filteredItems.filter(item => 
-                            activatedPortfolioIds.includes(item.portfolio._id)
-                          )
-                          
-                          if (alreadyPurchasedItems.length > 0) {
-                            toast({
-                              title: "Cannot Checkout",
-                              description: "Please remove already-purchased items from your cart before proceeding.",
-                              variant: "destructive",
-                            })
-                            return
-                          }
-                          
-                          setCheckoutModal(true)
-                        }}
-                        disabled={updatingQuantity !== null || syncing || !!error}
+                        className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 sm:py-4 text-sm sm:text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={handleDirectCheckout}
+                        disabled={updatingQuantity !== null || syncing || !!error || processingCheckout || showProfileModal}
                       >
                         <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3" />
                         {updatingQuantity ? "Updating..." : 
                          syncing ? "Syncing..." :
+                         processingCheckout ? "Processing..." :
+                         showProfileModal ? "Complete Profile First" :
                          error ? "Error - Please Refresh" :
                          isAuthenticated ? "Proceed to Checkout" : "Sign In & Checkout"}
+                      </Button>
+                      
+                      {/* Test button for debugging */}
+                      <Button
+                        variant="outline"
+                        className="w-full mt-2"
+                        onClick={() => {
+                          console.log("Test button clicked");
+                          setShowProfileModal(true);
+                        }}
+                      >
+                        Test Profile Modal
                       </Button>
                       
                       {!isAuthenticated && (
                         <p className="text-xs text-gray-500 text-center">
                           You'll be prompted to sign in or create an account
                         </p>
+                      )}
+                      
+                      {showProfileModal && (
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-3">
+                          <p className="text-xs text-yellow-800 text-center">
+                            ⚠️ Profile completion required before checkout
+                          </p>
+                        </div>
                       )}
 
                       {/* Trust indicators */}
@@ -840,12 +1120,14 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* Checkout Modal */}
-      <CheckoutModal
-        isOpen={checkoutModal}
-        onClose={() => setCheckoutModal(false)}
-        type="cart"
-        subscriptionType={subscriptionType}
+      <ProfileCompletionModal 
+        open={showProfileModal}
+        onOpenChange={setShowProfileModal}
+        onProfileComplete={() => {
+          setShowProfileModal(false);
+          // Retry checkout after profile completion
+          handleDirectCheckout();
+        }}
       />
     </>
   )

@@ -55,4 +55,24 @@ export const bundleService = {
       },
     });
   },
+
+  // Check if an item is a bundle
+  isBundle: (item: any): boolean => {
+    return item && item.portfolio && item.portfolio.category && 
+           (item.portfolio.category === "basic" || item.portfolio.category === "premium");
+  },
+
+  // Get bundle price for a specific subscription type
+  getBundlePrice: (portfolio: any, subscriptionType: "monthly" | "quarterly" | "yearly"): number => {
+    if (!portfolio) return 0;
+    
+    switch (subscriptionType) {
+      case "yearly":
+        return portfolio.quarterlyPrice || 0; // quarterlyPrice is used for yearly subscriptions
+      case "quarterly":
+        return portfolio.quarterlyPrice || 0;
+      default:
+        return portfolio.monthlyPrice || 0;
+    }
+  },
 };

@@ -93,7 +93,10 @@ export interface Bundle {
 }
 
 // Helper functions for portfolio data
-export const getDescriptionByKey = (descriptions: PortfolioDescription[], key: string): string => {
+export const getDescriptionByKey = (descriptions: PortfolioDescription[] | undefined, key: string): string => {
+  if (!descriptions || !Array.isArray(descriptions)) {
+    return "";
+  }
   const desc = descriptions.find(d => d.key === key);
   return desc?.value || "";
 };

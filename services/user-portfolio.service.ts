@@ -85,6 +85,46 @@ export const userPortfolioService = {
     }
   },
 
+  // Get user's subscribed portfolios only
+  getSubscribedPortfolios: async (): Promise<UserPortfolio[]> => {
+    try {
+      const authToken = typeof window !== "undefined" 
+        ? localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken")
+        : null;
+
+      if (!authToken) {
+        return [];
+      }
+
+      const response = await axios.get<UserPortfolio[]>("/api/user/portfolios", {
+        baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "",
+        headers: {
+          accept: "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+
+      // Filter portfolios that the user has subscribed to
+      // Portfolios without "message" field are subscribed portfolios
+      const subscribedPortfolios = response.data.filter((portfolio: any) => {
+        // If portfolio has full details (no "message" field), it means user has access
+        const isSubscribed = !portfolio.message || portfolio.message !== "Subscribe to view complete details";
+        console.log(`Portfolio ${portfolio._id} (${portfolio.name}): ${isSubscribed ? 'Subscribed' : 'Not subscribed'}`);
+        return isSubscribed;
+      });
+
+      console.log("Total portfolios:", response.data.length, "Subscribed portfolios:", subscribedPortfolios.length);
+      return subscribedPortfolios;
+    } catch (error: any) {
+      console.error("Failed to fetch subscribed portfolios:", error);
+      if (error.response?.status === 401) {
+        localStorage.removeItem("accessToken");
+        sessionStorage.removeItem("accessToken");
+      }
+      return [];
+    }
+  },
+
   // Fetch portfolio by ID (requires authentication)
   getById: async (id: string): Promise<UserPortfolio | null> => {
     try {
@@ -115,7 +155,10 @@ export const userPortfolioService = {
   },
 
   // Helper function to get description by key
-  getDescriptionByKey: (descriptions: PortfolioDescription[], key: string): string => {
+  getDescriptionByKey: (descriptions: PortfolioDescription[] | undefined, key: string): string => {
+    if (!descriptions || !Array.isArray(descriptions)) {
+      return "";
+    }
     const desc = descriptions.find(d => d.key === key);
     return desc?.value || "";
   },

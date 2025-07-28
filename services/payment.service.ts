@@ -103,15 +103,15 @@ export const paymentService = {
     );
   },
 
-  // Cart checkout with eMandate for yearly subscriptions
-  cartCheckoutEmandate: async (): Promise<CreateEMandateResponse> => {
+  // Cart checkout with eMandate for yearly and quarterly subscriptions
+  cartCheckoutEmandate: async (cartData: any): Promise<CreateEMandateResponse> => {
     const token = authService.getAccessToken();
 
-    console.log("Payment service - cart checkout with eMandate");
+    console.log("Payment service - cart checkout with eMandate", cartData);
 
     return await post<CreateEMandateResponse>(
-      "/api/subscriptions/emandate/cart",
-      {},
+      "/api/subscriptions/emandate",
+      cartData,
       {
         headers: {
           accept: "application/json",
@@ -347,14 +347,9 @@ export const paymentService = {
     console.log("Payment response data:", paymentResponse);
 
     try {
-      // Create payload similar to regular verification but with subscription-specific fields
+      // Create payload with subscription_id as per API specification
       const payload = {
-        subscription_id: subscriptionId,
-        ...(paymentResponse && {
-          razorpay_payment_id: paymentResponse.razorpay_payment_id,
-          razorpay_subscription_id: paymentResponse.razorpay_subscription_id,
-          razorpay_signature: paymentResponse.razorpay_signature
-        })
+        subscription_id: subscriptionId
       };
 
       console.log("eMandate verification payload:", payload);

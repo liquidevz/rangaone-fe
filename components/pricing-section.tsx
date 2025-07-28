@@ -139,7 +139,7 @@ export default function PricingSection() {
             ["quarterlyPrice", "monthlyPrice"] // Swapped order: yearly first, monthly second
               .filter((priceType) => bundle[priceType as keyof Bundle] !== undefined)
               .map((priceType) => {
-                const subscriptionType = priceType === "monthlyPrice" ? "monthly" : "quarterly";
+                const subscriptionType = priceType === "monthlyPrice" ? "monthly" : "yearly";
                 const isInCart = hasBundle(bundle._id);
                 const isYearly = priceType === "quarterlyPrice";
                 const isPremium = selected === "A";

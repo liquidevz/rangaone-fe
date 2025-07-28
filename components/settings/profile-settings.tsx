@@ -4,28 +4,11 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
-import { Loader2, Save, Upload } from "lucide-react"
-import Image from "next/image"
-
-interface UserProfile {
-  id: string
-  name: string
-  email: string
-  phone: string
-  address: string
-  city: string
-  state: string
-  zipCode: string
-  country: string
-  bio: string
-  avatar: string
-  company: string
-  position: string
-  website: string
-  joinedDate: string
-}
+import { Loader2, Save, AlertCircle, CheckCircle } from "lucide-react"
+import { userService, UserProfile } from "@/services/user.service"
+import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function ProfileSettings() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -37,31 +20,8 @@ export default function ProfileSettings() {
     const fetchProfile = async () => {
       setLoading(true)
       try {
-        // In a real app, this would be a fetch call to your API
-        // const response = await fetch('/api/user/profile')
-        // const data = await response.json()
-
-        // For demo purposes, we'll use mock data
-        setTimeout(() => {
-          setProfile({
-            id: "1",
-            name: "John Doe",
-            email: "john.doe@example.com",
-            phone: "+91 9876543210",
-            address: "123 Main Street",
-            city: "Mumbai",
-            state: "Maharashtra",
-            zipCode: "400001",
-            country: "India",
-            bio: "Experienced investor with a focus on technology and healthcare sectors.",
-            avatar: "/diverse-avatars.png",
-            company: "ABC Investments",
-            position: "Senior Analyst",
-            website: "https://johndoe.com",
-            joinedDate: "January 15, 2023",
-          })
-          setLoading(false)
-        }, 1000)
+        const data = await userService.getProfile()
+        setProfile(data)
       } catch (error) {
         console.error("Failed to fetch profile:", error)
         toast({
@@ -69,6 +29,7 @@ export default function ProfileSettings() {
           description: "Failed to load profile information. Please try again later.",
           variant: "destructive",
         })
+      } finally {
         setLoading(false)
       }
     }
@@ -76,7 +37,7 @@ export default function ProfileSettings() {
     fetchProfile()
   }, [toast])
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setProfile((prev) => ({
       ...prev!,
@@ -85,20 +46,19 @@ export default function ProfileSettings() {
   }
 
   const handleSave = async () => {
+    if (!profile) return
+    
     setSaving(true)
     try {
-      // In a real app, this would be a fetch call to your API
-      // await fetch('/api/user/profile', {
-      //   method: 'PUT',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify(profile),
-      // })
-
-      // For demo purposes, we'll simulate a delay
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
+      const updatedProfile = await userService.updateProfile({
+        fullName: profile.fullName,
+        phone: profile.phone,
+        dateofBirth: profile.dateofBirth,
+        pnadetails: profile.pnadetails,
+      })
+      
+      setProfile(updatedProfile)
+      
       toast({
         title: "Profile Updated",
         description: "Your profile information has been updated successfully.",
@@ -128,43 +88,79 @@ export default function ProfileSettings() {
     <div className="space-y-8">
       <div>
         <h2 className="text-2xl font-bold mb-6">Profile Information</h2>
-        <p className="text-gray-600 mb-6">Update your personal information and how others see you on the platform.</p>
+        <p className="text-gray-600 mb-6">Update your personal information and complete your profile.</p>
+        
+        {/* Profile Completion Status */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            {profile?.profileComplete ? (
+              <CheckCircle className="h-5 w-5 text-green-600" />
+            ) : (
+              <AlertCircle className="h-5 w-5 text-orange-600" />
+            )}
+            <span className="font-medium">
+              Profile {profile?.profileComplete ? 'Complete' : 'Incomplete'}
+            </span>
+            <Badge variant={profile?.profileComplete ? 'default' : 'secondary'}>
+              {profile?.profileComplete ? 'Complete' : 'Incomplete'}
+            </Badge>
+          </div>
+          
+          {!profile?.profileComplete && profile?.missingFields && profile.missingFields.length > 0 && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Please complete the following fields: {profile.missingFields.join(', ')}
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {profile?.forceComplete && (
+            <Alert className="mt-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Profile completion is required for your active subscription.
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row gap-8">
         <div className="md:w-1/3">
           <div className="flex flex-col items-center">
             <div className="relative mb-4">
-              <div className="h-32 w-32 rounded-full overflow-hidden border-4 border-white shadow-lg">
-                {profile?.avatar ? (
-                  <Image
-                    src={profile.avatar || "/placeholder.svg"}
-                    alt={profile.name}
-                    width={128}
-                    height={128}
-                    className="object-cover"
-                  />
-                ) : (
-                  <div className="h-full w-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-3xl font-bold text-gray-400">{profile?.name?.charAt(0) || "U"}</span>
-                  </div>
-                )}
+              <div className="h-32 w-32 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gray-200 flex items-center justify-center">
+                <span className="text-3xl font-bold text-gray-400">
+                  {profile?.fullName?.charAt(0) || profile?.username?.charAt(0) || "U"}
+                </span>
               </div>
-              <Button size="sm" variant="outline" className="absolute bottom-0 right-0 rounded-full h-8 w-8 p-0">
-                <Upload className="h-4 w-4" />
-                <span className="sr-only">Upload avatar</span>
-              </Button>
             </div>
             <p className="text-sm text-gray-600 mb-1">{profile?.email}</p>
-            <p className="text-sm text-gray-600">Member since {profile?.joinedDate}</p>
+            <p className="text-sm text-gray-600">@{profile?.username}</p>
+            <p className="text-sm text-gray-600">Member since {new Date(profile?.createdAt || '').toLocaleDateString()}</p>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge variant={profile?.emailVerified ? 'default' : 'secondary'}>
+                {profile?.emailVerified ? 'Email Verified' : 'Email Not Verified'}
+              </Badge>
+            </div>
           </div>
         </div>
 
         <div className="md:w-2/3 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input id="name" name="name" value={profile?.name || ""} onChange={handleChange} />
+              <Label htmlFor="fullName">Full Name *</Label>
+              <Input 
+                id="fullName" 
+                name="fullName" 
+                value={profile?.fullName || ""} 
+                onChange={handleChange}
+                className={profile?.missingFields?.includes('fullName') ? 'border-red-300' : ''}
+              />
+              {profile?.missingFields?.includes('fullName') && (
+                <p className="text-xs text-red-600">Full name is required</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>
@@ -173,7 +169,6 @@ export default function ProfileSettings() {
                 name="email"
                 type="email"
                 value={profile?.email || ""}
-                onChange={handleChange}
                 disabled
               />
               <p className="text-xs text-gray-500">Email address cannot be changed. Contact support for assistance.</p>
@@ -182,60 +177,80 @@ export default function ProfileSettings() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input id="phone" name="phone" value={profile?.phone || ""} onChange={handleChange} />
+              <Label htmlFor="phone">Phone Number *</Label>
+              <Input 
+                id="phone" 
+                name="phone" 
+                value={profile?.phone || ""} 
+                onChange={handleChange}
+                placeholder="+1234567890"
+                className={profile?.missingFields?.includes('phone') ? 'border-red-300' : ''}
+              />
+              {profile?.missingFields?.includes('phone') && (
+                <p className="text-xs text-red-600">Phone number is required</p>
+              )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="company">Company</Label>
-              <Input id="company" name="company" value={profile?.company || ""} onChange={handleChange} />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="position">Position</Label>
-              <Input id="position" name="position" value={profile?.position || ""} onChange={handleChange} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="website">Website</Label>
-              <Input id="website" name="website" value={profile?.website || ""} onChange={handleChange} />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="address">Address</Label>
-            <Input id="address" name="address" value={profile?.address || ""} onChange={handleChange} />
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
-              <Input id="city" name="city" value={profile?.city || ""} onChange={handleChange} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="state">State</Label>
-              <Input id="state" name="state" value={profile?.state || ""} onChange={handleChange} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="zipCode">ZIP Code</Label>
-              <Input id="zipCode" name="zipCode" value={profile?.zipCode || ""} onChange={handleChange} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="country">Country</Label>
-              <Input id="country" name="country" value={profile?.country || ""} onChange={handleChange} />
+              <Label htmlFor="dateofBirth">Date of Birth *</Label>
+              <Input 
+                id="dateofBirth" 
+                name="dateofBirth" 
+                type="date"
+                value={profile?.dateofBirth || ""} 
+                onChange={handleChange}
+                className={profile?.missingFields?.includes('dateofBirth') ? 'border-red-300' : ''}
+              />
+              {profile?.missingFields?.includes('dateofBirth') && (
+                <p className="text-xs text-red-600">Date of birth is required</p>
+              )}
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="bio">Bio</Label>
-            <Textarea
-              id="bio"
-              name="bio"
-              rows={4}
-              value={profile?.bio || ""}
-              onChange={handleChange}
-              placeholder="Tell us about yourself and your investment experience..."
+            <Label htmlFor="username">Username</Label>
+            <Input
+              id="username"
+              name="username"
+              value={profile?.username || ""}
+              disabled
             />
+            <p className="text-xs text-gray-500">Username cannot be changed.</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="pnadetails">PAN Details</Label>
+            <Input 
+              id="pnadetails" 
+              name="pnadetails" 
+              value={profile?.pnadetails || ""} 
+              onChange={handleChange}
+              placeholder="AAAAA9999A (Indian PAN format)"
+            />
+            <p className="text-xs text-gray-500">PAN card must follow Indian format: AAAAA9999A</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Account Information</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+              <div>
+                <p className="text-sm font-medium text-gray-700">Provider</p>
+                <p className="text-sm text-gray-600 capitalize">{profile?.provider}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-700">Account Created</p>
+                <p className="text-sm text-gray-600">{new Date(profile?.createdAt || '').toLocaleDateString()}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-700">Last Updated</p>
+                <p className="text-sm text-gray-600">{new Date(profile?.updatedAt || '').toLocaleDateString()}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-700">Email Status</p>
+                <Badge variant={profile?.emailVerified ? 'default' : 'secondary'}>
+                  {profile?.emailVerified ? 'Verified' : 'Not Verified'}
+                </Badge>
+              </div>
+            </div>
           </div>
 
           <div className="flex justify-end">

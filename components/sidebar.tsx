@@ -40,7 +40,7 @@ const navigationItems = [
       {
         label: "RangaOne Wealth",
         icon: <Briefcase className="h-6 w-6" />,
-        href: "/RangaOne-wealth",
+        href: "/rangaone-wealth",
         badge: null,
       },
       {

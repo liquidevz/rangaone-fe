@@ -131,7 +131,7 @@ export default function StockRecommendationPage() {
         <div className="max-w-7xl mx-auto p-4">
           <div className="text-center py-12">
             <h2 className="text-2xl font-bold mb-4">Tip Not Found</h2>
-            <Link href="/RangaOne-wealth/all-recommendations">
+            <Link href="/rangaone-wealth/all-recommendations">
               <Button>Back to Recommendations</Button>
             </Link>
           </div>
@@ -147,7 +147,7 @@ export default function StockRecommendationPage() {
         <div className="max-w-7xl mx-auto p-4">
           <div className="mb-6">
             <Link
-              href="/RangaOne-wealth/all-recommendations"
+              href="/rangaone-wealth/all-recommendations"
               className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900"
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
@@ -178,7 +178,7 @@ export default function StockRecommendationPage() {
                   </Button>
                 </Link>
                 <div>
-                  <Link href="/RangaOne-wealth/all-recommendations">
+                  <Link href="/rangaone-wealth/all-recommendations">
                     <Button variant="outline">Back to Recommendations</Button>
                   </Link>
                 </div>

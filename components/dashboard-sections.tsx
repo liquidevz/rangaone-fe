@@ -192,7 +192,7 @@ export function ExpertRecommendationsSection() {
     <div className="bg-white border border-gray-200 rounded-lg p-4">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-gray-900">Expert Recommendations</h2>
-        <Link href="/RangaOne-wealth">
+        <Link href="/rangaone-wealth">
           <Button variant="outline" size="sm" className="text-blue-600 border-blue-600 hover:bg-blue-50">
             View All
           </Button>
@@ -472,7 +472,7 @@ function ModelPortfolioTipCard({ tip }: { tip: Tip }) {
     if (portfolioId) {
       router.push(`/model-portfolios/${portfolioId}/tips/${tip._id}`)
     } else {
-      router.push(`/RangaOne-wealth/recommendation/${tip._id}`)
+      router.push(`/rangaone-wealth/recommendation/${tip._id}`)
     }
   }
   

@@ -108,16 +108,27 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             console.log("Order created for basic plan:", orderResponse);
 
           } else {
-            // Use regular order API for all subscription types (including yearly)
-            // The eMandate endpoints are not available yet, so we'll use regular orders
-            console.log("Creating order for subscription type:", subscriptionType);
-            orderResponse = await paymentService.createOrder({
-              productType: "Bundle",
-              productId: bundle._id,
-              planType: subscriptionType,
-              subscriptionType: "premium", // Assuming all other bundles are premium
-            });
-            console.log("Order created:", orderResponse);
+            // For yearly and quarterly subscriptions, use eMandate API
+            if (subscriptionType === "yearly" || subscriptionType === "quarterly") {
+              console.log(`Creating eMandate for ${subscriptionType} subscription`);
+              orderResponse = await paymentService.createEmandate({
+                productType: "Bundle",
+                productId: bundle._id,
+                planType: subscriptionType,
+                subscriptionType: "premium",
+              });
+              console.log("eMandate created:", orderResponse);
+            } else {
+              // Use regular order API for monthly subscriptions
+              console.log("Creating order for subscription type:", subscriptionType);
+              orderResponse = await paymentService.createOrder({
+                productType: "Bundle",
+                productId: bundle._id,
+                planType: subscriptionType,
+                subscriptionType: "premium", // Assuming all other bundles are premium
+              });
+              console.log("Order created:", orderResponse);
+            }
           }
         } else if (portfolio) {
           // Individual portfolio purchase
@@ -138,17 +149,35 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           throw new Error("No product selected for purchase");
         }
       } else if (type === "cart") {
-        // Cart checkout - use regular checkout for all subscription types
+        // Cart checkout - use eMandate for yearly, regular checkout for others
         console.log("Creating cart checkout order with planType:", subscriptionType);
         // Determine cart subscription type based on items in cart, for now assume premium if it's not basic.
         // A more robust solution might involve checking each item's category.
         const cartSubscriptionType = isBasicPlan ? "basic" : "premium";
 
-        orderResponse = await paymentService.cartCheckout({
-          planType: subscriptionType,
-          subscriptionType: cartSubscriptionType,
-        });
-        console.log("Cart checkout created:", orderResponse);
+        if (subscriptionType === "yearly" || subscriptionType === "quarterly") {
+          console.log(`Creating cart eMandate for ${subscriptionType} subscription`);
+          
+          // Prepare cart data for eMandate API
+          const cartData = {
+            productType: "Bundle", // Assuming cart items are bundles
+            productId: "cart", // Special identifier for cart checkout
+            planType: subscriptionType,
+            subscriptionType: cartSubscriptionType,
+            // Include cart items and total for the API
+            cartItems: cart?.items || [],
+            totalAmount: calculateTotal()
+          };
+          
+          orderResponse = await paymentService.cartCheckoutEmandate(cartData);
+          console.log("Cart eMandate created:", orderResponse);
+        } else {
+          orderResponse = await paymentService.cartCheckout({
+            planType: subscriptionType,
+            subscriptionType: cartSubscriptionType,
+          });
+          console.log("Cart checkout created:", orderResponse);
+        }
       } else {
         throw new Error("Invalid checkout configuration");
       }
@@ -227,54 +256,88 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       console.log("Subscription type:", subscriptionType);
       setPaymentStep("processing");
 
-      // Use regular payment verification for all subscription types
-      // The eMandate endpoints are not available yet
-      console.log("Processing payment verification");
+      // Check if this is an eMandate response (yearly or quarterly subscription)
+      const isEmandate = (subscriptionType === "yearly" || subscriptionType === "quarterly") && orderData && 'subscriptionId' in orderData;
       
-      // Make sure we have all required fields
-      if (!response.razorpay_payment_id || !response.razorpay_order_id || !response.razorpay_signature) {
-        console.error("Missing fields:", {
-          payment_id: !!response.razorpay_payment_id,
-          order_id: !!response.razorpay_order_id,
-          signature: !!response.razorpay_signature
-        });
-        throw new Error("Missing required payment verification fields");
-      }
-
-      const verificationResponse = await paymentService.verifyPayment({
-        orderId: response.razorpay_order_id,
-        paymentId: response.razorpay_payment_id,
-        signature: response.razorpay_signature
-      });
-
-      console.log("Payment verification response:", verificationResponse);
-
-      if (verificationResponse.success) {
-        // Force refresh subscription data
-        await subscriptionService.forceRefresh();
+      if (isEmandate) {
+        console.log("Processing eMandate verification");
         
-        setPaymentStep("success");
-        
-        // Show appropriate success message based on subscription type
-        if (subscriptionType === "quarterly") {
+        // For eMandate, we need to verify using the subscription ID
+        const verificationResponse = await paymentService.verifyEmandate(
+          orderData.subscriptionId,
+          response
+        );
+
+        console.log("eMandate verification response:", verificationResponse);
+
+        if (verificationResponse.success) {
+          // Force refresh subscription data
+          await subscriptionService.forceRefresh();
+          
+          setPaymentStep("success");
+          
           toast({
-            title: "Yearly Subscription Activated",
-            description: "Your yearly subscription has been activated successfully",
+            title: `${subscriptionType === "yearly" ? "Yearly" : "Quarterly"} Subscription Activated`,
+            description: `Your ${subscriptionType} subscription with eMandate has been activated successfully`,
           });
+
+          // Close modal after 2 seconds
+          setTimeout(() => {
+            onClose();
+            resetModal();
+          }, 2000);
         } else {
-          toast({
-            title: "Payment Successful",
-            description: "Your subscription has been activated",
+          throw new Error(verificationResponse.message || "eMandate verification failed");
+        }
+      } else {
+        // Use regular payment verification for monthly and quarterly subscriptions
+        console.log("Processing regular payment verification");
+        
+        // Make sure we have all required fields
+        if (!response.razorpay_payment_id || !response.razorpay_order_id || !response.razorpay_signature) {
+          console.error("Missing fields:", {
+            payment_id: !!response.razorpay_payment_id,
+            order_id: !!response.razorpay_order_id,
+            signature: !!response.razorpay_signature
           });
+          throw new Error("Missing required payment verification fields");
         }
 
-        // Close modal after 2 seconds
-        setTimeout(() => {
-          onClose();
-          resetModal();
-        }, 2000);
-      } else {
-        throw new Error(verificationResponse.message || "Payment verification failed");
+        const verificationResponse = await paymentService.verifyPayment({
+          orderId: response.razorpay_order_id,
+          paymentId: response.razorpay_payment_id,
+          signature: response.razorpay_signature
+        });
+
+        console.log("Payment verification response:", verificationResponse);
+
+        if (verificationResponse.success) {
+          // Force refresh subscription data
+          await subscriptionService.forceRefresh();
+          
+          setPaymentStep("success");
+          
+          // Show appropriate success message based on subscription type
+          if (subscriptionType === "quarterly") {
+            toast({
+              title: "Quarterly Subscription Activated",
+              description: "Your quarterly subscription has been activated successfully",
+            });
+          } else {
+            toast({
+              title: "Payment Successful",
+              description: "Your subscription has been activated",
+            });
+          }
+
+          // Close modal after 2 seconds
+          setTimeout(() => {
+            onClose();
+            resetModal();
+          }, 2000);
+        } else {
+          throw new Error(verificationResponse.message || "Payment verification failed");
+        }
       }
     } catch (error: any) {
       console.error("Payment verification failed:", error);
@@ -302,7 +365,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const getCheckoutDescription = (portfolio: UserPortfolio) => {
     return userPortfolioService.getDescriptionByKey(
-      portfolio.description,
+      portfolio?.description,
       "checkout card"
     );
   };
@@ -312,7 +375,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       if (bundle) {
         switch (subscriptionType) {
           case "yearly":
-            return bundle.yearlyPrice;
+            return bundle.quarterlyPrice; // quarterlyPrice is used for yearly subscriptions
           case "quarterly":
             return bundle.quarterlyPrice;
           default:
@@ -385,7 +448,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             <div className="p-6">
               {paymentStep === "review" && (
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-gray-900">Order Summary</h3>
+                  <h3 className="font-semibold text-gray-900">Lol Summary</h3>
 
                   {/* Debug info - Remove in production */}
                   {process.env.NODE_ENV === "development" && (
@@ -560,7 +623,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
                         const checkoutDesc =
                           userPortfolioService.getDescriptionByKey(
-                            item.portfolio.description,
+                            item.portfolio?.description,
                             "checkout card"
                           );
 

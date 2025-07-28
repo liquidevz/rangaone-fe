@@ -195,7 +195,7 @@ export default function RangaOneWealth() {
 
   // Navigation handler for tips
   const handleTipClick = (tipId: string) => {
-    router.push(`/RangaOne-wealth/recommendation/${tipId}`);
+    router.push(`/rangaone-wealth/recommendation/${tipId}`);
   };
 
   // Loading skeleton

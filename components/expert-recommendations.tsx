@@ -269,7 +269,7 @@ export default function ExpertRecommendations() {
           )}
           
           <Button asChild variant="outline" size="sm" className="text-blue-600 border-blue-600 hover:bg-blue-50">
-            <Link href={activeTab === "RangaOneWealth" ? "/RangaOne-wealth" : "/model-portfolios"}>
+            <Link href={activeTab === "RangaOneWealth" ? "/rangaone-wealth" : "/model-portfolios"}>
               View All
             </Link>
           </Button>
@@ -424,7 +424,7 @@ function ModelPortfolioTipCard({ tip }: { tip: Tip }) {
     if (portfolioId) {
       router.push(`/model-portfolios/${portfolioId}/tips/${tip._id}`);
     } else {
-      router.push(`/RangaOne-wealth/recommendation/${tip._id}`);
+      router.push(`/rangaone-wealth/recommendation/${tip._id}`);
     }
   };
   
@@ -465,7 +465,7 @@ function ModelPortfolioTipCard({ tip }: { tip: Tip }) {
         {/* Additional Details Link */}
         <div className="mt-5 pt-3 border-t border-gray-200">
           <Link 
-            href={`/RangaOne-wealth/recommendation/${tip._id}`}
+            href={`/rangaone-wealth/recommendation/${tip._id}`}
             className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
           >
             View Full Analysis →

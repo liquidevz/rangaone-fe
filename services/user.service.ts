@@ -13,6 +13,13 @@ export interface UserProfile {
   emailVerified: boolean;
   createdAt: string;
   updatedAt: string;
+  fullName?: string;
+  dateofBirth?: string;
+  phone?: string;
+  pnadetails?: string;
+  profileComplete: boolean;
+  forceComplete: boolean;
+  missingFields: string[];
 }
 
 export interface UserSubscription {
@@ -43,6 +50,65 @@ export interface PaymentHistory {
   updatedAt: string;
 }
 
+export interface PortfolioHolding {
+  symbol: string;
+  weight: number;
+  sector: string;
+  stockCapType: string;
+  status: string;
+  buyPrice: number;
+  quantity: number;
+  minimumInvestmentValueStock: number;
+}
+
+export interface PortfolioDownloadLink {
+  linkType: string;
+  linkUrl: string;
+  linkDiscription: string;
+  createdAt: string;
+  _id: string;
+  name: string;
+  url: string;
+}
+
+export interface PortfolioYouTubeLink {
+  link: string;
+  createdAt: string;
+}
+
+export interface UserPortfolio {
+  _id: string;
+  name: string;
+  description: string;
+  cashBalance?: number;
+  currentValue?: number;
+  subscriptionFee: Array<{
+    type: 'monthly' | 'yearly' | 'quarterly';
+    price: number;
+  }>;
+  minInvestment?: number;
+  durationMonths?: number;
+  expiryDate?: string;
+  PortfolioCategory: string;
+  timeHorizon?: string;
+  rebalancing?: string;
+  lastRebalanceDate?: string;
+  nextRebalanceDate?: string;
+  monthlyContribution?: number;
+  index?: string;
+  details?: string;
+  monthlyGains?: number;
+  CAGRSinceInception?: number;
+  oneYearGains?: number;
+  compareWith?: string;
+  holdings?: PortfolioHolding[];
+  downloadLinks?: PortfolioDownloadLink[];
+  youTubeLinks?: PortfolioYouTubeLink[];
+  holdingsValue?: number;
+  createdAt: string;
+  message?: string;
+}
+
 class UserService {
   private readonly baseUrl = '/api/user';
 
@@ -56,6 +122,56 @@ class UserService {
     } catch (error) {
       console.error('Failed to fetch user profile:', error);
       throw new Error('Unable to load profile. Please try again later.');
+    }
+  }
+
+  /**
+   * Update user profile
+   */
+  async updateProfile(profileData: Partial<UserProfile>): Promise<UserProfile> {
+    try {
+      const response = await axiosApi.put<UserProfile>(`${this.baseUrl}/profile`, profileData);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to update user profile:', error);
+      throw new Error('Unable to update profile. Please try again later.');
+    }
+  }
+
+  /**
+   * Check if profile is complete for checkout
+   */
+  async validateProfileForCheckout(): Promise<{ isValid: boolean; missingFields: string[]; message?: string }> {
+    try {
+      const profile = await this.getProfile();
+      
+      if (profile.missingFields && profile.missingFields.length > 0) {
+        return {
+          isValid: false,
+          missingFields: profile.missingFields,
+          message: `Please complete your profile by filling in: ${profile.missingFields.join(', ')}`
+        };
+      }
+      
+      if (!profile.profileComplete) {
+        return {
+          isValid: false,
+          missingFields: [],
+          message: 'Please complete your profile before proceeding to checkout'
+        };
+      }
+      
+      return {
+        isValid: true,
+        missingFields: []
+      };
+    } catch (error) {
+      console.error('Failed to validate profile:', error);
+      return {
+        isValid: false,
+        missingFields: [],
+        message: 'Unable to validate profile. Please try again later.'
+      };
     }
   }
 
@@ -233,6 +349,29 @@ class UserService {
     } else {
       const years = Math.floor(diffDays / 365);
       return `${years} year${years !== 1 ? 's' : ''}`;
+    }
+  }
+
+  /**
+   * Get user portfolios with access control
+   */
+  async getUserPortfolios(params?: {
+    startDate?: string;
+    endDate?: string;
+    category?: 'basic' | 'premium';
+  }): Promise<UserPortfolio[]> {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.startDate) queryParams.append('startDate', params.startDate);
+      if (params?.endDate) queryParams.append('endDate', params.endDate);
+      if (params?.category) queryParams.append('category', params.category);
+      
+      const url = `${this.baseUrl}/portfolios${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+      const response = await axiosApi.get<UserPortfolio[]>(url);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch user portfolios:', error);
+      throw new Error('Unable to load portfolios. Please try again later.');
     }
   }
 }

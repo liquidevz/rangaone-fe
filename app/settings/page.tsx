@@ -8,8 +8,7 @@ import ProfileSettings from "@/components/settings/profile-settings"
 import PortfolioSettings from "@/components/settings/portfolio-settings"
 import SubscriptionSettings from "@/components/settings/subscription-settings"
 import PaymentSettings from "@/components/settings/payment-settings"
-import { User, Settings, Briefcase, CreditCard, Bell } from "lucide-react"
-import NotificationSettings from "@/components/settings/notification-settings"
+import { User, Settings, Briefcase, CreditCard } from "lucide-react"
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("profile")
@@ -55,13 +54,6 @@ export default function SettingsPage() {
                     <CreditCard className="h-4 w-4 mr-2" />
                     Payments
                   </TabsTrigger>
-                  <TabsTrigger
-                    value="notifications"
-                    className="flex items-center py-4 px-2 sm:px-6 data-[state=active]:border-b-2 data-[state=active]:border-indigo-900 data-[state=active]:text-indigo-900 data-[state=active]:font-medium rounded-none data-[state=active]:shadow-none data-[state=active]:bg-transparent"
-                  >
-                    <Bell className="h-4 w-4 mr-2" />
-                    Notifications
-                  </TabsTrigger>
                 </TabsList>
               </div>
             </div>
@@ -80,10 +72,6 @@ export default function SettingsPage() {
 
             <TabsContent value="payments" className="p-6">
               <PaymentSettings />
-            </TabsContent>
-
-            <TabsContent value="notifications" className="p-6">
-              <NotificationSettings />
             </TabsContent>
           </Tabs>
         </Card>
