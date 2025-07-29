@@ -11,6 +11,9 @@ const nextConfig = {
       },
     ],
     unoptimized: true,
+    dangerouslyAllowSVG: true,
+    contentDispositionType: 'attachment',
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   // Ensure transpilation of node_modules for compatibility
   transpilePackages: [

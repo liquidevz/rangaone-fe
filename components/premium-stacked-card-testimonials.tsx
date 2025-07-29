@@ -27,22 +27,22 @@ const PremiumStackedCardTestimonials = ({ color = "#FFD700" }: StackedCardTestim
   return (
     <section className="py-24 px-4 lg:px-8 grid items-center grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-4 overflow-hidden">
       <div className="p-4">
-        <h3 className="text-5xl font-semibold text-white">What our customers think</h3>
-        <p className="text-gray-300 my-4">
+        <h3 className="text-5xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] to-[#FFC706]">What our customers think</h3>
+        <p className="text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] to-[#FFC706] my-4">
           Discover how RangaOne Wealth Premium has transformed the investment journey of our clients.
         </p>
         <SelectBtns
           numTracks={testimonials.length}
           setSelected={setSelected}
           selected={selected}
-          color="#FFD700"
+          color={color}
         />
       </div>
       <Cards
         testimonials={testimonials}
         setSelected={setSelected}
         selected={selected}
-        color="#FFD700"
+        color={color}
       />
     </section>
   );
@@ -168,12 +168,12 @@ const Card = ({
       onClick={() => setSelected(position)}
       className="absolute top-0 left-0 w-full min-h-full p-8 lg:p-12 cursor-pointer flex flex-col justify-between rounded-xl border border-[#7a8c3b]/10"
     >
-      <Icon className="text-7xl mx-auto" style={{ color: "#FFD700" }} />
+      <Icon className="text-7xl mx-auto" style={{ color }} />
       <p className="text-lg lg:text-xl font-light italic my-8 text-gray-300">
         "{description}"
       </p>
       <div>
-        <span className="block font-semibold text-lg text-white">{name}</span>
+        <span className="block font-semibold text-lg text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] to-[#FFC706]">{name}</span>
         <span className="block text-sm text-gray-400">{title}</span>
       </div>
     </motion.div>

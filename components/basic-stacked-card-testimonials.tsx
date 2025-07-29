@@ -35,14 +35,14 @@ const PremiumStackedCardTestimonials = ({ color = "#FFD700" }: StackedCardTestim
           numTracks={testimonials.length}
           setSelected={setSelected}
           selected={selected}
-          color="#FFD700"
+          color={color}
         />
       </div>
       <Cards
         testimonials={testimonials}
         setSelected={setSelected}
         selected={selected}
-        color="#FFD700"
+        color={color}
       />
     </section>
   );
@@ -168,7 +168,7 @@ const Card = ({
       onClick={() => setSelected(position)}
       className="absolute top-0 left-0 w-full min-h-full p-8 lg:p-12 cursor-pointer flex flex-col justify-between rounded-xl border border-[#7a8c3b]/10"
     >
-      <Icon className="text-7xl mx-auto" style={{ color: "#FFD700" }} />
+      <Icon className="text-7xl mx-auto" style={{ color }} />
       <p className="text-lg lg:text-xl font-light italic my-8 text-gray-300">
         "{description}"
       </p>

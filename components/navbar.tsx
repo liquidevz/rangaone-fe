@@ -78,8 +78,8 @@ export const RoundedDrawerNav = ({
   const { cartItemCount } = useCart();
   
   const textColor = variant === "premium" ? "text-[#333333]" : "text-[#FFFFF0]";
-  const buttonBg = variant === "premium" ? "bg-[#333333]" : "bg-white";
-  const buttonText = variant === "premium" ? "text-[#FFFFF0]" : "text-[#001633]";
+  const buttonBg = variant === "premium" ? "bg-[#382404]" : "bg-white";
+  const buttonText = variant === "premium" ? "text-white" : "text-[#001633]";
   const mobileMenuBg = variant === "premium" ? "bg-[#FFB800]" : "bg-[#001633]";
 
   const handleLogin = () => {
@@ -121,8 +121,33 @@ export const RoundedDrawerNav = ({
           {/* Logo Section */}
           <div className="flex items-center gap-4">
             <Link href="/" className="flex items-center gap-2">
-              <img src="/landing-page/rlogo.png" alt="RangaOne Logo" className="h-10 w-auto" />
-              <img src="/landing-page/namelogo.png" alt="RangaOne Name" className="h-10 w-auto" />
+              {variant === "premium" ? (
+                <>
+                  <img 
+                    src="/landing-page/rlogodark.png" 
+                    alt="RangaOne Logo" 
+                    className="h-10 w-auto mix-blend-multiply dark:mix-blend-screen" 
+                  />
+                  <img 
+                    src="/landing-page/namelogodark.png" 
+                    alt="RangaOne Name" 
+                    className="h-10 w-auto mix-blend-multiply dark:mix-blend-screen" 
+                  />
+                </>
+              ) : (
+                <>
+                  <img 
+                    src="/landing-page/rlogo.png" 
+                    alt="RangaOne Logo" 
+                    className="h-10 w-auto mix-blend-multiply dark:mix-blend-screen" 
+                  />
+                  <img 
+                    src="/landing-page/namelogo.png" 
+                    alt="RangaOne Name" 
+                    className="h-10 w-auto mix-blend-multiply dark:mix-blend-screen" 
+                  />
+                </>
+              )}
             </Link>
           </div>
 

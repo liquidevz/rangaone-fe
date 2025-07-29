@@ -15,6 +15,7 @@ import { useAuth } from "@/components/auth/auth-context"
 import { useCart } from "@/components/cart/cart-context"
 import { paymentService } from "@/services/payment.service"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { cartService } from "@/services/cart.service"
 import { userPortfolioService } from "@/services/user-portfolio.service"
 import { bundleService } from "@/services/bundle.service"
@@ -35,6 +36,7 @@ export default function CartPage() {
   const [showProfileModal, setShowProfileModal] = useState(false)
 
   const { isAuthenticated } = useAuth()
+  const router = useRouter()
   const { 
     cart, 
     cartItemCount, 
@@ -255,9 +257,10 @@ export default function CartPage() {
     if (!isAuthenticated) {
       toast({
         title: "Authentication Required",
-        description: "Please sign in to complete your purchase.",
+        description: "Please login to complete your purchase",
         variant: "destructive",
       });
+      router.push("/login");
       return;
     }
 

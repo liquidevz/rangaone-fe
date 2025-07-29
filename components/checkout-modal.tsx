@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "./auth/auth-context";
 import { useCart } from "./cart/cart-context";
+import { useRouter } from "next/navigation";
 import {
   paymentService,
   CreateOrderResponse,
@@ -50,6 +51,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const { user, isAuthenticated } = useAuth();
   const { cart, refreshCart, cartItemCount, calculateTotal: cartCalculateTotal } = useCart();
   const { toast } = useToast();
+  const router = useRouter();
 
   // Check if this is the basic plan (will be handled differently)
   const isBasicPlan = bundle && bundle._id === "basic-plan-id";
@@ -71,20 +73,15 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   }, [isOpen]);
 
   const handleCreateOrder = async () => {
-    // Check authentication for cart checkout
-    if (type === "cart" && !isAuthenticated) {
-      setShowAuthPrompt(true);
-      return;
-    }
-
-    // Check authentication for single item checkout
-    if (type === "single" && !isAuthenticated) {
+    // Check authentication for both cart and single checkout
+    if (!isAuthenticated) {
       toast({
         title: "Authentication Required",
-        description: "Please log in to complete your purchase.",
+        description: "Please login to complete your purchase",
         variant: "destructive",
       });
       onClose();
+      router.push("/login");
       return;
     }
 
