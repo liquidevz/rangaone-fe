@@ -25,9 +25,9 @@ const PremiumStackedCardTestimonials = ({ color = "#FFD700" }: StackedCardTestim
   const [selected, setSelected] = useState(0);
 
   return (
-    <section className="py-24 px-4 lg:px-8 grid items-center grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-4 overflow-hidden">
+    <section className="py-5 px-4 lg:px-8 grid items-center grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-4 overflow-hidden mb-4">
       <div className="p-4">
-        <h3 className="text-4xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] to-[#FFC706]">What our Premium Client Say</h3>
+        <h3 className="text-3xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] to-[#FFC706]">What our Premium Clients Say</h3>
         <p className="text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] to-[#FFC706] my-4">
           Discover how RangaOne Wealth Premium has transformed the investment journey of our clients.
         </p>
