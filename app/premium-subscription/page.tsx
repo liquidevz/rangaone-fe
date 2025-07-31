@@ -412,7 +412,11 @@ export default function PremiumSubscriptionPage() {
                         onClick={() => {
                           const element = document.getElementById(feature.id);
                           if (element) {
-                            element.scrollIntoView({ behavior: "smooth" });
+                            element.scrollIntoView({ 
+                              behavior: "smooth",
+                              block: "center",
+                              inline: "center"
+                            });
                           }
                         }}
                       >
@@ -538,7 +542,11 @@ export default function PremiumSubscriptionPage() {
                 onClick={() => {
                   const element = document.getElementById(feature.id);
                   if (element) {
-                    element.scrollIntoView({ behavior: "smooth" });
+                    element.scrollIntoView({ 
+                      behavior: "smooth",
+                      block: "center",
+                      inline: "center"
+                    });
                   }
                 }}
               >

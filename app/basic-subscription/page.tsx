@@ -328,12 +328,12 @@ export default function BasicSubscriptionPage() {
       </section>
 
       {/* Banner */}
-      <div className="w-full bg-yellow-400 py-3 border-t border-b border-yellow-500/30 overflow-hidden">
+      <div className="w-full bg-[#001633] py-3 border-t border-b border-yellow-500/30 overflow-hidden">
         <div className="whitespace-nowrap animate-marquee">
-          <span className="inline-block mx-4 text-black font-semibold">
+          <span className="inline-block mx-4 text-white font-semibold">
             You will not regret buying this!
           </span>
-          <span className="inline-block mx-4 text-black font-semibold">
+          <span className="inline-block mx-4 text-white font-semibold">
             This is a very nice offer!
           </span>
         </div>
