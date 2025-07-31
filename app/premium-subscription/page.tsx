@@ -603,7 +603,7 @@ export default function PremiumSubscriptionPage() {
                       className="w-full h-auto"
                     />
                   </div>
-                  <div className="absolute -bottom-6 -right-6 md:w-24 md:h-24 w-16 h-16 bg-[#FFC706] rounded-full flex items-center justify-center text-[#333333] font-bold md:text-2xl text-xl z-20">
+                  <div className="absolute -bottom-6 -right-6 md:w-24 md:h-24 w-16 h-16 bg-[#333333] rounded-full flex items-center justify-center text-[#FFC706] font-bold md:text-2xl text-xl z-20">
                     20-25
                   </div>
                 </div>
@@ -676,7 +676,7 @@ export default function PremiumSubscriptionPage() {
                       className="w-full h-auto"
                     />
                   </div>
-                  <div className="absolute -bottom-6 md:-left-6 left-10 md:w-24 md:h-24 w-16 h-16 bg-[#FFC706] rounded-full flex items-center justify-center text-[#333333] font-bold md:text-2xl text-xl z-20">
+                  <div className="absolute -bottom-6 md:-left-6 left-10 md:w-24 md:h-24 w-16 h-16 bg-[#333333] rounded-full flex items-center justify-center text-[#FFC706] font-bold md:text-2xl text-xl z-20">
                     10
                   </div>
                 </div>
