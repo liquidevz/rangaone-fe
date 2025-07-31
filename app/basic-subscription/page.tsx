@@ -557,7 +557,7 @@ export default function BasicSubscriptionPage() {
 
       {/* Main Content */}
       <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-0">
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -581,7 +581,7 @@ export default function BasicSubscriptionPage() {
                   Longterm 10-15 Quality Stocks
                 </h3>
                 <div className="relative md:hidden mb-6 max-w-[250px]">
-                  <div className="absolute -inset-4 bg-gradient-to-r from-[#e6e9ff] to-blue-100 rounded-2xl blur-lg z-0"></div>
+                  <div className="absolute -inset-4  rounded-2xl blur-lg z-0"></div>
                   <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#8193ff] max-w-[250px]">
                     <Image
                       src="/basic-subscription/longtermstocks.png"
@@ -729,7 +729,7 @@ export default function BasicSubscriptionPage() {
                   Timely Alerts for Entry & Exit
                 </h3>
                 <div className="relative md:hidden mb-6 max-w-[250px]">
-                  <div className="absolute -inset-4 bg-gradient-to-r from-[#8193ff] to-blue-100 rounded-2xl blur-lg z-0"></div>
+                  <div className="absolute -inset-4 rounded-2xl blur-lg z-0"></div>
                   <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#8193ff] max-w-[250px]">
                     <Image
                       src="/basic-subscription/entryexit.jpg"

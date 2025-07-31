@@ -329,7 +329,7 @@ export default function PremiumSubscriptionPage() {
 
       {/* Features Overview */}
       <section className="py-16">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-0">
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -569,7 +569,7 @@ export default function PremiumSubscriptionPage() {
 
       {/* Main Content */}
       <section className="py-20">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-0">
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -1001,7 +1001,7 @@ export default function PremiumSubscriptionPage() {
 
       {/* Testimonials */}
       <section>
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-0">
           <PremiumStackedCardTestimonials />
         </div>
       </section>
@@ -1011,7 +1011,7 @@ export default function PremiumSubscriptionPage() {
 
       {/* CTA Section */}
       <section className="py-10 bg-gradient-to-r from-[#1e4e45] via-[#7a8c3b] to-[#ffc107] text-gray-900">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-0">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -1052,7 +1052,7 @@ export default function PremiumSubscriptionPage() {
 
       {/* FAQ Section */}
       <section className="py-20">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-0">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
