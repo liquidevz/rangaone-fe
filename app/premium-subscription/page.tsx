@@ -615,7 +615,7 @@ export default function PremiumSubscriptionPage() {
                   opportunities, higher accuracy, and better diversification,
                   giving you the ultimate edge in wealth creation
                 </p>
-                <ul className="space-y-3 p-8">
+                <ul className="space-y-1 px-2">
                   {[
                     "Advanced Stock Selection",
                     "Elite Level Research Edge",
@@ -644,7 +644,7 @@ export default function PremiumSubscriptionPage() {
                     className="w-full h-auto"
                   />
                 </div>
-                <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-[#FFC706] rounded-full flex items-center justify-center text-[#333333] font-bold text-2xl z-20">
+                <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-[#FFC706] rounded-full flex items-center justify-center text-[#333333] font-bold text-md z-20">
                   20-25
                 </div>
               </div>
@@ -676,7 +676,7 @@ export default function PremiumSubscriptionPage() {
                       className="w-full h-auto"
                     />
                   </div>
-                  <div className="absolute -bottom-6 md:-left-6 left-10 md:w-24 md:h-24 w-16 h-16 bg-[#333333] rounded-full flex items-center justify-center text-[#FFC706] font-bold md:text-2xl text-xl z-20">
+                  <div className="absolute -bottom-6 md:-left-6 left-10 md:w-24 md:h-24 w-16 h-16 bg-[#333333] rounded-full flex items-center justify-center text-[#FFC706] font-bold md:text-2xl text-md z-20">
                     10
                   </div>
                 </div>
@@ -687,7 +687,7 @@ export default function PremiumSubscriptionPage() {
                   short-term trades each month, complete with precise entry and
                   exit points, stop-loss levels, and target prices.
                 </p>
-                <ul className="space-y-3 p-8">
+                <ul className="space-y-1 px-2">
                   {[
                     "10 high-potential trade recommendations",
                     "Precise entry and exit points",
@@ -822,7 +822,7 @@ export default function PremiumSubscriptionPage() {
                   subscription strategies so you never miss a high-potential
                   listing.
                 </p>
-                <ul className="space-y-3 p-8">
+                <ul className="space-y-1 px-2">
                   {[
                     "Exclusive IPO Recommendations",
                     "Allotment Maximisation Strategy",
@@ -892,7 +892,7 @@ export default function PremiumSubscriptionPage() {
                   investor—you’re part of an exclusive group that gets expert
                   guidance on demand
                 </p>
-                <ul className="space-y-3 p-8">
+                <ul className="space-y-1 px-2">
                   {[
                     "Priority Call Support",
                     "Expert-Led Guidance",
@@ -967,7 +967,7 @@ export default function PremiumSubscriptionPage() {
             understand the market. This isn’t just another webinar—it’s a
             premium experience designed to make you feel valued and empowered.
           </p>
-          <ul className="space-y-3 p-8">
+          <ul className="space-y-1 px-2">
             {[
               "Exclusive IPO Recommendations",
               "Allotment Maximisation Strategy",
