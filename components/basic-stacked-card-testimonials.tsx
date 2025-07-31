@@ -27,9 +27,9 @@ const BasicStackedCardTestimonials = ({ color = "#8193FF" }: StackedCardTestimon
   return (
     <section className="py-24 px-4 lg:px-8 grid items-center grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-4 overflow-hidden bg-white">
       <div className="p-4">
-        <h3 className="text-5xl font-semibold text-black">What our customers think</h3>
-        <p className="text-gray-600 my-4">
-          Discover how RangaOne Wealth Basic has helped beginners start their investment journey successfully.
+        <h3 className="text-3xl font-semibold text-[#898EFF]">What our Basic Clients Say</h3>
+        <p className="text-gray-600 my-5">
+          Discover how RangaOne Wealth has helped beginners begin their investment journey successfully.
         </p>
         <SelectBtns
           numTracks={testimonials.length}

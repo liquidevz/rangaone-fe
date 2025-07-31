@@ -652,9 +652,9 @@ export default function BasicSubscriptionPage() {
                 <h3 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-[#8193ff] to-[#8193ff]">
                   5 Short-Term/Swing Trades
                 </h3>
-                <div className="relative md:hidden mb-6">
+                <div className="relative md:hidden mb-6 max-w-[250px]">
                   <div className="absolute -inset-4 bg-gradient-to-r from-[#e6e9ff] to-blue-100 rounded-2xl blur-lg z-0"></div>
-                  <div className="left-20 relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#8193ff] max-w-[250px]">
+                  <div className="left-20 relative z-10 overflow-hidden rounded-xl ">
                     <Image
                       src="/basic-subscription/5swingtrades.png"
                       alt="Swing Trades"
@@ -730,7 +730,7 @@ export default function BasicSubscriptionPage() {
                 </h3>
                 <div className="relative md:hidden mb-6 max-w-[250px]">
                   <div className="absolute -inset-4 rounded-2xl blur-lg z-0"></div>
-                  <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#8193ff] max-w-[250px]">
+                  <div className="relative z-10 overflow-hidden rounded-xl">
                     <Image
                       src="/basic-subscription/entryexit.jpg"
                       alt="Timely Alerts"

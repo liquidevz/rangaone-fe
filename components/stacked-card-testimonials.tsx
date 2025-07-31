@@ -16,7 +16,7 @@ const StackedCardTestimonials = () => {
   return (
     <section className="bg-[#FEFCEA] py-24 px-4 lg:px-8 grid items-center grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-4 overflow-hidden">
       <div className="p-4">
-        <h3 className="text-5xl font-semibold">What our customers think</h3>
+        <h3 className="text-5xl font-semibold">What our customers thinkk</h3>
         <p className="text-slate-500 my-4">
           Lorem ipsum dolor sit, amet consectetur adipisicing elit. Minus
           commodi sint, similique cupiditate possimus suscipit delectus illum
