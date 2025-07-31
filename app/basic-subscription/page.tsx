@@ -146,7 +146,7 @@ export default function BasicSubscriptionPage() {
               transition={{ duration: 0.6 }}
               className="mb-6 sm:mb-6"
             >
-              <h1 className="px-2 text-2xl sm:text-3xl md:text-4xl font-bold text-white leading-tight bg-gradient-to-r from-[#021836] to-transparent rounded-xl p-4">
+              <h1 className="px-2 text-2xl sm:text-3xl md:text-4xl font-bold text-white leading-tight bg-gradient-to-r from-[#021836] to-transparent rounded-xl">
                 At RangaOne<br></br>
                 Your Growth, Our Priority
               </h1>
@@ -569,7 +569,7 @@ export default function BasicSubscriptionPage() {
             <motion.div
               id="feature-1"
               variants={fadeIn}
-              className="md:grid md:grid-cols-2 gap-6 md:gap-12 items-center p-4 md:p-8 scroll-mt-32"
+              className="md:grid md:grid-cols-2 gap-6 md:gap-12 items-center p-4 md:p-8 scroll-mt-32 bg-[#8193ff] md:bg-white"
             >
               <div className="md:order-2">
                 <div className="w-fit bg-[#e6e9ff] rounded-full justify-center mb-2">
@@ -577,12 +577,12 @@ export default function BasicSubscriptionPage() {
                     Feature 1
                   </div>
                 </div>
-                <h3 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-[#8193ff] to-[#8193ff]">
+                <h3 className="md:text-3xl text-[1.7rem] font-bold mb-6 md:text-transparent md:bg-clip-text md:bg-gradient-to-r from-[#8193ff] to-[#8193ff]">
                   Longterm 10-15 Quality Stocks
                 </h3>
-                <div className="relative md:hidden mb-6">
-                  <div className="absolute -inset-4 bg-gradient-to-r from#e6e9ff to-blue-100 rounded-2xl blur-lg z-0"></div>
-                  <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#8193ff]">
+                <div className="relative md:hidden mb-6 max-w-[250px]">
+                  <div className="absolute -inset-4 bg-gradient-to-r from-[#e6e9ff] to-blue-100 rounded-2xl blur-lg z-0"></div>
+                  <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#8193ff] max-w-[250px]">
                     <Image
                       src="/basic-subscription/longtermstocks.png"
                       alt="Quality Stocks"
@@ -591,7 +591,7 @@ export default function BasicSubscriptionPage() {
                       className="w-full h-auto"
                     />
                   </div>
-                  <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-[#8193ff] rounded-full flex items-center justify-center text-white font-bold text-2xl z-20">
+                  <div className="absolute -bottom-6 md:-right-6 right-10  md:w-24 md:h-24 w-16 h-16 bg-white rounded-full flex items-center justify-center text-[#8193ff] font-bold md:text-2xl text-xl z-20">
                     10-15
                   </div>
                 </div>
@@ -602,7 +602,7 @@ export default function BasicSubscriptionPage() {
                   names; they're opportunities—carefully selected to help you
                   build a solid, wealth-generating portfolio.
                 </p>
-                <ul className="space-y-3 p-8">
+                <ul className="space-y-1 px-2">
                   {[
                     "Rigorous Stock Research",
                     "Fundamentally Strong Companies",
@@ -654,7 +654,7 @@ export default function BasicSubscriptionPage() {
                 </h3>
                 <div className="relative md:hidden mb-6">
                   <div className="absolute -inset-4 bg-gradient-to-r from-[#e6e9ff] to-blue-100 rounded-2xl blur-lg z-0"></div>
-                  <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#8193ff]">
+                  <div className="left-20 relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#8193ff] max-w-[250px]">
                     <Image
                       src="/basic-subscription/5swingtrades.png"
                       alt="Swing Trades"
@@ -663,7 +663,7 @@ export default function BasicSubscriptionPage() {
                       className="w-full h-auto"
                     />
                   </div>
-                  <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-[#8193ff] rounded-full flex items-center justify-center text-white font-bold text-2xl z-20">
+                  <div className="absolute -bottom-6 left-10 md:w-24 md:h-24 w-16 h-16 bg-[#8193ff] rounded-full flex items-center justify-center text-white font-bold md:text-2xl text-xl z-20">
                     5
                   </div>
                 </div>
@@ -678,7 +678,7 @@ export default function BasicSubscriptionPage() {
                   stock for too long. With us, you won’t just invest; you’ll
                   invest smartly and strategically.
                 </p>
-                <ul className="space-y-3 p-8">
+                <ul className="space-y-1 px-2">
                   {[
                     "5 High Potential Trade Recommendations",
                     "Precise Entry & Exit Levels",
@@ -707,7 +707,7 @@ export default function BasicSubscriptionPage() {
                     className="w-full h-auto"
                   />
                 </div>
-                <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-[#8193ff] rounded-full flex items-center justify-center text-white font-bold text-2xl z-20">
+                <div className="absolute -bottom-6 -right-16 w-24 h-24 bg-[#8193ff] rounded-full flex items-center justify-center text-white font-bold text-2xl z-20">
                   5
                 </div>
               </div>
@@ -717,7 +717,7 @@ export default function BasicSubscriptionPage() {
             <motion.div
               id="feature-3"
               variants={fadeIn}
-              className="w-full md:grid md:grid-cols-2 gap-6 md:gap-12 items-center p-4 md:p-8 scroll-mt-32"
+              className="w-full md:grid md:grid-cols-2 gap-6 md:gap-12 items-center p-4 md:p-8 scroll-mt-32 bg-[#8193ff] md:bg-white"
             >
               <div className="md:order-2">
                 <div className="w-fit bg-[#e6e9ff] rounded-full justify-center mb-2">
@@ -725,12 +725,12 @@ export default function BasicSubscriptionPage() {
                     Feature 3
                   </div>
                 </div>
-                <h3 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-[#8193ff] to-[#8193ff]">
+                <h3 className="text-3xl font-bold mb-6 text-black md:text-transparent md:bg-clip-text md:bg-gradient-to-r from-[#8193ff] to-[#8193ff]">
                   Timely Alerts for Entry & Exit
                 </h3>
-                <div className="relative md:hidden mb-6">
-                  <div className="absolute -inset-4 bg-gradient-to-r from-[#e6e9ff] to-blue-100 rounded-2xl blur-lg z-0"></div>
-                  <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#8193ff]">
+                <div className="relative md:hidden mb-6 max-w-[250px]">
+                  <div className="absolute -inset-4 bg-gradient-to-r from-[#8193ff] to-blue-100 rounded-2xl blur-lg z-0"></div>
+                  <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#8193ff] max-w-[250px]">
                     <Image
                       src="/basic-subscription/entryexit.jpg"
                       alt="Timely Alerts"
@@ -751,7 +751,7 @@ export default function BasicSubscriptionPage() {
                   stock for too long. With us, you won’t just invest; you’ll
                   invest smartly and strategically
                 </p>
-                <ul className="space-y-3 p-8">
+                <ul className="space-y-1 px-2">
                   {[
                     "Real Time Alerts",
                     "Precise Entry Levels with Clear Targets",
@@ -800,7 +800,7 @@ export default function BasicSubscriptionPage() {
                 </h3>
                 <div className="relative md:hidden mb-6">
                   <div className="absolute -inset-4 bg-gradient-to-r from-[#e6e9ff] to-blue-100 rounded-2xl blur-lg z-0"></div>
-                  <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#8193ff]">
+                  <div className="left-20 relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#8193ff] max-w-[250px]">
                     <Image
                       src="/basic-subscription/realtimemarketupdates.jpg"
                       alt="Market Updates"
@@ -818,7 +818,7 @@ export default function BasicSubscriptionPage() {
                   results. Every trade is backed by thorough analysis, ensuring
                   a calculated and confident approach to the market
                 </p>
-                <ul className="space-y-3 p-8">
+                <ul className="space-y-1 px-2">
                   {[
                     "Live Market Updates",
                     "Economic Events Analysis",
