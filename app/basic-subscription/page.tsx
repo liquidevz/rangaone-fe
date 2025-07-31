@@ -179,30 +179,34 @@ export default function BasicSubscriptionPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
-                className="text-white"
+                className="text-black"
               >
                 <div className="space-y-2 sm:space-y-3 text-sm leading-relaxed">
                   <p>
-                    Rangaone Wealth Basic - Start Your Investment Journey! For
-                    those who seek{" "}
-                    <strong>quality stock recommendations</strong>, Rangaone
-                    Wealth Basic is designed to give you{" "}
                     <strong>
-                      carefully researched stocks, market insights, and
-                      essential guidance to begin your wealth creation journey.
+                      Rangaone Wealth isn’t just a plan—it’s your gateway to
+                      smarter, stress-free investing.
                     </strong>
-                  </p>
-
-                  <p>
-                    This isn't just an investment plan - it's your{" "}
-                    <strong>first step towards financial freedom</strong> with
-                    proven strategies that help you build wealth steadily.
-                  </p>
-
-                  <p className="italic text-gray-200 mt-3 sm:mt-4">
-                    Here's what makes{" "}
-                    <span className="font-semibold">Rangaone Wealth Basic</span>{" "}
-                    perfect for beginners:
+                     Designed for investors who want 
+                    <strong>
+                      expert guidance without the hassle of constant research,
+                    </strong>
+                    we bring you Quality stock recommendations, with precise
+                    entry-exit alerts and a disciplined approach, we also help
+                    you make{" "}
+                    <strong>
+                      informed moves, maximize profits, and stay ahead of the
+                      market.
+                    </strong>{" "}
+                    <br></br>
+                    <br></br>
+                    Whether you're looking to build long-term wealth or
+                    capitalize on short-term opportunities,
+                    <strong>
+                       Rangaone Wealth empowers you with the right tools,
+                      strategies, and confidence to succeed.
+                    </strong>
+                     Ready to invest smarter? Let’s make every Investment count!
                   </p>
                 </div>
               </motion.div>
@@ -218,16 +222,9 @@ export default function BasicSubscriptionPage() {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="bg-white text-blue-600 font-bold py-4 px-8 rounded-full shadow-lg hover:shadow-xl transition-all text-base border border-blue-300"
+                className="bg-white text-[#8193ff] font-bold py-4 px-8 rounded-full shadow-lg hover:shadow-xl transition-all text-base border border-blue-300"
               >
                 BUY NOW
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="bg-transparent text-blue-300 font-bold py-4 px-8 rounded-full shadow-lg hover:shadow-xl transition-all text-base border border-blue-300"
-              >
-                Add to Cart
               </motion.button>
             </motion.div>
           </div>
@@ -260,27 +257,32 @@ export default function BasicSubscriptionPage() {
               </div>
 
               {/* Content */}
-              <div className="text-white space-y-4 text-sm leading-relaxed">
+              <div className="text-black space-y-4 text-base leading-relaxed">
                 <p>
-                  <strong className="text-white">
-                    Rangaone Wealth BASIC – Start Your Investment Journey!
-                  </strong>{" "}
-                  For those who seek{" "}
-                  <strong>quality stock recommendations</strong>, Rangaone
-                  Wealth Basic is designed to give you{" "}
+                  <strong className="">
+                    Rangaone Wealth isn’t just a plan—it’s your gateway to
+                    smarter, stress-free investing.
+                  </strong>
+                   Designed for investors who want 
                   <strong>
-                    carefully researched stocks, market insights, and essential
-                    guidance to begin your wealth creation journey.
+                    expert guidance without the hassle of constant research,
+                  </strong>
+                  we bring you Quality stock recommendations, with precise
+                  entry-exit alerts and a disciplined approach, we also help you
+                  make{" "}
+                  <strong>
+                    informed moves, maximize profits, and stay ahead of the
+                    market.
                   </strong>{" "}
-                  This isn't just an investment plan - it's your{" "}
-                  <strong>first step towards financial freedom</strong> with
-                  proven strategies that help you build wealth steadily.
-                </p>
-
-                <p className="italic text-gray-200 text-xl">
-                  Here's what makes{" "}
-                  <span className="font-semibold">Rangaone Wealth Basic</span>{" "}
-                  perfect for beginners
+                  <br></br>
+                  <br></br>
+                  Whether you're looking to build long-term wealth or capitalize
+                  on short-term opportunities,
+                  <strong>
+                     Rangaone Wealth empowers you with the right tools,
+                    strategies, and confidence to succeed.
+                  </strong>
+                   Ready to invest smarter? Let’s make every Investment count!
                 </p>
               </div>
 
@@ -294,16 +296,9 @@ export default function BasicSubscriptionPage() {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="bg-white text-blue-600 font-bold py-4 px-10 rounded-full shadow-lg hover:shadow-xl transition-all text-base border border-blue-300"
+                  className="bg-white text-[#8193ff] font-bold py-4 px-8 rounded-full shadow-lg hover:shadow-xl transition-all text-base border border-blue-300"
                 >
                   BUY NOW
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="bg-transparent text-blue-300 font-bold py-4 px-10 rounded-full shadow-lg hover:shadow-xl transition-all text-base border border-blue-300"
-                >
-                  Add to Cart
                 </motion.button>
               </motion.div>
             </motion.div>
@@ -357,7 +352,7 @@ export default function BasicSubscriptionPage() {
             <h2 className="text-5xl md:text-7xl font-bold mb-6 text-black">
               Why Choose <span className="text-[#898EFF]">Basic</span>?
             </h2>
-            <div className="w-24 h-1 bg-gradient-to-r from-[#8193ff] to-blue-600 mx-auto mb-6 rounded-full"></div>
+            <div className="w-24 h-1 bg-gradient-to-r from-[#8193ff] to-[#8193ff] mx-auto mb-6 rounded-full"></div>
             <p className="text-black max-w-5xl mx-auto text-base">
               Our Basic plan is designed for beginners who want to start their
               investment journey with quality guidance.
@@ -408,16 +403,23 @@ export default function BasicSubscriptionPage() {
                   ].map((feature, index) => (
                     <div key={index} className="flex-shrink-0 w-full px-4">
                       <div
-                        className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow border border-[#8193ff] group hover:border-purple-400 cursor-pointer h-full"
+                        className="rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow border bg-white group hover:border-purple-400 cursor-pointer h-full"
                         onClick={() => {
                           const element = document.getElementById(feature.id);
                           if (element) {
-                            element.scrollIntoView({ behavior: "smooth" });
+                            const offset = 120; // Account for fixed header
+                            const elementPosition = element.getBoundingClientRect().top;
+                            const offsetPosition = elementPosition + window.pageYOffset - offset;
+                            
+                            window.scrollTo({
+                              top: offsetPosition,
+                              behavior: "smooth"
+                            });
                           }
                         }}
                       >
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-[#8193ff] mb-4">
-                          <span className="text-base font-bold text-[#8193ff]">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-[#8193ff] mb-4 bg-[#8193ff]">
+                          <span className="text-base font-bold text-white">
                             {index + 1}
                           </span>
                         </div>
@@ -525,12 +527,19 @@ export default function BasicSubscriptionPage() {
                 onClick={() => {
                   const element = document.getElementById(feature.id);
                   if (element) {
-                    element.scrollIntoView({ behavior: "smooth" });
+                    const offset = 120; // Account for fixed header
+                    const elementPosition = element.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - offset;
+                    
+                    window.scrollTo({
+                      top: offsetPosition,
+                      behavior: "smooth"
+                    });
                   }
                 }}
               >
-                <div className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-[#8193ff] mb-4">
-                  <span className="text-base font-bold text-[#8193ff]">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-[#8193ff] mb-4 bg-[#8193ff]">
+                  <span className="text-base font-bold text-white">
                     {index + 1}
                   </span>
                 </div>
@@ -560,7 +569,7 @@ export default function BasicSubscriptionPage() {
             <motion.div
               id="feature-1"
               variants={fadeIn}
-              className="md:grid md:grid-cols-2 gap-6 md:gap-12 items-center p-4 md:p-8 scroll-mt-20"
+              className="md:grid md:grid-cols-2 gap-6 md:gap-12 items-center p-4 md:p-8 scroll-mt-32"
             >
               <div className="md:order-2">
                 <div className="w-fit bg-[#e6e9ff] rounded-full justify-center mb-2">
@@ -568,7 +577,7 @@ export default function BasicSubscriptionPage() {
                     Feature 1
                   </div>
                 </div>
-                <h3 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-[#8193ff] to-blue-600">
+                <h3 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-[#8193ff] to-[#8193ff]">
                   Longterm 10-15 Quality Stocks
                 </h3>
                 <div className="relative md:hidden mb-6">
@@ -632,7 +641,7 @@ export default function BasicSubscriptionPage() {
             <motion.div
               id="feature-2"
               variants={fadeIn}
-              className="md:grid md:grid-cols-2 gap-6 md:gap-12 items-center p-4 md:p-8 scroll-mt-20"
+              className="md:grid md:grid-cols-2 gap-6 md:gap-12 items-center p-4 md:p-8 scroll-mt-32"
             >
               <div className="md:order-1">
                 <div className="w-fit bg-[#e6e9ff] rounded-full justify-center mb-2">
@@ -640,7 +649,7 @@ export default function BasicSubscriptionPage() {
                     Feature 2
                   </div>
                 </div>
-                <h3 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-[#8193ff] to-blue-600">
+                <h3 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-[#8193ff] to-[#8193ff]">
                   5 Short-Term/Swing Trades
                 </h3>
                 <div className="relative md:hidden mb-6">
@@ -708,7 +717,7 @@ export default function BasicSubscriptionPage() {
             <motion.div
               id="feature-3"
               variants={fadeIn}
-              className="w-full md:grid md:grid-cols-2 gap-6 md:gap-12 items-center p-4 md:p-8"
+              className="w-full md:grid md:grid-cols-2 gap-6 md:gap-12 items-center p-4 md:p-8 scroll-mt-32"
             >
               <div className="md:order-2">
                 <div className="w-fit bg-[#e6e9ff] rounded-full justify-center mb-2">
@@ -716,7 +725,7 @@ export default function BasicSubscriptionPage() {
                     Feature 3
                   </div>
                 </div>
-                <h3 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-[#8193ff] to-blue-600">
+                <h3 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-[#8193ff] to-[#8193ff]">
                   Timely Alerts for Entry & Exit
                 </h3>
                 <div className="relative md:hidden mb-6">
@@ -778,7 +787,7 @@ export default function BasicSubscriptionPage() {
             <motion.div
               id="feature-4"
               variants={fadeIn}
-              className="md:grid md:grid-cols-2 gap-6 md:gap-12 items-center p-4 md:p-8"
+              className="md:grid md:grid-cols-2 gap-6 md:gap-12 items-center p-4 md:p-8 scroll-mt-32"
             >
               <div className="md:order-1">
                 <div className="w-fit bg-[#e6e9ff] rounded-full justify-center mb-2">
@@ -786,11 +795,8 @@ export default function BasicSubscriptionPage() {
                     Feature 4
                   </div>
                 </div>
-                <h3 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-[#8193ff] to-blue-600">
+                <h3 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-[#8193ff] to-[#8193ff]">
                   Real-Time Market Updates
-                  <span className="block text-2xl mt-1 font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#8193ff] to-blue-600">
-                    (Stay Informed)
-                  </span>
                 </h3>
                 <div className="relative md:hidden mb-6">
                   <div className="absolute -inset-4 bg-gradient-to-r from-[#e6e9ff] to-blue-100 rounded-2xl blur-lg z-0"></div>
@@ -804,11 +810,13 @@ export default function BasicSubscriptionPage() {
                     />
                   </div>
                 </div>
-                <p className="text-black mb-3 text-sm leading-relaxed">
-                  Get regular market analysis and insights to understand what's
-                  happening in the financial world. Our market updates help you
-                  stay informed about trends, economic events, and their impact
-                  on your investments.
+                <p className="text-black mb-3 text-base leading-relaxed">
+                  Maximise your profits with expert-curated short-term and swing
+                  trades. Whether you’re looking to capitalise on quick market
+                  movements or boost your portfolio with short-term
+                  opportunities, our strategic picks are designed to deliver
+                  results. Every trade is backed by thorough analysis, ensuring
+                  a calculated and confident approach to the market
                 </p>
                 <ul className="space-y-3 p-8">
                   {[
@@ -873,7 +881,8 @@ export default function BasicSubscriptionPage() {
               strategic alerts, and market updates that keep you ahead.
             </p>
             <p className="text-gray-200 mb-8 max-w-7xl">
-            Serious about building wealth? Start here. Subscribe to Rangaone Wealth Basic NOW!
+              Serious about building wealth? Start here. Subscribe to Rangaone
+              Wealth Basic NOW!
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <motion.div
@@ -905,7 +914,7 @@ export default function BasicSubscriptionPage() {
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-black">
               Frequently Asked Questions
             </h2>
-            <div className="w-24 h-1 bg-gradient-to-r from-[#8193ff] to-blue-600 mx-auto mb-6 rounded-full"></div>
+            <div className="w-24 h-1 bg-gradient-to-r from-[#8193ff] to-[#8193ff] mx-auto mb-6 rounded-full"></div>
             <p className="text-gray-600 max-w-2xl mx-auto">
               Get answers to common questions about our Basic subscription plan.
             </p>
