@@ -929,7 +929,7 @@ export default function PremiumSubscriptionPage() {
 
       {/* Feature 6 */}
       <motion.div
-        id="feature-4"
+        id="feature-6"
         variants={fadeIn}
         className="md:grid md:grid-cols-2 gap-6 md:gap-12 items-center p-4 md:p-8"
       >
