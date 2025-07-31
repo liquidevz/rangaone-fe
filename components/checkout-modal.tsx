@@ -73,6 +73,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   }, [isOpen]);
 
   const handleCreateOrder = async () => {
+    // Prevent duplicate requests
+    if (loading) {
+      console.log("Order creation already in progress, ignoring duplicate request");
+      return;
+    }
+
     // Check authentication for both cart and single checkout
     if (!isAuthenticated) {
       toast({
@@ -180,6 +186,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       }
 
       console.log("Order created successfully:", orderResponse);
+      console.log("🔍 Order response type:", typeof orderResponse);
+      console.log("🔍 Order response keys:", Object.keys(orderResponse));
+      console.log("🔍 Has subscriptionId:", 'subscriptionId' in orderResponse);
+      if ('subscriptionId' in orderResponse) {
+        console.log("🔍 subscriptionId value:", orderResponse.subscriptionId);
+      }
       setOrderData(orderResponse);
       await initiatePayment(orderResponse);
     } catch (error: any) {
@@ -248,86 +260,216 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const handlePaymentSuccess = async (response: any) => {
     try {
-      console.log("Verifying payment with response:", response);
+      console.log("=== PAYMENT SUCCESS DEBUG ===");
+      console.log("Payment response:", response);
       console.log("Current orderData:", orderData);
       console.log("Subscription type:", subscriptionType);
+      console.log("Response keys:", Object.keys(response));
+      console.log("Has subscriptionId in orderData:", orderData && 'subscriptionId' in orderData);
+      console.log("Has orderId in orderData:", orderData && 'orderId' in orderData);
+      
       setPaymentStep("processing");
 
-      // Check if this is an eMandate response (yearly or quarterly subscription)
-      const isEmandate = (subscriptionType === "yearly" || subscriptionType === "quarterly") && orderData && 'subscriptionId' in orderData;
-      
-      if (isEmandate) {
-        console.log("Processing eMandate verification");
+                      // Check if this is an eMandate response (has subscriptionId)
+        // Also check if this is a quarterly/yearly subscription which should use eMandate
+        const isEmandate = (orderData && 'subscriptionId' in orderData) || 
+                          (subscriptionType === "quarterly" || subscriptionType === "yearly");
         
-        // For eMandate, we need to verify using the subscription ID
-        const verificationResponse = await paymentService.verifyEmandate(
-          orderData.subscriptionId,
-          response
-        );
-
-        console.log("eMandate verification response:", verificationResponse);
-
-        if (verificationResponse.success) {
-          // Force refresh subscription data
-          await subscriptionService.forceRefresh();
+        console.log("🔍 eMandate detection:", {
+          orderData: orderData,
+          hasSubscriptionIdProp: orderData && 'subscriptionId' in orderData,
+          isEmandate: isEmandate,
+          orderDataKeys: orderData ? Object.keys(orderData) : [],
+          orderDataType: typeof orderData,
+          hasOrderId: orderData && 'orderId' in orderData
+        });
+        
+        if (isEmandate && orderData && 'subscriptionId' in orderData && orderData.subscriptionId) {
+          console.log("✅ Using eMandate verification for subscription ID:", orderData.subscriptionId);
+          console.log("🔍 Full orderData:", orderData);
           
-          setPaymentStep("success");
-          
-          toast({
-            title: `${subscriptionType === "yearly" ? "Yearly" : "Quarterly"} Subscription Activated`,
-            description: `Your ${subscriptionType} subscription with eMandate has been activated successfully`,
-          });
+          try {
+            // Use the razorpay_subscription_id from the payment response instead of orderData.subscriptionId
+            // This ensures we're using the correct subscription ID that was actually created
+            const emandateId = response.razorpay_subscription_id || orderData.subscriptionId;
+            console.log("🔍 Verifying with emandateId:", emandateId);
+            console.log("🔍 emandateId type:", typeof emandateId);
+            console.log("🔍 emandateId length:", emandateId?.length);
+            console.log("🔍 Using payment response subscription ID:", !!response.razorpay_subscription_id);
+            
+            const verificationResponse = await paymentService.verifyEmandate(
+              emandateId
+            );
 
-          // Close modal after 2 seconds
-          setTimeout(() => {
-            onClose();
-            resetModal();
-          }, 2000);
+            console.log("eMandate verification response:", verificationResponse);
+
+            if (verificationResponse.success) {
+              await subscriptionService.forceRefresh();
+              setPaymentStep("success");
+              
+              toast({
+                title: `${subscriptionType === "yearly" ? "Yearly" : "Quarterly"} Subscription Activated`,
+                description: `Your ${subscriptionType} subscription with eMandate has been activated successfully`,
+              });
+
+              setTimeout(() => {
+                onClose();
+                resetModal();
+              }, 2000);
+                        } else {
+              // Handle specific error cases
+              if (verificationResponse.message.includes("No matching subscriptions found")) {
+                console.log("Subscription not found - this might be normal for new subscriptions");
+                // For new subscriptions, we might need to wait a bit before verification
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Try verification again
+                const retryResponse = await paymentService.verifyEmandate(
+                  emandateId
+                );
+                
+                if (retryResponse.success) {
+                  await subscriptionService.forceRefresh();
+                  setPaymentStep("success");
+                  
+                  toast({
+                    title: `${subscriptionType === "yearly" ? "Yearly" : "Quarterly"} Subscription Activated`,
+                    description: `Your ${subscriptionType} subscription with eMandate has been activated successfully`,
+                  });
+
+                  setTimeout(() => {
+                    onClose();
+                    resetModal();
+                  }, 2000);
+                } else {
+                  throw new Error(retryResponse.message || "eMandate verification failed after retry");
+                }
+              } else if (verificationResponse.message.includes("not authenticated yet")) {
+                console.log("eMandate created but not authenticated yet - this is normal for eMandate subscriptions");
+                console.log("Current status:", verificationResponse.currentStatus);
+                console.log("Status details:", verificationResponse.statusDetails);
+                
+                // For eMandate subscriptions, the subscription is created but needs authentication
+                // We should show success since the payment was successful and subscription was created
+                await subscriptionService.forceRefresh();
+                setPaymentStep("success");
+                
+                toast({
+                  title: `${subscriptionType === "yearly" ? "Yearly" : "Quarterly"} eMandate Created`,
+                  description: `Your ${subscriptionType} subscription has been created. Please complete the eMandate authentication to activate it.`,
+                });
+
+                setTimeout(() => {
+                  onClose();
+                  resetModal();
+                }, 2000);
+              } else {
+                throw new Error(verificationResponse.message || "eMandate verification failed");
+              }
+            }
+          } catch (error: any) {
+            console.error("eMandate verification error:", error);
+            throw error;
+          }
+              } else if (subscriptionType === "quarterly" || subscriptionType === "yearly") {
+          console.log("⚠️ Quarterly/Yearly subscription - using razorpay_subscription_id for eMandate verification");
+          console.log("OrderData:", orderData);
+          console.log("Response:", response);
+          
+          // For quarterly/yearly subscriptions, use the razorpay_subscription_id from the payment response
+          const subscriptionId = response.razorpay_subscription_id;
+          console.log("🔍 Using razorpay_subscription_id for eMandate verification:", subscriptionId);
+          
+          if (!subscriptionId) {
+            throw new Error("eMandate verification failed: No subscription ID found in payment response");
+          }
+          
+          try {
+            const verificationResponse = await paymentService.verifyEmandate(subscriptionId);
+            
+            console.log("eMandate verification response:", verificationResponse);
+
+            if (verificationResponse.success) {
+              await subscriptionService.forceRefresh();
+              setPaymentStep("success");
+              
+              toast({
+                title: `${subscriptionType === "yearly" ? "Yearly" : "Quarterly"} Subscription Activated`,
+                description: `Your ${subscriptionType} subscription with eMandate has been activated successfully`,
+              });
+
+              setTimeout(() => {
+                onClose();
+                resetModal();
+              }, 2000);
+            } else {
+              // Handle specific error cases
+              if (verificationResponse.message.includes("No matching subscriptions found")) {
+                console.log("Subscription not found - this might be normal for new subscriptions");
+                // For new subscriptions, we might need to wait a bit before verification
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Try verification again
+                const retryResponse = await paymentService.verifyEmandate(subscriptionId);
+                
+                if (retryResponse.success) {
+                  await subscriptionService.forceRefresh();
+                  setPaymentStep("success");
+                  
+                  toast({
+                    title: `${subscriptionType === "yearly" ? "Yearly" : "Quarterly"} Subscription Activated`,
+                    description: `Your ${subscriptionType} subscription with eMandate has been activated successfully`,
+                  });
+
+                  setTimeout(() => {
+                    onClose();
+                    resetModal();
+                  }, 2000);
+                } else {
+                  throw new Error(retryResponse.message || "eMandate verification failed after retry");
+                }
+              } else {
+                throw new Error(verificationResponse.message || "eMandate verification failed");
+              }
+            }
+          } catch (error: any) {
+            console.error("eMandate verification error:", error);
+            throw error;
+          }
         } else {
-          throw new Error(verificationResponse.message || "eMandate verification failed");
-        }
-      } else {
-        // Use regular payment verification for monthly and quarterly subscriptions
-        console.log("Processing regular payment verification");
+          console.log("❌ Using regular payment verification");
+        console.log("Looking for razorpay_order_id:", response.razorpay_order_id);
+        console.log("Looking for razorpay_payment_id:", response.razorpay_payment_id);
+        console.log("Looking for razorpay_signature:", response.razorpay_signature);
         
-        // Make sure we have all required fields
-        if (!response.razorpay_payment_id || !response.razorpay_order_id || !response.razorpay_signature) {
-          console.error("Missing fields:", {
-            payment_id: !!response.razorpay_payment_id,
-            order_id: !!response.razorpay_order_id,
-            signature: !!response.razorpay_signature
+        const paymentId = response.razorpay_payment_id;
+        const orderId = response.razorpay_order_id || response.razorpay_subscription_id;
+        const signature = response.razorpay_signature;
+        
+        if (!paymentId || !orderId || !signature) {
+          console.error("❌ Missing payment fields:", {
+            paymentId: !!paymentId,
+            orderId: !!orderId,
+            signature: !!signature
           });
           throw new Error("Missing required payment verification fields");
         }
 
         const verificationResponse = await paymentService.verifyPayment({
-          orderId: response.razorpay_order_id,
-          paymentId: response.razorpay_payment_id,
-          signature: response.razorpay_signature
+          orderId: orderId,
+          paymentId: paymentId,
+          signature: signature
         });
 
-        console.log("Payment verification response:", verificationResponse);
-
         if (verificationResponse.success) {
-          // Force refresh subscription data
           await subscriptionService.forceRefresh();
-          
           setPaymentStep("success");
           
-          // Show appropriate success message based on subscription type
-          if (subscriptionType === "quarterly") {
-            toast({
-              title: "Quarterly Subscription Activated",
-              description: "Your quarterly subscription has been activated successfully",
-            });
-          } else {
-            toast({
-              title: "Payment Successful",
-              description: "Your subscription has been activated",
-            });
-          }
+          toast({
+            title: "Payment Successful",
+            description: "Your subscription has been activated",
+          });
 
-          // Close modal after 2 seconds
           setTimeout(() => {
             onClose();
             resetModal();

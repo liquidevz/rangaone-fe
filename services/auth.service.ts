@@ -253,4 +253,23 @@ export const authService = {
     const authRoutes = ["/login", "/signup"];
     return authRoutes.includes(path) && authService.isAuthenticated();
   },
+
+  // Get admin token for privileged operations
+  getAdminToken: async (): Promise<string | null> => {
+    try {
+      const response = await post<LoginResponse>("/admin/login", {
+        username: "anupm019@gmail.com",
+        password: "anup"
+      }, {
+        headers: {
+          accept: "application/json",
+          "Content-Type": "application/json",
+        },
+      });
+      return response.accessToken;
+    } catch (error) {
+      console.error("Failed to get admin token:", error);
+      return null;
+    }
+  },
 };
