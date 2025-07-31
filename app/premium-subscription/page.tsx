@@ -592,9 +592,9 @@ export default function PremiumSubscriptionPage() {
                 <h3 className="text-3xl font-bold mb-6 md:text-transparent md:bg-clip-text md:bg-gradient-to-r md:from-[#FFD700] md:to-[#FFC706] text-[#333333]">
                   Get 20-25 Premium Quality Stocks
                 </h3>
-                <div className="relative md:hidden mb-6">
+                <div className="relative md:hidden mb-6 max-w-[250px]">
                   <div className="absolute -inset-4 bg-gradient-to-r from-[#1e4e45]/10 to-[#ffc107]/10 rounded-2xl blur-lg z-0"></div>
-                  <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#7a8c3b]/20">
+                  <div className="left-5 relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#7a8c3b]/20">
                     <Image
                       src="/premium-subscription/qualityStocks.jpg"
                       alt="Premium Stocks"
@@ -603,7 +603,7 @@ export default function PremiumSubscriptionPage() {
                       className="w-full h-auto"
                     />
                   </div>
-                  <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-[#FFC706] rounded-full flex items-center justify-center text-[#333333] font-bold text-2xl z-20">
+                  <div className="absolute -bottom-6 -right-6 md:w-24 md:h-24 w-16 h-16 bg-[#FFC706] rounded-full flex items-center justify-center text-[#333333] font-bold md:text-2xl text-xl z-20">
                     20-25
                   </div>
                 </div>
@@ -665,10 +665,10 @@ export default function PremiumSubscriptionPage() {
                 <h3 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] to-[#FFC706]">
                   Short-Term/Swing Trades
                 </h3>
-                <div className="relative md:hidden mb-6">
+                <div className="relative md:hidden mb-6 max-w-[250px]">
                   <div className="absolute -inset-4 bg-gradient-to-r from-[#1e4e45]/10 to-[#7a8c3b]/10 rounded-2xl blur-lg z-0"></div>
-                  <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#7a8c3b]/20">
-                    <Image
+                  <div className="left-20 relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#7a8c3b]/20">
+                    <Image 
                       src="/premium-subscription/10SwingTrades.jpg"
                       alt="Premium Swing Trades"
                       width={600}
@@ -676,7 +676,7 @@ export default function PremiumSubscriptionPage() {
                       className="w-full h-auto"
                     />
                   </div>
-                  <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-[#FFC706] rounded-full flex items-center justify-center text-[#333333] font-bold text-2xl z-20">
+                  <div className="absolute -bottom-6 md:-left-6 left-10 md:w-24 md:h-24 w-16 h-16 bg-[#FFC706] rounded-full flex items-center justify-center text-[#333333] font-bold md:text-2xl text-xl z-20">
                     10
                   </div>
                 </div>
@@ -740,9 +740,9 @@ export default function PremiumSubscriptionPage() {
                     (SIP & Multibagger Portfolio)
                   </span>
                 </h3>
-                <div className="relative md:hidden mb-6">
+                <div className="relative md:hidden mb-6 max-w-[250px]">
                   <div className="absolute -inset-4 bg-gradient-to-r from-[#1e4e45]/10 to-[#7a8c3b]/10 rounded-2xl blur-lg z-0"></div>
-                  <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#7a8c3b]/20">
+                  <div className="left-5 relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#7a8c3b]/20">
                     <Image
                       src="/premium-subscription/goldbars.jpg"
                       alt="Model Portfolios"
@@ -802,9 +802,9 @@ export default function PremiumSubscriptionPage() {
                     (Direct Access to Experts)
                   </span>
                 </h3>
-                <div className="relative md:hidden mb-6">
+                <div className="relative md:hidden mb-6 max-w-[250px]">
                   <div className="absolute -inset-4 bg-gradient-to-r from-[#1e4e45]/10 to-[#7a8c3b]/10 rounded-2xl blur-lg z-0"></div>
-                  <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#7a8c3b]/20">
+                  <div className="left-20 relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#7a8c3b]/20">
                     <Image
                       src="/premium-subscription/IPO.jpg"
                       alt="IPO Recommendations"
@@ -872,9 +872,9 @@ export default function PremiumSubscriptionPage() {
                     (Direct Access to Experts)
                   </span>
                 </h3>
-                <div className="relative md:hidden mb-6">
+                <div className="relative md:hidden mb-6 max-w-[250px]">
                   <div className="absolute -inset-4 bg-gradient-to-r from-[#1e4e45]/10 to-[#7a8c3b]/10 rounded-2xl blur-lg z-0"></div>
-                  <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#7a8c3b]/20">
+                  <div className="left-5 relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#7a8c3b]/20">
                     <Image
                       src="/premium-subscription/CallSupport.jpg"
                       alt="Call Support"
@@ -945,9 +945,9 @@ export default function PremiumSubscriptionPage() {
               – Learn, Interact & Grow! (Extra bonus)
             </span>
           </h3>
-          <div className="relative md:hidden mb-6">
+          <div className="relative md:hidden mb-6 max-w-[250px]">
             <div className="absolute -inset-4 bg-gradient-to-r from-[#1e4e45]/10 to-[#7a8c3b]/10 rounded-2xl blur-lg z-0"></div>
-            <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#7a8c3b]/20">
+            <div className="left-20 relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#7a8c3b]/20">
               <Image
                 src="/premium-subscription/IPO.jpg"
                 alt="IPO Recommendations"
@@ -1011,7 +1011,7 @@ export default function PremiumSubscriptionPage() {
 
       {/* CTA Section */}
       <section className="py-10 bg-gradient-to-r from-[#1e4e45] via-[#7a8c3b] to-[#ffc107] text-gray-900">
-        <div className="container mx-auto px-0">
+        <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -1052,7 +1052,7 @@ export default function PremiumSubscriptionPage() {
 
       {/* FAQ Section */}
       <section className="py-20">
-        <div className="container mx-auto px-0">
+        <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
