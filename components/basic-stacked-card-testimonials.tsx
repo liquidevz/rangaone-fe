@@ -21,7 +21,7 @@ interface StackedCardTestimonialsProps {
   color?: string;
 }
 
-const BasicStackedCardTestimonials = ({ color = "#8B5CF6" }: StackedCardTestimonialsProps) => {
+const BasicStackedCardTestimonials = ({ color = "#8193FF" }: StackedCardTestimonialsProps) => {
   const [selected, setSelected] = useState(0);
 
   return (

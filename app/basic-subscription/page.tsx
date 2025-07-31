@@ -135,7 +135,7 @@ export default function BasicSubscriptionPage() {
       <Navbar variant="default" />
 
       {/* Hero Section - Following the image color theme */}
-      <section className="relative px-3 sm:px-4 md:px-6 lg:px-8 pt-32 py-12 sm:py-32 md:py-24 lg:py-32 bg-gradient-to-r from-[#595CFF] to-[#48BCFF]">
+      <section className="relative px-3 sm:px-4 md:px-6 lg:px-8 pt-32 py-12 sm:py-32 md:py-24 lg:py-32 bg-gradient-to-r from-[#898EFF] to-[#7DCEFF]">
         {/* Mobile & Tablet Layout */}
         <div className="lg:hidden">
           <div className="relative max-w-4xl mx-auto">
@@ -146,7 +146,7 @@ export default function BasicSubscriptionPage() {
               transition={{ duration: 0.6 }}
               className="mb-6 sm:mb-6"
             >
-              <h1 className="px-2 text-2xl sm:text-3xl md:text-4xl font-bold text-white leading-tight bg-gradient-to-r from-black/30 via-black/20 to-transparent rounded-xl p-4">
+              <h1 className="px-2 text-2xl sm:text-3xl md:text-4xl font-bold text-white leading-tight bg-gradient-to-r from-[#021836] to-transparent rounded-xl p-4">
                 At RangaOne<br></br>
                 Your Growth, Our Priority
               </h1>
@@ -188,22 +188,20 @@ export default function BasicSubscriptionPage() {
                     <strong>quality stock recommendations</strong>, Rangaone
                     Wealth Basic is designed to give you{" "}
                     <strong>
-                      carefully researched stocks, market insights, and essential
-                      guidance to begin your wealth creation journey.
+                      carefully researched stocks, market insights, and
+                      essential guidance to begin your wealth creation journey.
                     </strong>
                   </p>
 
                   <p>
                     This isn't just an investment plan - it's your{" "}
-                    <strong>first step towards financial freedom</strong>{" "}
-                    with proven strategies that help you build wealth steadily.
+                    <strong>first step towards financial freedom</strong> with
+                    proven strategies that help you build wealth steadily.
                   </p>
 
                   <p className="italic text-gray-200 mt-3 sm:mt-4">
                     Here's what makes{" "}
-                    <span className="font-semibold">
-                      Rangaone Wealth Basic
-                    </span>{" "}
+                    <span className="font-semibold">Rangaone Wealth Basic</span>{" "}
                     perfect for beginners:
                   </p>
                 </div>
@@ -243,11 +241,19 @@ export default function BasicSubscriptionPage() {
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.7, delay: 0.2 }}
-              className="col-span-7"
+              className="col-span-8"
             >
               {/* Main Headings */}
-              <div className="p-4 sm:p-6 rounded-lg mb-4 sm:mb-6 bg-gradient-to-r from-black/30 via-black/20 to-transparent">
-                <h1 className="text-4xl sm:text-4xl md:text-5xl font-bold leading-tight text-white">
+              <div className="p-4 sm:p-6 rounded-3xl mb-4 sm:mb-6 bg-gradient-to-r from-[#021836] to-transparent relative overflow-hidden">
+                {/* Dotted background pattern */}
+                <div
+                  className="absolute inset-0 opacity-20 "
+                  style={{
+                    backgroundImage: `radial-gradient(circle, #898EFF 3px, transparent 1px)`,
+                    backgroundSize: "20px 20px",
+                  }}
+                ></div>
+                <h1 className="text-4xl sm:text-4xl md:text-5xl font-bold leading-tight text-white relative z-10">
                   At RangaOne
                   <span className="block">Your Growth, Our Priority</span>
                 </h1>
@@ -307,7 +313,7 @@ export default function BasicSubscriptionPage() {
               initial={{ opacity: 0, x: 30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.7, delay: 0.4 }}
-              className="col-span-5"
+              className="col-span-4"
             >
               <div className="relative">
                 <div className="relative w-full h-48 sm:h-64 lg:h-80 xl:h-96 2xl:h-[28rem] rounded-2xl overflow-hidden shadow-2xl">
@@ -349,15 +355,12 @@ export default function BasicSubscriptionPage() {
             className="text-center mb-16"
           >
             <h2 className="text-5xl md:text-7xl font-bold mb-6 text-black">
-              Why Choose{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">
-                Basic
-              </span>
-              ?
+              Why Choose <span className="text-[#898EFF]">Basic</span>?
             </h2>
-            <div className="w-24 h-1 bg-gradient-to-r from-purple-600 to-blue-600 mx-auto mb-6 rounded-full"></div>
+            <div className="w-24 h-1 bg-gradient-to-r from-[#8193ff] to-blue-600 mx-auto mb-6 rounded-full"></div>
             <p className="text-black max-w-5xl mx-auto text-base">
-              Our Basic plan is designed for beginners who want to start their investment journey with quality guidance.
+              Our Basic plan is designed for beginners who want to start their
+              investment journey with quality guidance.
             </p>
           </motion.div>
 
@@ -405,7 +408,7 @@ export default function BasicSubscriptionPage() {
                   ].map((feature, index) => (
                     <div key={index} className="flex-shrink-0 w-full px-4">
                       <div
-                        className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow border border-purple-200 group hover:border-purple-400 cursor-pointer h-full"
+                        className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow border border-[#8193ff] group hover:border-purple-400 cursor-pointer h-full"
                         onClick={() => {
                           const element = document.getElementById(feature.id);
                           if (element) {
@@ -413,12 +416,12 @@ export default function BasicSubscriptionPage() {
                           }
                         }}
                       >
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-purple-500 mb-4">
-                          <span className="text-base font-bold text-purple-600">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-[#8193ff] mb-4">
+                          <span className="text-base font-bold text-[#8193ff]">
                             {index + 1}
                           </span>
                         </div>
-                        <h3 className="text-xl font-bold mb-2 text-purple-600">
+                        <h3 className="text-xl font-bold mb-2 text-[#8193ff]">
                           {feature.title}
                         </h3>
                         <p className="text-black group-hover:text-gray-700 transition-colors">
@@ -433,7 +436,7 @@ export default function BasicSubscriptionPage() {
               {/* Navigation Buttons - Mobile Only */}
               <button
                 onClick={prevSlide}
-                className="absolute left-2 top-1/2 -translate-y-1/2 bg-purple-500 hover:bg-purple-600 text-white p-2 rounded-full shadow-lg transition-all z-10"
+                className="absolute left-2 top-1/2 -translate-y-1/2 bg-[#8193ff] hover:bg-[#8193ff] text-white p-2 rounded-full shadow-lg transition-all z-10"
               >
                 <svg
                   className="w-4 h-4"
@@ -450,7 +453,7 @@ export default function BasicSubscriptionPage() {
 
               <button
                 onClick={nextSlide}
-                className="absolute right-2 top-1/2 -translate-y-1/2 bg-purple-500 hover:bg-purple-600 text-white p-2 rounded-full shadow-lg transition-all z-10"
+                className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#8193ff] hover:bg-[#8193ff] text-white p-2 rounded-full shadow-lg transition-all z-10"
               >
                 <svg
                   className="w-4 h-4"
@@ -473,7 +476,7 @@ export default function BasicSubscriptionPage() {
                     onClick={() => setCurrentSlide(index)}
                     className={`w-3 h-3 rounded-full transition-all ${
                       currentSlide === index
-                        ? "bg-purple-500 scale-125"
+                        ? "bg-[#8193ff] scale-125"
                         : "bg-gray-300 hover:bg-gray-400"
                     }`}
                   />
@@ -501,8 +504,7 @@ export default function BasicSubscriptionPage() {
               },
               {
                 title: "Timely Alerts",
-                description:
-                  "Real-time notifications for market opportunities",
+                description: "Real-time notifications for market opportunities",
                 icon: "🔔",
                 id: "feature-3",
               },
@@ -519,7 +521,7 @@ export default function BasicSubscriptionPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow border border-purple-200 group hover:border-purple-400 cursor-pointer"
+                className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow border border-[#8193ff] group hover:border-purple-400 cursor-pointer"
                 onClick={() => {
                   const element = document.getElementById(feature.id);
                   if (element) {
@@ -527,12 +529,12 @@ export default function BasicSubscriptionPage() {
                   }
                 }}
               >
-                <div className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-purple-500 mb-4">
-                  <span className="text-base font-bold text-purple-600">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-[#8193ff] mb-4">
+                  <span className="text-base font-bold text-[#8193ff]">
                     {index + 1}
                   </span>
                 </div>
-                <h3 className="text-xl font-bold mb-2 text-purple-600">
+                <h3 className="text-xl font-bold mb-2 text-[#8193ff]">
                   {feature.title}
                 </h3>
                 <p className="text-black group-hover:text-gray-700 transition-colors">
@@ -561,41 +563,45 @@ export default function BasicSubscriptionPage() {
               className="md:grid md:grid-cols-2 gap-6 md:gap-12 items-center p-4 md:p-8 scroll-mt-20"
             >
               <div className="md:order-2">
-                <div className="w-fit bg-purple-100 rounded-full justify-center mb-2">
-                  <div className="content-center inline-block px-4 py-2 text-purple-700 rounded-full text-sm font-semibold">
+                <div className="w-fit bg-[#e6e9ff] rounded-full justify-center mb-2">
+                  <div className="content-center inline-block px-4 py-2 text-[#8193ff] rounded-full text-sm font-semibold">
                     Feature 1
                   </div>
                 </div>
-                <h3 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">
+                <h3 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-[#8193ff] to-blue-600">
                   Longterm 10-15 Quality Stocks
                 </h3>
                 <div className="relative md:hidden mb-6">
-                  <div className="absolute -inset-4 bg-gradient-to-r from-purple-100 to-blue-100 rounded-2xl blur-lg z-0"></div>
-                  <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-purple-200">
+                  <div className="absolute -inset-4 bg-gradient-to-r from#e6e9ff to-blue-100 rounded-2xl blur-lg z-0"></div>
+                  <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#8193ff]">
                     <Image
-                      src="/stock-chart-blue.png"
+                      src="/basic-subscription/longtermstocks.png"
                       alt="Quality Stocks"
                       width={600}
                       height={400}
                       className="w-full h-auto"
                     />
                   </div>
-                  <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold text-2xl z-20">
+                  <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-[#8193ff] rounded-full flex items-center justify-center text-white font-bold text-2xl z-20">
                     10-15
                   </div>
                 </div>
                 <p className="text-black mb-3 text-sm leading-relaxed">
-                  Start your investment journey with carefully selected quality stocks. Our basic plan provides you with 10-15 well-researched stocks that have strong fundamentals and growth potential. These stocks are perfect for beginners who want to build a solid foundation for their portfolio.
+                  We handpick Quality stocks after rigorous research, ensuring
+                  you invest in fundamentally strong companies with the
+                  potential for long-term growth. These stocks are not just
+                  names; they're opportunities—carefully selected to help you
+                  build a solid, wealth-generating portfolio.
                 </p>
                 <ul className="space-y-3 p-8">
                   {[
-                    "Carefully Researched Stocks",
-                    "Strong Fundamentals",
-                    "Growth Potential",
-                    "Beginner Friendly",
+                    "Rigorous Stock Research",
+                    "Fundamentally Strong Companies",
+                    "Long Term Growth",
+                    "Risk-Reward favourable stocks",
                   ].map((item, i) => (
                     <li key={i} className="flex items-start">
-                      <span className="flex-shrink-0 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                      <span className="flex-shrink-0 w-5 h-5 bg-[#8193ff] rounded-full flex items-center justify-center mr-3 mt-0.5">
                         <Check className="h-3.5 w-3.5 text-white" />
                       </span>
                       <span className="text-black font-bold italic">
@@ -606,17 +612,17 @@ export default function BasicSubscriptionPage() {
                 </ul>
               </div>
               <div className="relative hidden md:block md:order-1">
-                <div className="absolute -inset-4 bg-gradient-to-r from-purple-100 to-blue-100 rounded-2xl blur-lg z-0"></div>
-                <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-purple-200">
+                <div className="absolute -inset-4 bg-gradient-to-r from-[#e6e9ff] to-blue-100 rounded-2xl blur-lg z-0"></div>
+                <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#8193ff]">
                   <Image
-                    src="/stock-chart-blue.png"
+                    src="/basic-subscription/longtermstocks.png"
                     alt="Quality Stocks"
                     width={600}
                     height={400}
                     className="w-full h-auto"
                   />
                 </div>
-                <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold text-2xl z-20">
+                <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-[#8193ff] rounded-full flex items-center justify-center text-white font-bold text-2xl z-20">
                   10-15
                 </div>
               </div>
@@ -629,41 +635,49 @@ export default function BasicSubscriptionPage() {
               className="md:grid md:grid-cols-2 gap-6 md:gap-12 items-center p-4 md:p-8 scroll-mt-20"
             >
               <div className="md:order-1">
-                <div className="w-fit bg-purple-100 rounded-full justify-center mb-2">
-                  <div className="content-center inline-block px-4 py-2 text-purple-700 rounded-full text-sm font-semibold">
+                <div className="w-fit bg-[#e6e9ff] rounded-full justify-center mb-2">
+                  <div className="content-center inline-block px-4 py-2 text-[#8193ff] rounded-full text-sm font-semibold">
                     Feature 2
                   </div>
                 </div>
-                <h3 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">
+                <h3 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-[#8193ff] to-blue-600">
                   5 Short-Term/Swing Trades
                 </h3>
                 <div className="relative md:hidden mb-6">
-                  <div className="absolute -inset-4 bg-gradient-to-r from-purple-100 to-blue-100 rounded-2xl blur-lg z-0"></div>
-                  <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-purple-200">
+                  <div className="absolute -inset-4 bg-gradient-to-r from-[#e6e9ff] to-blue-100 rounded-2xl blur-lg z-0"></div>
+                  <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#8193ff]">
                     <Image
-                      src="/stock-chart-pattern.png"
+                      src="/basic-subscription/5swingtrades.png"
                       alt="Swing Trades"
                       width={600}
                       height={400}
                       className="w-full h-auto"
                     />
                   </div>
-                  <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold text-2xl z-20">
+                  <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-[#8193ff] rounded-full flex items-center justify-center text-white font-bold text-2xl z-20">
                     5
                   </div>
                 </div>
                 <p className="text-black mb-3 text-sm leading-relaxed">
-                  Learn the art of short-term trading with our 5 carefully selected swing trades each month. These trades are perfect for beginners who want to understand market timing and short-term opportunities while managing risk effectively.
+                  Get real-time alerts with precise entry levels, clear targets,
+                  and well-timed exit points to maximize your gains and minimize
+                  risks. Our expert-driven alerts ensure that you enter at the
+                  right time, stay informed throughout the trade, and exit
+                  profitably—never too early, never too late. Our alerts are
+                  crafted to help you make informed decisions with confidence,
+                  ensuring that you never miss an opportunity or hold onto a
+                  stock for too long. With us, you won’t just invest; you’ll
+                  invest smartly and strategically.
                 </p>
                 <ul className="space-y-3 p-8">
                   {[
-                    "5 monthly trade recommendations",
-                    "Risk management guidance",
-                    "Entry and exit points",
-                    "Educational insights",
+                    "5 High Potential Trade Recommendations",
+                    "Precise Entry & Exit Levels",
+                    "Strategic Stock Picks",
+                    "Analysis-Backed Moves",
                   ].map((item, i) => (
                     <li key={i} className="flex items-start">
-                      <span className="flex-shrink-0 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                      <span className="flex-shrink-0 w-5 h-5 bg-[#8193ff] rounded-full flex items-center justify-center mr-3 mt-0.5">
                         <Check className="h-3.5 w-3.5 text-white" />
                       </span>
                       <span className="text-black font-bold italic text-sm">
@@ -674,17 +688,17 @@ export default function BasicSubscriptionPage() {
                 </ul>
               </div>
               <div className="relative hidden md:block md:order-2">
-                <div className="absolute -inset-4 bg-gradient-to-r from-purple-100 to-blue-100 rounded-2xl blur-lg z-0"></div>
-                <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-purple-200">
+                <div className="absolute -inset-4 bg-gradient-to-r from-[#e6e9ff] to-blue-100 rounded-2xl blur-lg z-0"></div>
+                <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#8193ff]">
                   <Image
-                    src="/stock-chart-pattern.png"
+                    src="/basic-subscription/5swingtrades.png"
                     alt="Swing Trades"
                     width={600}
                     height={400}
                     className="w-full h-auto"
                   />
                 </div>
-                <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold text-2xl z-20">
+                <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-[#8193ff] rounded-full flex items-center justify-center text-white font-bold text-2xl z-20">
                   5
                 </div>
               </div>
@@ -697,22 +711,19 @@ export default function BasicSubscriptionPage() {
               className="w-full md:grid md:grid-cols-2 gap-6 md:gap-12 items-center p-4 md:p-8"
             >
               <div className="md:order-2">
-                <div className="w-fit bg-purple-100 rounded-full justify-center mb-2">
-                  <div className="content-center inline-block px-4 py-2 text-purple-700 rounded-full text-sm font-semibold">
+                <div className="w-fit bg-[#e6e9ff] rounded-full justify-center mb-2">
+                  <div className="content-center inline-block px-4 py-2 text-[#8193ff] rounded-full text-sm font-semibold">
                     Feature 3
                   </div>
                 </div>
-                <h3 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">
-                  Timely Alerts
-                  <span className="block text-2xl mt-1 font-normal text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">
-                    (Never Miss Opportunities)
-                  </span>
+                <h3 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-[#8193ff] to-blue-600">
+                  Timely Alerts for Entry & Exit
                 </h3>
                 <div className="relative md:hidden mb-6">
-                  <div className="absolute -inset-4 bg-gradient-to-r from-purple-100 to-blue-100 rounded-2xl blur-lg z-0"></div>
-                  <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-purple-200">
+                  <div className="absolute -inset-4 bg-gradient-to-r from-[#e6e9ff] to-blue-100 rounded-2xl blur-lg z-0"></div>
+                  <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#8193ff]">
                     <Image
-                      src="/timely-alerts.png"
+                      src="/basic-subscription/entryexit.jpg"
                       alt="Timely Alerts"
                       width={600}
                       height={400}
@@ -721,14 +732,39 @@ export default function BasicSubscriptionPage() {
                   </div>
                 </div>
                 <p className="text-black mb-3 text-sm leading-relaxed">
-                  Stay ahead of the market with our timely alerts system. Get instant notifications about market opportunities, stock movements, and important updates that can help you make informed investment decisions at the right time.
+                  Get real-time alerts with precise entry levels, clear targets,
+                  and well-timed exit points to maximize your gains and minimize
+                  risks. Our expert-driven alerts ensure that you enter at the
+                  right time, stay informed throughout the trade, and exit
+                  profitably—never too early, never too late. Our alerts are
+                  crafted to help you make informed decisions with confidence,
+                  ensuring that you never miss an opportunity or hold onto a
+                  stock for too long. With us, you won’t just invest; you’ll
+                  invest smartly and strategically
                 </p>
+                <ul className="space-y-3 p-8">
+                  {[
+                    "Real Time Alerts",
+                    "Precise Entry Levels with Clear Targets",
+                    "Risk Minimizing Strategy",
+                    "Informed Timely Decisions",
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start">
+                      <span className="flex-shrink-0 w-5 h-5 bg-[#8193ff] rounded-full flex items-center justify-center mr-3 mt-0.5">
+                        <Check className="h-3.5 w-3.5 text-white" />
+                      </span>
+                      <span className="text-black font-bold italic text-sm">
+                        {item}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               </div>
               <div className="relative hidden md:block md:order-1">
-                <div className="absolute -inset-4 bg-gradient-to-r from-purple-100 to-blue-100 rounded-2xl blur-lg z-0"></div>
-                <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-purple-200">
+                <div className="absolute -inset-4 bg-gradient-to-r from-[#e6e9ff] to-blue-100 rounded-2xl blur-lg z-0"></div>
+                <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#8193ff]">
                   <Image
-                    src="/timely-alerts.png"
+                    src="/basic-subscription/entryexit.jpg"
                     alt="Timely Alerts"
                     width={600}
                     height={400}
@@ -745,22 +781,22 @@ export default function BasicSubscriptionPage() {
               className="md:grid md:grid-cols-2 gap-6 md:gap-12 items-center p-4 md:p-8"
             >
               <div className="md:order-1">
-                <div className="w-fit bg-purple-100 rounded-full justify-center mb-2">
-                  <div className="content-center inline-block px-4 py-2 text-purple-700 rounded-full text-sm font-semibold">
+                <div className="w-fit bg-[#e6e9ff] rounded-full justify-center mb-2">
+                  <div className="content-center inline-block px-4 py-2 text-[#8193ff] rounded-full text-sm font-semibold">
                     Feature 4
                   </div>
                 </div>
-                <h3 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">
+                <h3 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-[#8193ff] to-blue-600">
                   Real-Time Market Updates
-                  <span className="block text-2xl mt-1 font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">
+                  <span className="block text-2xl mt-1 font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#8193ff] to-blue-600">
                     (Stay Informed)
                   </span>
                 </h3>
                 <div className="relative md:hidden mb-6">
-                  <div className="absolute -inset-4 bg-gradient-to-r from-purple-100 to-blue-100 rounded-2xl blur-lg z-0"></div>
-                  <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-purple-200">
+                  <div className="absolute -inset-4 bg-gradient-to-r from-[#e6e9ff] to-blue-100 rounded-2xl blur-lg z-0"></div>
+                  <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#8193ff]">
                     <Image
-                      src="/market-updates.png"
+                      src="/basic-subscription/realtimemarketupdates.jpg"
                       alt="Market Updates"
                       width={600}
                       height={400}
@@ -769,17 +805,20 @@ export default function BasicSubscriptionPage() {
                   </div>
                 </div>
                 <p className="text-black mb-3 text-sm leading-relaxed">
-                  Get regular market analysis and insights to understand what's happening in the financial world. Our market updates help you stay informed about trends, economic events, and their impact on your investments.
+                  Get regular market analysis and insights to understand what's
+                  happening in the financial world. Our market updates help you
+                  stay informed about trends, economic events, and their impact
+                  on your investments.
                 </p>
                 <ul className="space-y-3 p-8">
                   {[
-                    "Regular market analysis",
-                    "Economic insights",
-                    "Trend explanations",
-                    "Investment guidance",
+                    "Live Market Updates",
+                    "Economic Events Analysis",
+                    "Timely Opportunities",
+                    "Fact-Based, Informed actions.",
                   ].map((item, i) => (
                     <li key={i} className="flex items-start">
-                      <span className="flex-shrink-0 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                      <span className="flex-shrink-0 w-5 h-5 bg-[#8193ff] rounded-full flex items-center justify-center mr-3 mt-0.5">
                         <Check className="h-3.5 w-3.5 text-white" />
                       </span>
                       <span className="text-black font-bold italic text-sm">
@@ -790,10 +829,10 @@ export default function BasicSubscriptionPage() {
                 </ul>
               </div>
               <div className="relative hidden md:block md:order-2">
-                <div className="absolute -inset-4 bg-gradient-to-r from-purple-100 to-blue-100 rounded-2xl blur-lg z-0"></div>
-                <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-purple-200">
+                <div className="absolute -inset-4 bg-gradient-to-r from-[#e6e9ff] to-blue-100 rounded-2xl blur-lg z-0"></div>
+                <div className="relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#8193ff]">
                   <Image
-                    src="/market-updates.png"
+                    src="/basic-subscription/realtimemarketupdates.jpg"
                     alt="Market Updates"
                     width={600}
                     height={400}
@@ -813,27 +852,28 @@ export default function BasicSubscriptionPage() {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <PricingTable />
-
       {/* CTA Section */}
-      <section className="py-10 bg-gradient-to-r from-purple-600 via-blue-600 to-purple-700 text-white">
+      <section className="py-10 bg-[#5B79FF] text-white">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="max-w-4xl mx-auto text-center"
+            className="max-w-5xl mx-auto text-center"
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-6">
-              Start Your Investment Journey Today!
+              Forget the Guesswork
             </h2>
-            <p className="text-xl mb-8 text-gray-100">
-              Don't wait to begin building your wealth. With RangaOne Wealth Basic, you're not just subscribing, you're taking the first step towards financial freedom with expert-backed guidance.
+            <p className="text-xl mb-8 text-gray-100 font-bold">
+              Rangaone Wealth Basic gives you the essential tools,
+              expert-curated stocks, and real-time insights to grow your wealth
+              with clarity and confidence. This isn’t just a starter plan—it’s
+              your gateway to smarter investing with quality recommendations,
+              strategic alerts, and market updates that keep you ahead.
             </p>
             <p className="text-gray-200 mb-8 max-w-7xl">
-              This isn't just a service—it's your gateway to smart investing. Are you ready to start your wealth creation journey?
+            Serious about building wealth? Start here. Subscribe to Rangaone Wealth Basic NOW!
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <motion.div
@@ -842,10 +882,9 @@ export default function BasicSubscriptionPage() {
               >
                 <Link
                   href="/#pricing"
-                  className="bg-white text-purple-600 hover:bg-gray-100 font-bold py-4 px-10 rounded-full transition-all inline-flex items-center shadow-lg"
+                  className="bg-[#00197BC7] text-white hover: font-bold py-4 px-10 rounded-full transition-all inline-flex items-center shadow-lg text-[2rem]"
                 >
-                  <span>Subscribe Now</span>
-                  <ChevronRight className="ml-2 h-5 w-5" />
+                  <span>Subscribe</span>
                 </Link>
               </motion.div>
             </div>
@@ -866,7 +905,7 @@ export default function BasicSubscriptionPage() {
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-black">
               Frequently Asked Questions
             </h2>
-            <div className="w-24 h-1 bg-gradient-to-r from-purple-600 to-blue-600 mx-auto mb-6 rounded-full"></div>
+            <div className="w-24 h-1 bg-gradient-to-r from-[#8193ff] to-blue-600 mx-auto mb-6 rounded-full"></div>
             <p className="text-gray-600 max-w-2xl mx-auto">
               Get answers to common questions about our Basic subscription plan.
             </p>
@@ -908,7 +947,7 @@ export default function BasicSubscriptionPage() {
                 transition={{ delay: index * 0.1 }}
                 className="mb-6 border-b border-gray-200 pb-6 last:border-0"
               >
-                <h3 className="text-xl font-bold mb-3 text-purple-600">
+                <h3 className="text-xl font-bold mb-3 text-[#8193ff]">
                   {faq.question}
                 </h3>
                 <p className="text-black">{faq.answer}</p>

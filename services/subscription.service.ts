@@ -1,6 +1,6 @@
 import { authService } from "./auth.service";
-import { get } from "@/lib/axios";
-import { bundleService } from "./bundle.service"; // Import bundleService
+import { get, post } from "@/lib/axios";
+import { bundleService } from "./bundle.service";
 
 export interface UserSubscription {
   _id: string;
@@ -14,8 +14,8 @@ export interface UserSubscription {
   productId: string | {
     _id: string;
     name: string;
-    category?: string; // For bundles
-    PortfolioCategory?: string; // For portfolios
+    category?: string;
+    PortfolioCategory?: string;
     [key: string]: any;
   };
   portfolio?: string | {
@@ -30,6 +30,9 @@ export interface UserSubscription {
     category?: string;
   };
   planType?: "monthly" | "quarterly" | "yearly";
+  subscriptionType?: "regular" | "yearlyEmandate";
+  eMandateId?: string;
+  bundleId?: string;
   lastPaidAt?: string | null;
   lastRenewed?: string;
   missedCycles?: number;
@@ -37,6 +40,8 @@ export interface UserSubscription {
   startDate?: string;
   endDate?: string;
   expiryDate?: string;
+  commitmentEndDate?: string;
+  monthlyAmount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -44,8 +49,45 @@ export interface UserSubscription {
 export interface SubscriptionAccess {
   hasBasic: boolean;
   hasPremium: boolean;
-  portfolioAccess: string[]; // Array of portfolio IDs
+  portfolioAccess: string[];
   subscriptionType: 'none' | 'basic' | 'premium' | 'individual';
+}
+
+export interface CreateOrderResponse {
+  orderId: string;
+  amount: number;
+  currency: string;
+  planType: string;
+}
+
+export interface CreateEmandateResponse {
+  success: boolean;
+  commitmentEndDate: string;
+  setupUrl: string;
+  subscriptionId: string;
+  amount: number;
+  yearlyAmount: number;
+  customer_id: string;
+  currency: string;
+  planType: string;
+  message: string;
+  cleanupPerformed?: boolean;
+}
+
+export interface VerifyEmandateResponse {
+  success: boolean;
+  message: string;
+  subscriptionStatus?: string;
+  activatedSubscriptions?: number;
+  currentStatus?: string;
+  subscriptionsFound?: number;
+  nextSteps?: string;
+  subscriptionDetails?: {
+    id: string;
+    status: string;
+    productType: string;
+    productId: string;
+  };
 }
 
 export const subscriptionService = {
@@ -53,6 +95,7 @@ export const subscriptionService = {
   _subscriptionCache: null as UserSubscription[] | null,
   _accessCache: null as SubscriptionAccess | null,
   _cacheExpiry: 0,
+  _currentEmandateId: null as string | null,
 
   // Clear cache
   clearCache: () => {
@@ -62,10 +105,183 @@ export const subscriptionService = {
     console.log("Subscription cache cleared");
   },
 
+  // Store current eMandate ID for verification
+  setCurrentEmandateId: (emandateId: string) => {
+    subscriptionService._currentEmandateId = emandateId;
+    localStorage.setItem('currentEmandateId', emandateId);
+  },
+
+  // Get current eMandate ID
+  getCurrentEmandateId: (): string | null => {
+    if (subscriptionService._currentEmandateId) {
+      return subscriptionService._currentEmandateId;
+    }
+    return localStorage.getItem('currentEmandateId');
+  },
+
+  // Clear current eMandate ID
+  clearCurrentEmandateId: () => {
+    subscriptionService._currentEmandateId = null;
+    localStorage.removeItem('currentEmandateId');
+  },
+
   // Force refresh subscription data
   forceRefresh: async (): Promise<SubscriptionAccess> => {
     subscriptionService.clearCache();
     return await subscriptionService.getSubscriptionAccess();
+  },
+
+  // Create regular order (one-time payment)
+  createOrder: async (productType: string, productId: string, planType: string = "monthly"): Promise<CreateOrderResponse> => {
+    try {
+      const token = authService.getAccessToken();
+      if (!token) throw new Error("Not authenticated");
+
+      console.log("Creating one-time payment order:", { productType, productId, planType });
+
+      const response = await post<CreateOrderResponse>("/api/subscriptions/order", {
+        productType,
+        productId,
+        planType
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log("Order created successfully:", response);
+      return response;
+    } catch (error) {
+      console.error("Failed to create order:", error);
+      throw error;
+    }
+  },
+
+  // Create eMandate for yearly subscriptions (subscription-based payments)
+  createEmandate: async (productType: string, productId: string): Promise<CreateEmandateResponse> => {
+    try {
+      const token = authService.getAccessToken();
+      if (!token) throw new Error("Not authenticated");
+
+      console.log("Creating eMandate:", { productType, productId });
+
+      // Clear any existing eMandate ID before creating new one
+      subscriptionService.clearCurrentEmandateId();
+
+      const response = await post<CreateEmandateResponse>("/api/subscriptions/emandate", {
+        productType,
+        productId
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log("eMandate created successfully:", response);
+
+      // Store the subscription ID for later verification
+      if (response.subscriptionId) {
+        subscriptionService.setCurrentEmandateId(response.subscriptionId);
+      }
+
+      // Clear subscription cache since new subscription might be created
+      subscriptionService.clearCache();
+
+      return response;
+    } catch (error) {
+      console.error("Failed to create eMandate:", error);
+      throw error;
+    }
+  },
+
+  // Verify eMandate authentication (subscription-based)
+  verifyEmandate: async (subscriptionId?: string): Promise<VerifyEmandateResponse> => {
+    try {
+      const token = authService.getAccessToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const idToVerify = subscriptionId || subscriptionService.getCurrentEmandateId();
+      if (!idToVerify) throw new Error("No subscription ID available for verification");
+
+      console.log("Verifying eMandate:", idToVerify);
+
+      const response = await post<VerifyEmandateResponse>("/api/subscriptions/emandate/verify", {
+        subscription_id: idToVerify
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log("eMandate verification response:", response);
+
+      // If successfully authenticated, clear the stored ID and refresh cache
+      if (response.success) {
+        subscriptionService.clearCurrentEmandateId();
+        subscriptionService.clearCache();
+      }
+
+      return response;
+    } catch (error) {
+      console.error("Failed to verify eMandate:", error);
+      throw error;
+    }
+  },
+
+  // Verify regular payment (one-time payment)
+  verifyPayment: async (paymentId: string, orderId: string, signature: string): Promise<any> => {
+    try {
+      const token = authService.getAccessToken();
+      if (!token) throw new Error("Not authenticated");
+
+      console.log("Verifying one-time payment:", { paymentId, orderId });
+
+      const response = await post("/api/subscriptions/verify", {
+        paymentId,
+        orderId,
+        signature
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log("Payment verified successfully:", response);
+
+      // Clear subscription cache to fetch updated data
+      subscriptionService.clearCache();
+
+      return response;
+    } catch (error) {
+      console.error("Failed to verify payment:", error);
+      throw error;
+    }
+  },
+
+  // Clean up orphaned subscriptions
+  cleanupOrphanedSubscriptions: async (): Promise<any> => {
+    try {
+      const token = authService.getAccessToken();
+      if (!token) throw new Error("Not authenticated");
+
+      console.log("Cleaning up orphaned subscriptions");
+
+      const response = await post("/api/subscriptions/cleanup-orphaned", {}, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log("Cleanup completed:", response);
+
+      // Clear cache after cleanup
+      subscriptionService.clearCache();
+
+      return response;
+    } catch (error) {
+      console.error("Failed to cleanup orphaned subscriptions:", error);
+      throw error;
+    }
   },
 
   // Check what type of plan the user intended to purchase vs what they got
@@ -84,6 +300,13 @@ export const subscriptionService = {
         console.log("- User has no active subscriptions");
         console.log("- Check if payment was successful");
         console.log("- Check if subscription was created in backend");
+        
+        // Check if there's a pending eMandate
+        const currentEmandateId = subscriptionService.getCurrentEmandateId();
+        if (currentEmandateId) {
+          console.log("⚠️ Found pending eMandate ID:", currentEmandateId);
+          console.log("- Try verifying this eMandate");
+        }
         return;
       }
       
@@ -92,10 +315,27 @@ export const subscriptionService = {
       // Analyze subscription types
       const bundleCount = subscriptions.filter(s => s.productType === 'Bundle').length;
       const portfolioCount = subscriptions.filter(s => s.productType === 'Portfolio').length;
+      const emandateCount = subscriptions.filter(s => s.subscriptionType === 'yearlyEmandate').length;
+      const activeCount = subscriptions.filter(s => s.isActive).length;
       
       console.log(`📊 SUBSCRIPTION BREAKDOWN:`);
       console.log(`- Bundle subscriptions: ${bundleCount}`);
       console.log(`- Portfolio subscriptions: ${portfolioCount}`);
+      console.log(`- eMandate subscriptions: ${emandateCount}`);
+      console.log(`- Active subscriptions: ${activeCount}`);
+      
+      // Check for eMandate issues
+      const pendingEmandates = subscriptions.filter(s => 
+        s.subscriptionType === 'yearlyEmandate' && !s.isActive
+      );
+      
+      if (pendingEmandates.length > 0) {
+        console.log("⚠️ PENDING eMANDATE SUBSCRIPTIONS FOUND:");
+        pendingEmandates.forEach(sub => {
+          console.log(`- ID: ${sub._id}, eMandateId: ${sub.eMandateId}, Created: ${sub.createdAt}`);
+        });
+        console.log("💡 Try verifying these eMandates or clean up orphaned subscriptions");
+      }
       
       if (bundleCount > 0) {
         console.log("✅ BUNDLE DETECTED - Should have premium access");
@@ -112,6 +352,7 @@ export const subscriptionService = {
         console.log("- Subscription data format mismatch");
         console.log("- Backend returning different format than expected");
         console.log("- Portfolio ID extraction failing");
+        console.log("- Subscriptions are inactive");
       }
       
       if (access.subscriptionType === 'individual' && portfolioCount >= 2) {
@@ -133,6 +374,7 @@ export const subscriptionService = {
       console.log("=== SUBSCRIPTION DEBUG ===");
       console.log("Auth token exists:", !!token);
       console.log("API Base URL:", process.env.NEXT_PUBLIC_API_BASE_URL);
+      console.log("Current eMandate ID:", subscriptionService.getCurrentEmandateId());
       
       if (!token) {
         console.log("No auth token found - user not authenticated");
@@ -173,6 +415,9 @@ export const subscriptionService = {
             id: sub._id,
             productType: sub.productType,
             productId: sub.productId,
+            subscriptionType: sub.subscriptionType,
+            eMandateId: sub.eMandateId,
+            bundleId: sub.bundleId,
             isActive: sub.isActive,
             bundle: sub.bundle,
             portfolio: sub.portfolio,
@@ -196,11 +441,14 @@ export const subscriptionService = {
     }
   },
 
-  // Get user's active subscriptions
+  // Get user's active subscriptions with better error handling
   getUserSubscriptions: async (forceRefresh = false): Promise<UserSubscription[]> => {
     try {
       const token = authService.getAccessToken();
-      if (!token) return [];
+      if (!token) {
+        console.log("No auth token - returning empty subscriptions");
+        return [];
+      }
 
       // Check cache if not forcing refresh
       const now = Date.now();
@@ -213,12 +461,42 @@ export const subscriptionService = {
       console.log("API endpoint: /api/user/subscriptions");
       console.log("Auth token (first 10 chars):", token.substring(0, 10) + "...");
       
-      const response = await get<UserSubscription[]>("/api/user/subscriptions", {
-        headers: {
-          accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      // Try the user subscriptions endpoint first
+      let response: UserSubscription[] = [];
+      
+      try {
+        response = await get<UserSubscription[]>("/api/user/subscriptions", {
+          headers: {
+            accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      } catch (userSubError) {
+        console.log("User subscriptions endpoint failed, trying alternative endpoint");
+        
+        // Try alternative endpoint that might return subscription data differently
+        try {
+          const altResponse = await get<any>("/api/subscriptions/user-subscriptions", {
+            headers: {
+              accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          
+          // Handle different response formats
+          if (altResponse?.bundleSubscriptions || altResponse?.individualSubscriptions) {
+            response = [
+              ...(altResponse.bundleSubscriptions || []),
+              ...(altResponse.individualSubscriptions || [])
+            ];
+          } else if (Array.isArray(altResponse)) {
+            response = altResponse;
+          }
+        } catch (altError) {
+          console.error("Alternative subscription endpoint also failed:", altError);
+          throw userSubError; // Throw the original error
+        }
+      }
       
       console.log("API response received:", {
         isArray: Array.isArray(response),
@@ -226,18 +504,21 @@ export const subscriptionService = {
         data: response
       });
       
+      // Ensure response is an array
+      const subscriptions = Array.isArray(response) ? response : [];
+      
       // Cache the response for 1 minute
-      subscriptionService._subscriptionCache = response || [];
+      subscriptionService._subscriptionCache = subscriptions;
       subscriptionService._cacheExpiry = now + (60 * 1000);
       
-      return response || [];
+      return subscriptions;
     } catch (error) {
       console.error("Failed to fetch user subscriptions:", error);
       return [];
     }
   },
 
-  // Check user's subscription access levels
+  // Check user's subscription access levels with enhanced logic
   getSubscriptionAccess: async (forceRefresh = false): Promise<SubscriptionAccess> => {
     try {
       // Check cache if not forcing refresh
@@ -286,28 +567,29 @@ export const subscriptionService = {
             }
           } else {
             // Fetch full bundle details to get the category
-            const fullBundle = await bundleService.getById(bundleId);
-            console.log("Full bundle fetched:", fullBundle); // Add this log
+            try {
+              const fullBundle = await bundleService.getById(bundleId);
+              console.log("Full bundle fetched:", fullBundle);
 
-            if (fullBundle) {
-              if (fullBundle.category === 'basic') {
-                hasBasic = true;
-                console.log("Basic bundle detected - granting basic access:", fullBundle.name);
-              } else if (fullBundle.category === 'premium') {
+              if (fullBundle) {
+                if (fullBundle.category === 'basic') {
+                  hasBasic = true;
+                  console.log("Basic bundle detected - granting basic access:", fullBundle.name);
+                } else if (fullBundle.category === 'premium') {
+                  hasPremium = true;
+                  console.log("Premium bundle detected - granting premium access:", fullBundle.name);
+                }
+              } else {
+                console.log("Could not fetch full bundle details for bundleId:", bundleId);
+                // Fallback: assume premium for unknown bundles
                 hasPremium = true;
-                console.log("Premium bundle detected - granting premium access:", fullBundle.name);
+                console.log("Unknown bundle - defaulting to premium access");
               }
-            } else {
-              console.log("Could not fetch full bundle details for bundleId:", bundleId);
-              // Fallback to name-based check if bundle details can't be fetched
-              const bundleName = subscription.bundle?.name?.toLowerCase() || '';
-              if (bundleId === 'basic-plan-id' || bundleName.includes('basic')) {
-                hasBasic = true; 
-                console.log("Basic bundle (fallback) detected - granting basic access");
-              } else { // Assume premium if it's a bundle and not explicitly basic
-                hasPremium = true;
-                console.log("Premium bundle (fallback) detected - granting premium access");
-              }
+            } catch (bundleError) {
+              console.error("Error fetching bundle details:", bundleError);
+              // Fallback: assume premium for bundle subscription errors
+              hasPremium = true;
+              console.log("Bundle fetch error - defaulting to premium access");
             }
           }
           

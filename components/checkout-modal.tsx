@@ -317,16 +317,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 resetModal();
               }, 2000);
                         } else {
-              // Handle specific error cases
+              // Handle verification failure - use retry logic for database sync issues
               if (verificationResponse.message.includes("No matching subscriptions found")) {
-                console.log("Subscription not found - this might be normal for new subscriptions");
-                // For new subscriptions, we might need to wait a bit before verification
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                console.log("Subscription not found - using retry logic for database sync");
                 
-                // Try verification again
-                const retryResponse = await paymentService.verifyEmandate(
-                  emandateId
-                );
+                const retryResponse = await paymentService.verifyEmandateWithRetry(emandateId, 5);
                 
                 if (retryResponse.success) {
                   await subscriptionService.forceRefresh();
@@ -403,14 +398,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 resetModal();
               }, 2000);
             } else {
-              // Handle specific error cases
+              // Handle verification failure - use retry logic for database sync issues
               if (verificationResponse.message.includes("No matching subscriptions found")) {
-                console.log("Subscription not found - this might be normal for new subscriptions");
-                // For new subscriptions, we might need to wait a bit before verification
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                console.log("Subscription not found - using retry logic for database sync");
                 
-                // Try verification again
-                const retryResponse = await paymentService.verifyEmandate(subscriptionId);
+                const retryResponse = await paymentService.verifyEmandateWithRetry(subscriptionId, 5);
                 
                 if (retryResponse.success) {
                   await subscriptionService.forceRefresh();

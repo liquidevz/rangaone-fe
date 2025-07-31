@@ -449,4 +449,42 @@ export const paymentService = {
       };
     }
   },
+
+  // Verify eMandate with automatic retry logic for database sync delays
+  verifyEmandateWithRetry: async (subscriptionId: string, maxRetries: number = 5): Promise<VerifyPaymentResponse> => {
+    console.log(`Starting eMandate verification with retry for subscription: ${subscriptionId}`);
+    
+    let retryCount = 0;
+    let retryDelay = 1000; // Start with 1 second
+    
+    while (retryCount < maxRetries) {
+      retryCount++;
+      console.log(`eMandate verification attempt ${retryCount}/${maxRetries}`);
+      
+      const response = await paymentService.verifyEmandate(subscriptionId);
+      
+      if (response.success) {
+        console.log(`✅ eMandate verification successful on attempt ${retryCount}`);
+        return response;
+      }
+      
+      // If it's a "No matching subscriptions found" error and we have retries left
+      if (response.message.includes("No matching subscriptions found") && retryCount < maxRetries) {
+        console.log(`Retry ${retryCount} failed, waiting ${retryDelay}ms before next attempt`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        retryDelay *= 2; // Exponential backoff
+        continue;
+      }
+      
+      // For other errors or if we've exhausted retries, return the error
+      console.log(`❌ eMandate verification failed after ${retryCount} attempts`);
+      return response;
+    }
+    
+    // This should never be reached, but just in case
+    return {
+      success: false,
+      message: "eMandate verification failed after maximum retries. Please contact support."
+    };
+  },
 };
