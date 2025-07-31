@@ -6,8 +6,8 @@ import QuoteSection from "@/components/quote-section"
 import Footer from "@/components/footer"
 import ModelPortfolioSection from "@/components/model-portfolio-section"
 import FAQContactSection from "@/components/faq-contact-section"
-import { Navbar } from "@/components/navbar";
-import StackedCardTestimonials from "@/components/premium-stacked-card-testimonials"
+import { Navbar } from "@/components/navbar"
+import StackedCardTestimonials from "@/components/stacked-card-testimonials"
 
 export default function Home() {
   return (
@@ -17,7 +17,7 @@ export default function Home() {
       <PricingSection />
       <QuoteSection />
       <ModelPortfolioSection />
-      <StackedCardTestimonials color="#fefcea" />
+      <StackedCardTestimonials />
       <FAQContactSection />
       <Footer />
     </main>

@@ -4,6 +4,8 @@ import type React from "react"
 import { useState } from "react"
 import { ChevronDown } from "lucide-react"
 import { SectionHeading } from "@/components/ui/section-heading"
+import { contactService, ContactFormData } from "@/services/contact.service"
+import { useToast } from "@/components/ui/use-toast"
 
 type FAQItem = {
   question: string
@@ -37,6 +39,12 @@ const faqsByCategory = {
       answer:
         "The Basic plan does not include personalized tax advice. We provide general tax-efficiency strategies, but recommend consulting with a tax professional for specific guidance.",
     },
+    {
+      question: "Do you provide tax-related advice?",
+      answer:
+        "The Basic plan does not include personalized tax advice. We provide general tax-efficiency strategies, but recommend consulting with a tax professional for specific guidance.",
+    },
+    
   ],
   modelPortfolio: [
     {
@@ -91,6 +99,11 @@ const faqsByCategory = {
       answer:
         "Premium research reports include comprehensive company analysis, financial metrics, risk assessments, valuation models, growth projections, and specific entry/exit strategies.",
     },
+    {
+      question: "How detailed are the research reports?",
+      answer:
+        "Premium research reports include comprehensive company analysis, financial metrics, risk assessments, valuation models, growth projections, and specific entry/exit strategies.",
+    },
   ],
 }
 
@@ -99,11 +112,13 @@ export default function FAQContactSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(0)
   const [formData, setFormData] = useState({
     name: "",
+    email: "",
     represent: "BASIC",
     message: "",
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const { toast } = useToast()
 
   const toggleFAQ = (index: number) => {
     setOpenIndex(openIndex === index ? null : index)
@@ -118,24 +133,44 @@ export default function FAQContactSection() {
     setFormData((prev) => ({ ...prev, represent: value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const contactData: ContactFormData = {
+        name: formData.name,
+        email: formData.email,
+        message: `Representation: ${formData.represent}\n\nMessage: ${formData.message}`
+      }
+
+      await contactService.sendContactMessage(contactData)
+      
       setIsSubmitting(false)
       setIsSubmitted(true)
+      toast({
+        title: "Message Sent Successfully",
+        description: "We'll get back to you as soon as possible.",
+      })
+      
       // Reset form after 3 seconds
       setTimeout(() => {
         setIsSubmitted(false)
         setFormData({
           name: "",
+          email: "",
           represent: "BASIC",
           message: "",
         })
       }, 3000)
-    }, 1000)
+    } catch (error: any) {
+      setIsSubmitting(false)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send message. Please try again.",
+        variant: "destructive"
+      })
+    }
   }
 
   return (
@@ -155,7 +190,7 @@ export default function FAQContactSection() {
                 }}
                 className={`px-4 py-1.5 text-sm font-medium rounded-md border ${
                   activeCategory === "basic"
-                    ? "bg-[#1e3a8a] text-[#FFFFF0] border-[#1e3a8a]"
+                    ? "bg-[#001633] text-[#FFFFF0] border-[#001633]"
                     : "bg-[#fefcea] text-gray-700 border-gray-300 hover:bg-gray-50"
                 }`}
               >
@@ -168,7 +203,7 @@ export default function FAQContactSection() {
                 }}
                 className={`px-4 py-1.5 text-sm font-medium rounded-md border ${
                   activeCategory === "modelPortfolio"
-                    ? "bg-[#1e3a8a] text-[#FFFFF0] border-[#1e3a8a]"
+                    ? "bg-[#001633] text-[#FFFFF0] border-[#001633]"
                     : "bg-[#fefcea] text-gray-700 border-gray-300 hover:bg-gray-50"
                 }`}
               >
@@ -181,7 +216,7 @@ export default function FAQContactSection() {
                 }}
                 className={`px-4 py-1.5 text-sm font-medium rounded-md border ${
                   activeCategory === "premium"
-                    ? "bg-[#1e3a8a] text-[#FFFFF0] border-[#1e3a8a]"
+                    ? "bg-[#001633] text-[#FFFFF0] border-[#001633]"
                     : "bg-[#fefcea] text-gray-700 border-gray-300 hover:bg-gray-50"
                 }`}
               >
@@ -220,7 +255,7 @@ export default function FAQContactSection() {
           </div>
 
           {/* Contact Form */}
-          <div className="bg-[#0f1d59] text-[#FFFFF0] rounded-xl p-6 md:p-8 shadow-lg">
+          <div className="bg-[#001633] text-[#FFFFF0] rounded-xl p-6 md:p-8 shadow-lg">
             <h2 className="text-2xl font-bold mb-6">Contact us</h2>
             <form onSubmit={handleSubmit}>
               <div className="mb-6">
@@ -231,7 +266,20 @@ export default function FAQContactSection() {
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="Your name..."
-                  className="w-full bg-[#1a2a6c] border border-[#2a3a7c] rounded-md p-3 text-[#FFFFF0] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-[#032552] border border-[#001633] rounded-md p-3 text-[#FFFFF0] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+
+              <div className="mb-6">
+                <p className="text-lg mb-4">and my email is...</p>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="Your email..."
+                  className="w-full bg-[#032552] border border-[#001633] rounded-md p-3 text-[#FFFFF0] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
               </div>
@@ -244,8 +292,8 @@ export default function FAQContactSection() {
                     onClick={() => handleRepresentChange("BASIC")}
                     className={`py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                       formData.represent === "BASIC"
-                        ? "bg-[#fefcea] text-[#0f1d59]"
-                        : "bg-[#1a2a6c] text-[#FFFFF0] hover:bg-[#2a3a7c]"
+                        ? "bg-[#fefcea] text-[#001633]"
+                        : "bg-[#032552] text-[#FFFFF0] hover:bg-[#001633]"
                     }`}
                   >
                     BASIC
@@ -255,8 +303,8 @@ export default function FAQContactSection() {
                     onClick={() => handleRepresentChange("PREMIUM")}
                     className={`py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                       formData.represent === "PREMIUM"
-                        ? "bg-[#fefcea] text-[#0f1d59]"
-                        : "bg-[#1a2a6c] text-[#FFFFF0] hover:bg-[#2a3a7c]"
+                        ? "bg-[#fefcea] text-[#001633]"
+                        : "bg-[#032552] text-[#FFFFF0] hover:bg-[#001633]"
                     }`}
                   >
                     PREMIUM
@@ -266,8 +314,8 @@ export default function FAQContactSection() {
                     onClick={() => handleRepresentChange("MODEL PORTFOLIO")}
                     className={`py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                       formData.represent === "MODEL PORTFOLIO"
-                        ? "bg-[#fefcea] text-[#0f1d59]"
-                        : "bg-[#1a2a6c] text-[#FFFFF0] hover:bg-[#2a3a7c]"
+                        ? "bg-[#fefcea] text-[#001633]"
+                        : "bg-[#032552] text-[#FFFFF0] hover:bg-[#001633]"
                     }`}
                   >
                     MODEL PORTFOLIO
@@ -283,7 +331,7 @@ export default function FAQContactSection() {
                   onChange={handleChange}
                   placeholder="Your question..."
                   rows={4}
-                  className="w-full bg-[#1a2a6c] border border-[#2a3a7c] rounded-md p-3 text-[#FFFFF0] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-[#032552] border border-[#001633] rounded-md p-3 text-[#FFFFF0] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 ></textarea>
               </div>
@@ -291,7 +339,7 @@ export default function FAQContactSection() {
               <button
                 type="submit"
                 disabled={isSubmitting || isSubmitted}
-                className="w-full bg-[#fefcea] text-[#0f1d59] py-3 rounded-md font-medium hover:bg-gray-100 transition-colors"
+                className="w-full bg-[#fefcea] text-[#001633] py-3 rounded-md font-medium hover:bg-gray-100 transition-colors"
               >
                 {isSubmitting ? "Submitting..." : isSubmitted ? "Submitted!" : "Submit"}
               </button>

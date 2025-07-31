@@ -17,11 +17,11 @@ interface Testimonial {
   title: string;
 }
 
-interface StackedCardTestimonialsProps {
+interface PremiumStackedCardTestimonialsProps {
   color?: string;
 }
 
-const PremiumStackedCardTestimonials = ({ color = "#FFD700" }: StackedCardTestimonialsProps) => {
+const PremiumStackedCardTestimonials = ({ color = "#FFD700" }: PremiumStackedCardTestimonialsProps ) => {
   const [selected, setSelected] = useState(0);
 
   return (
