@@ -303,13 +303,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
             console.log("eMandate verification response:", verificationResponse);
 
-            if (verificationResponse.success) {
+            if (verificationResponse.success || verificationResponse.message.includes("not authenticated yet")) {
               await subscriptionService.forceRefresh();
               setPaymentStep("success");
               
+              const isNotAuthenticated = verificationResponse.message.includes("not authenticated yet");
+              
               toast({
-                title: `${subscriptionType === "yearly" ? "Yearly" : "Quarterly"} Subscription Activated`,
-                description: `Your ${subscriptionType} subscription with eMandate has been activated successfully`,
+                title: `${subscriptionType === "yearly" ? "Yearly" : "Quarterly"} ${isNotAuthenticated ? "eMandate Created" : "Subscription Activated"}`,
+                description: isNotAuthenticated 
+                  ? `Your ${subscriptionType} subscription has been created. Please complete the eMandate authentication to activate it.`
+                  : `Your ${subscriptionType} subscription with eMandate has been activated successfully`,
               });
 
               setTimeout(() => {
@@ -341,11 +345,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 }
               } else if (verificationResponse.message.includes("not authenticated yet")) {
                 console.log("eMandate created but not authenticated yet - this is normal for eMandate subscriptions");
-                console.log("Current status:", verificationResponse.currentStatus);
-                console.log("Status details:", verificationResponse.statusDetails);
                 
-                // For eMandate subscriptions, the subscription is created but needs authentication
-                // We should show success since the payment was successful and subscription was created
                 await subscriptionService.forceRefresh();
                 setPaymentStep("success");
                 
@@ -384,13 +384,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             
             console.log("eMandate verification response:", verificationResponse);
 
-            if (verificationResponse.success) {
+            if (verificationResponse.success || verificationResponse.message.includes("not authenticated yet")) {
               await subscriptionService.forceRefresh();
               setPaymentStep("success");
               
+              const isNotAuthenticated = verificationResponse.message.includes("not authenticated yet");
+              
               toast({
-                title: `${subscriptionType === "yearly" ? "Yearly" : "Quarterly"} Subscription Activated`,
-                description: `Your ${subscriptionType} subscription with eMandate has been activated successfully`,
+                title: `${subscriptionType === "yearly" ? "Yearly" : "Quarterly"} ${isNotAuthenticated ? "eMandate Created" : "Subscription Activated"}`,
+                description: isNotAuthenticated 
+                  ? `Your ${subscriptionType} subscription has been created. Please complete the eMandate authentication to activate it.`
+                  : `Your ${subscriptionType} subscription with eMandate has been activated successfully`,
               });
 
               setTimeout(() => {
@@ -892,7 +896,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   )}
 
                   <Button
-                    onClick={handleClose}
+                    onClick={() => {
+                      handleClose();
+                      refreshCart();
+                      router.push('/dashboard');
+                    }}
                     className="w-full bg-green-600 hover:bg-green-700"
                   >
                     Continue to Dashboard

@@ -21,7 +21,9 @@ export function ProfileCompletionModal({ open, onOpenChange, onProfileComplete }
     fullName: "",
     phone: "",
     dateofBirth: "",
-    pnadetails: ""
+    pandetails: "",
+    address: "",
+    adharcard: ""
   })
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -46,7 +48,9 @@ export function ProfileCompletionModal({ open, onOpenChange, onProfileComplete }
         fullName: profileData.fullName || "",
         phone: profileData.phone || "",
         dateofBirth: profileData.dateofBirth || "",
-        pnadetails: profileData.pnadetails || ""
+        pandetails: profileData.pandetails || "",
+        address: profileData.address || "",
+        adharcard: profileData.adharcard || ""
       })
       console.log("ProfileCompletionModal - form data set:", {
         fullName: profileData.fullName || "",
@@ -103,9 +107,13 @@ export function ProfileCompletionModal({ open, onOpenChange, onProfileComplete }
   }
 
   const missingFields = profile?.missingFields || []
+  
+  // Debug logging
+  console.log("ProfileCompletionModal - missing fields:", missingFields);
+  console.log("ProfileCompletionModal - form data:", formData);
 
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -174,17 +182,47 @@ export function ProfileCompletionModal({ open, onOpenChange, onProfileComplete }
               </div>
             )}
 
-            {missingFields.includes("pnadetails") && (
+            {missingFields.includes("pandetails") && (
               <div className="space-y-2">
-                <Label htmlFor="pnadetails" className="flex items-center gap-2">
+                <Label htmlFor="pandetails" className="flex items-center gap-2">
                   <FileText className="w-4 h-4" />
-                  PAN Details
+                  PAN Details *
                 </Label>
                 <Input
-                  id="pnadetails"
-                  value={formData.pnadetails}
-                  onChange={(e) => setFormData(prev => ({ ...prev, pnadetails: e.target.value }))}
+                  id="pandetails"
+                  value={formData.pandetails}
+                  onChange={(e) => setFormData(prev => ({ ...prev, pandetails: e.target.value }))}
                   placeholder="AAAAA9999A"
+                />
+              </div>
+            )}
+
+            {missingFields.includes("address") && (
+              <div className="space-y-2">
+                <Label htmlFor="address" className="flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Address *
+                </Label>
+                <Input
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                  placeholder="Enter your address"
+                />
+              </div>
+            )}
+
+            {missingFields.includes("adharcard") && (
+              <div className="space-y-2">
+                <Label htmlFor="adharcard" className="flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Aadhaar Card Number *
+                </Label>
+                <Input
+                  id="adharcard"
+                  value={formData.adharcard}
+                  onChange={(e) => setFormData(prev => ({ ...prev, adharcard: e.target.value }))}
+                  placeholder="XXXX-XXXX-XXXX"
                 />
               </div>
             )}

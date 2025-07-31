@@ -16,7 +16,9 @@ export interface UserProfile {
   fullName?: string;
   dateofBirth?: string;
   phone?: string;
-  pnadetails?: string;
+  pandetails?: string;
+  address?: string;
+  adharcard?: string;
   profileComplete: boolean;
   forceComplete: boolean;
   missingFields: string[];

@@ -376,13 +376,18 @@ export default function CartPage() {
                 response
               );
               
-              if (verificationResponse.success) {
+              if (verificationResponse.success || verificationResponse.message.includes("not authenticated yet")) {
+                const isNotAuthenticated = verificationResponse.message.includes("not authenticated yet");
+                
                 toast({
-                  title: `${subscriptionType === "yearly" ? "Yearly" : "Quarterly"} Subscription Activated`,
-                  description: `Your ${subscriptionType} subscription with eMandate has been activated successfully`,
+                  title: `${subscriptionType === "yearly" ? "Yearly" : "Quarterly"} ${isNotAuthenticated ? "eMandate Created" : "Subscription Activated"}`,
+                  description: isNotAuthenticated 
+                    ? `Your ${subscriptionType} subscription has been created. Please complete the eMandate authentication to activate it.`
+                    : `Your ${subscriptionType} subscription with eMandate has been activated successfully`,
                 });
                 // Clear cart after successful payment
                 await refreshCart();
+                router.push('/dashboard');
               } else {
                 throw new Error(verificationResponse.message || "eMandate verification failed");
               }
@@ -401,6 +406,7 @@ export default function CartPage() {
                 });
                 // Clear cart after successful payment
                 await refreshCart();
+                router.push('/dashboard');
               } else {
                 throw new Error(verificationResponse.message || "Payment verification failed");
               }
