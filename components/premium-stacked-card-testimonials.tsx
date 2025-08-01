@@ -168,7 +168,7 @@ const SelectBtns = ({
                   width: "100%",
                 }}
                 transition={{
-                  duration: 5,
+                  duration: 10,
                 }}
                 onAnimationComplete={() => {
                   setSelected(selected === numTracks - 1 ? 0 : selected + 1);
@@ -261,6 +261,11 @@ const Card = ({
   const background = position % 2 ? "#2a2a2a" : "#3a3a3a"; // Adjusted for dark theme
   const textColor = "white"; // All text white for readability on dark backgrounds
 
+  const handleCardClick = () => {
+    // Advance to next testimonial instead of jumping to clicked position
+    setSelected(selected === testimonials.length - 1 ? 0 : selected + 1);
+  };
+
   return (
     <motion.div
       initial={false}
@@ -281,7 +286,7 @@ const Card = ({
         duration: 0.25,
         ease: "easeOut",
       }}
-      onClick={() => setSelected(position)}
+      onClick={handleCardClick}
       className={`absolute top-0 left-0 w-full min-h-full p-8 lg:p-12 cursor-pointer flex flex-col justify-between rounded-xl border border-[#7a8c3b]/10 ${
         isMobile ? 'select-none' : ''
       }`}
