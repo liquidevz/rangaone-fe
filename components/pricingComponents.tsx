@@ -485,8 +485,8 @@ export const PricingCompare = ({
                 <div className="bg-green-500/20 rounded-full w-20 h-20 md:w-12 md:h-12 flex items-center justify-center mx-auto mb-2 border border-green-500/30">
                   <Users className="w-10 h-10 md:w-6 md:h-6 text-green-400" />
                 </div>
-                <h3 className="text-green-400 text-3xl md:text-xl xl:text-2xl font-bold ">Basic</h3>
-                <p className="text-slate-400 text-xs md:text-sm">Essential Tools</p>
+                <h3 className="text-green-400 text-3xl md:text-4xl font-bold ">Basic</h3>
+                <p className="text-slate-400 text-xs md:text-base">Essential Tools</p>
               </div>
 
               {/* Basic Plan Features */}
@@ -535,8 +535,8 @@ export const PricingCompare = ({
                 <div className="bg-amber-100/30 rounded-full w-20 h-20 md:w-12 md:h-12 flex items-center justify-center mx-auto mb-2 border-2 border-amber-200/50 backdrop-blur-sm">
                   <Crown className="w-10 h-10 md:w-6 md:h-6 text-amber-800" />
                 </div>
-                <h3 className="text-amber-900 text-3xl md:text-xl xl:text-2xl font-bold drop-shadow-sm">Premium</h3>
-                <p className="text-amber-800 text-xs md:text-sm font-medium">Comprehensive Suite</p>
+                <h3 className="text-amber-900 text-3xl md:text-4xl font-bold drop-shadow-sm">Premium</h3>
+                <p className="text-amber-800 text-xs md:text-base font-medium">Comprehensive Suite</p>
               </div>
 
               {/* Premium Plan Features */}

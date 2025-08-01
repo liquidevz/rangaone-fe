@@ -591,7 +591,7 @@ export default function BasicSubscriptionPage() {
                       className="w-full h-auto"
                     />
                   </div>
-                  <div className="absolute -bottom-6 md:-right-6 right-10  md:w-24 md:h-24 w-16 h-16 bg-white rounded-full flex items-center justify-center text-[#8193ff] font-bold md:text-2xl text-xl z-20">
+                  <div className="absolute -bottom-6 md:-right-6 -right-5  md:w-24 md:h-24 w-16 h-16 bg-white rounded-full flex items-center justify-center text-[#8193ff] font-bold md:text-2xl text-xl z-20">
                     10-15
                   </div>
                 </div>
@@ -653,7 +653,6 @@ export default function BasicSubscriptionPage() {
                   5 Short-Term/Swing Trades
                 </h3>
                 <div className="relative md:hidden mb-6 max-w-[250px]">
-                  <div className="absolute -inset-4 bg-gradient-to-r from-[#e6e9ff] to-blue-100 rounded-2xl blur-lg z-0"></div>
                   <div className="left-20 relative z-10 overflow-hidden rounded-xl ">
                     <Image
                       src="/basic-subscription/5swingtrades.png"
@@ -663,7 +662,7 @@ export default function BasicSubscriptionPage() {
                       className="w-full h-auto"
                     />
                   </div>
-                  <div className="absolute -bottom-6 left-10 md:w-24 md:h-24 w-16 h-16 bg-[#8193ff] rounded-full flex items-center justify-center text-white font-bold md:text-2xl text-xl z-20">
+                  <div className="absolute -bottom-6 left-12 md:w-24 md:h-24 w-16 h-16 bg-[#8193ff] rounded-full flex items-center justify-center text-white font-bold md:text-2xl text-xl z-20">
                     5
                   </div>
                 </div>
@@ -707,7 +706,7 @@ export default function BasicSubscriptionPage() {
                     className="w-full h-auto"
                   />
                 </div>
-                <div className="absolute -bottom-6 -right-16 w-24 h-24 bg-[#8193ff] rounded-full flex items-center justify-center text-white font-bold text-2xl z-20">
+                <div className="absolute -bottom-6 -left-5 w-24 h-24 bg-[#8193ff] rounded-full flex items-center justify-center text-white font-bold text-2xl z-20">
                   5
                 </div>
               </div>
@@ -799,7 +798,6 @@ export default function BasicSubscriptionPage() {
                   Real-Time Market Updates
                 </h3>
                 <div className="relative md:hidden mb-6">
-                  <div className="absolute -inset-4 bg-gradient-to-r from-[#e6e9ff] to-blue-100 rounded-2xl blur-lg z-0"></div>
                   <div className="left-20 relative z-10 overflow-hidden rounded-xl shadow-xl border border-[#8193ff] max-w-[250px]">
                     <Image
                       src="/basic-subscription/realtimemarketupdates.jpg"
