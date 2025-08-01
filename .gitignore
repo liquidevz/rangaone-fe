@@ -28,3 +28,15 @@ next-env.d.ts
 
 # YoYo AI version control directory
 .yoyo/
+
+# Large files and archives
+*.zip
+*.tar.gz
+*.rar
+*.7z
+*.iso
+*.dmg
+*.pkg
+
+# Files larger than 50MB (GitHub limit is 100MB, but we'll be conservative)
+# You can use: find . -size +50M -type f to find large files
