@@ -275,7 +275,7 @@ export const PricingCompare = ({
                       <h2 className="text-white text-2xl lg:text-3xl font-bold mb-1 px-[23rem]">
                         Plan Comparison
                       </h2>
-                      <p className="text-slate-300 text-sm lg:text-base px-[18rem]">Choose the perfect plan for your trading journey</p>
+                      <p className="text-slate-300 text-sm lg:text-base px-[18rem]">Choose the perfect plan for your investment journey</p>
                     </div>
                   </div>
                   <button
@@ -300,7 +300,7 @@ export const PricingCompare = ({
                           <Users className="w-10 h-10 text-green-400" />
                         </div>
                         <h3 className="text-green-400 text-2xl font-bold mb-2">Basic Plan</h3>
-                        <p className="text-slate-400 text-base">Essential Trading Tools</p>
+                        <p className="text-slate-400 text-base">Essential Investment Tools</p>
                       </div>
 
                       {/* Features */}
@@ -364,7 +364,7 @@ export const PricingCompare = ({
                         <h3 className="text-amber-900 text-2xl font-bold mb-2 drop-shadow-sm">
                           Premium Plan
                         </h3>
-                        <p className="text-amber-800 text-base font-medium">Complete Trading Suite</p>
+                        <p className="text-amber-800 text-base font-medium">Complete Investment Suite</p>
                       </div>
 
                       {/* Features */}
