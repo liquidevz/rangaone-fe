@@ -1,16 +1,32 @@
-"use client";
-
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { cn } from "@/lib/utils";
-import { Check, X, Star, Zap, Shield, Users, TrendingUp, Bell, Phone, Video, FileText } from "lucide-react";
+"use client"
+import type React from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
+import { cn } from "@/lib/utils"
+import {
+  Check,
+  X,
+  Crown,
+  Star,
+  Zap,
+  Shield,
+  Users,
+  TrendingUp,
+  Bell,
+  Phone,
+  Video,
+  FileText,
+  GitCompare,
+  Sparkles,
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 interface PricingCompareProps {
-  className?: string;
-  initialSliderPercentage?: number;
-  slideMode?: "hover" | "drag";
-  showHandlebar?: boolean;
-  autoplay?: boolean;
-  autoplayDuration?: number;
+  className?: string
+  initialSliderPercentage?: number
+  slideMode?: "hover" | "drag"
+  showHandlebar?: boolean
+  autoplay?: boolean
+  autoplayDuration?: number
 }
 
 export const PricingCompare = ({
@@ -18,402 +34,523 @@ export const PricingCompare = ({
   initialSliderPercentage = 50,
   slideMode = "hover",
   showHandlebar = true,
-  autoplay = true,
+  autoplay = false,
   autoplayDuration = 5000,
 }: PricingCompareProps) => {
-  const [sliderXPercent, setSliderXPercent] = useState(initialSliderPercentage);
-  const [isDragging, setIsDragging] = useState(false);
-  const [isMouseOver, setIsMouseOver] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  const sliderRef = useRef<HTMLDivElement>(null);
-  const autoplayRef = useRef<NodeJS.Timeout | null>(null);
+  const [sliderXPercent, setSliderXPercent] = useState(initialSliderPercentage)
+  const [isDragging, setIsDragging] = useState(false)
+  const [isMouseOver, setIsMouseOver] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const sliderRef = useRef<HTMLDivElement>(null)
+  const autoplayRef = useRef<NodeJS.Timeout | null>(null)
+  const [showComparison, setShowComparison] = useState(false)
 
   const features = [
-    { 
-      label: "Quality Stock Picks", 
-      basic: "10-15 stocks", 
+    {
+      label: "Quality Stock Picks",
+      basic: "10-15 stocks",
       premium: "20-25 stocks",
-      icon: TrendingUp
+      icon: TrendingUp,
     },
-    { 
-      label: "Short-Term/Swing Trades", 
-      basic: "5 Trades", 
+    {
+      label: "Short-Term/Swing Trades",
+      basic: "5 Trades",
       premium: "10 Trades",
-      icon: Zap
+      icon: Zap,
     },
-    { 
-      label: "Model Portfolios", 
-      basic: false, 
+    {
+      label: "Model Portfolios",
+      basic: false,
       premium: "2 Exclusive Portfolios",
-      icon: FileText
+      icon: FileText,
     },
-    { 
-      label: "IPO Recommendations", 
-      basic: false, 
-      premium: "2 Exclusive Portfolios",
-      icon: Star
+    {
+      label: "IPO Recommendations",
+      basic: false,
+      premium: "Premium Access",
+      icon: Star,
     },
-    { 
-      label: "Call Support", 
-      basic: false, 
+    {
+      label: "Call Support",
+      basic: false,
       premium: "Direct Access to Experts",
-      icon: Phone
+      icon: Phone,
     },
-    { 
-      label: "Live Webinars", 
-      basic: false, 
+    {
+      label: "Live Webinars",
+      basic: false,
       premium: "Interactive Sessions",
-      icon: Video
+      icon: Video,
     },
-    { 
-      label: "Entry & Exit Alerts", 
-      basic: true, 
-      premium: "Enhanced with Detailed Analysis",
-      icon: Bell
+    {
+      label: "Entry & Exit Alerts",
+      basic: true,
+      premium: "Enhanced with Analysis",
+      icon: Bell,
     },
-    { 
-      label: "Market Updates", 
-      basic: true, 
+    {
+      label: "Market Updates",
+      basic: true,
       premium: "Priority Access",
-      icon: Shield
+      icon: Shield,
     },
-  ];
+  ]
 
   // Check if mobile
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+      setIsMobile(window.innerWidth < 768)
+    }
+    checkMobile()
+    window.addEventListener("resize", checkMobile)
+    return () => window.removeEventListener("resize", checkMobile)
+  }, [])
 
   const startAutoplay = useCallback(() => {
-    if (!autoplay) return;
-
-    const startTime = Date.now();
+    if (!autoplay) return
+    const startTime = Date.now()
     const animate = () => {
-      const elapsedTime = Date.now() - startTime;
-      const progress =
-        (elapsedTime % (autoplayDuration * 2)) / autoplayDuration;
-      const percentage = progress <= 1 ? progress * 100 : (2 - progress) * 100;
-
-      setSliderXPercent(percentage);
-      autoplayRef.current = setTimeout(animate, 16);
-    };
-
-    animate();
-  }, [autoplay, autoplayDuration]);
+      const elapsedTime = Date.now() - startTime
+      const progress = (elapsedTime % (autoplayDuration * 2)) / autoplayDuration
+      const percentage = progress <= 1 ? progress * 100 : (2 - progress) * 100
+      setSliderXPercent(percentage)
+      autoplayRef.current = setTimeout(animate, 16)
+    }
+    animate()
+  }, [autoplay, autoplayDuration])
 
   const stopAutoplay = useCallback(() => {
     if (autoplayRef.current) {
-      clearTimeout(autoplayRef.current);
-      autoplayRef.current = null;
+      clearTimeout(autoplayRef.current)
+      autoplayRef.current = null
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
-    startAutoplay();
-    return () => stopAutoplay();
-  }, [startAutoplay, stopAutoplay]);
+    startAutoplay()
+    return () => stopAutoplay()
+  }, [startAutoplay, stopAutoplay])
 
   function mouseEnterHandler() {
-    setIsMouseOver(true);
-    stopAutoplay();
+    setIsMouseOver(true)
+    stopAutoplay()
   }
 
   function mouseLeaveHandler() {
-    setIsMouseOver(false);
+    setIsMouseOver(false)
     if (slideMode === "hover") {
-      setSliderXPercent(initialSliderPercentage);
+      setSliderXPercent(initialSliderPercentage)
     }
     if (slideMode === "drag") {
-      setIsDragging(false);
+      setIsDragging(false)
     }
-    startAutoplay();
+    startAutoplay()
   }
 
   const handleStart = useCallback(
     (clientX: number) => {
       if (slideMode === "drag") {
-        setIsDragging(true);
+        setIsDragging(true)
       }
     },
-    [slideMode]
-  );
+    [slideMode],
+  )
 
   const handleEnd = useCallback(() => {
     if (slideMode === "drag") {
-      setIsDragging(false);
+      setIsDragging(false)
     }
-  }, [slideMode]);
+  }, [slideMode])
 
   const handleMove = useCallback(
     (clientX: number) => {
-      if (!sliderRef.current) return;
+      if (!sliderRef.current) return
       if (slideMode === "hover" || (slideMode === "drag" && isDragging)) {
-        const rect = sliderRef.current.getBoundingClientRect();
-        const x = clientX - rect.left;
-        const percent = (x / rect.width) * 100;
+        const rect = sliderRef.current.getBoundingClientRect()
+        const x = clientX - rect.left
+        const percent = (x / rect.width) * 100
         requestAnimationFrame(() => {
-          setSliderXPercent(Math.max(0, Math.min(100, percent)));
-        });
+          setSliderXPercent(Math.max(0, Math.min(100, percent)))
+        })
       }
     },
-    [slideMode, isDragging]
-  );
+    [slideMode, isDragging],
+  )
 
   const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => handleStart(e.clientX),
-    [handleStart]
-  );
-  const handleMouseUp = useCallback(() => handleEnd(), [handleEnd]);
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent) => handleMove(e.clientX),
-    [handleMove]
-  );
+    (e: React.MouseEvent) => {
+      if (!sliderRef.current) return
+
+      // Set slider position immediately to where user clicked
+      const rect = sliderRef.current.getBoundingClientRect()
+      const x = e.clientX - rect.left
+      const percent = (x / rect.width) * 100
+      setSliderXPercent(Math.max(0, Math.min(100, percent)))
+
+      // Then start dragging
+      handleStart(e.clientX)
+    },
+    [handleStart],
+  )
+  const handleMouseUp = useCallback(() => handleEnd(), [handleEnd])
+  const handleMouseMove = useCallback((e: React.MouseEvent) => handleMove(e.clientX), [handleMove])
 
   const handleTouchStart = useCallback(
     (e: React.TouchEvent) => {
-      e.preventDefault();
-      if (!autoplay) {
-        handleStart(e.touches[0].clientX);
-      }
+      e.preventDefault()
+
+      if (!sliderRef.current) return
+
+      // Set slider position immediately to where user touched
+      const rect = sliderRef.current.getBoundingClientRect()
+      const x = e.touches[0].clientX - rect.left
+      const percent = (x / rect.width) * 100
+      setSliderXPercent(Math.max(0, Math.min(100, percent)))
+
+      // Then start dragging
+      handleStart(e.touches[0].clientX)
     },
-    [handleStart, autoplay]
-  );
+    [handleStart],
+  )
 
   const handleTouchEnd = useCallback(() => {
-    if (!autoplay) {
-      handleEnd();
-    }
-  }, [handleEnd, autoplay]);
+    handleEnd()
+  }, [handleEnd])
 
   const handleTouchMove = useCallback(
     (e: React.TouchEvent) => {
-      e.preventDefault();
-      if (!autoplay) {
-        handleMove(e.touches[0].clientX);
-      }
+      e.preventDefault()
+      handleMove(e.touches[0].clientX)
     },
-    [handleMove, autoplay]
-  );
+    [handleMove],
+  )
 
-  // Mobile view component
-  const MobileView = () => (
-    <div className="lg:hidden w-full max-w-md mx-auto">
-      <div className="text-center mb-3">
-        <h2 className="text-xl font-bold text-white mb-1">Choose Your Plan</h2>
-        <p className="text-gray-400 text-xs">Compare our plans below</p>-+***********
-      </div>
-      
-      <div className="space-y-3">
-        {/* Basic Plan Mobile Card */}
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg p-3 shadow-lg border border-gray-700">
-          <div className="text-center mb-3">
-            <div className="bg-green-500/20 rounded-full w-10 h-10 flex items-center justify-center mx-auto mb-1">
-              <Users className="w-5 h-5 text-green-400" />
+  // Comparison Modal Component
+  const ComparisonModal = () => {
+    const handleOpenModal = () => {
+      setShowComparison(true)
+      stopAutoplay()
+    }
+
+    const handleCloseModal = () => {
+      setShowComparison(false)
+    }
+
+    return (
+      <>
+        <Button
+          onClick={handleOpenModal}
+          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+        >
+          <GitCompare className="w-4 h-4 mr-2" />
+          Compare Plans
+          <Sparkles className="w-4 h-4 ml-2" />
+        </Button>
+
+        {showComparison && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md"
+            onClick={handleCloseModal}
+          >
+            <div
+              className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700/50 rounded-2xl max-w-5xl w-full max-h-[85vh] overflow-hidden shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="relative bg-gradient-to-r from-blue-900/50 to-purple-900/50 p-6 border-b border-slate-700/50">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.1),transparent_50%)]"></div>
+                <div className="relative flex justify-between items-center">
+                  <div>
+                    <h2 className="text-white text-3xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                      Plan Comparison
+                    </h2>
+                    <p className="text-slate-400">Choose the perfect plan for your trading journey</p>
+                  </div>
+                  <button
+                    onClick={handleCloseModal}
+                    className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 overflow-y-auto max-h-[calc(85vh-120px)]">
+                <div className="grid md:grid-cols-2 gap-8">
+                  {/* Basic Plan */}
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300"></div>
+                    <div className="relative bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 border border-slate-700/50 hover:border-green-500/30 transition-all duration-300">
+                      {/* Plan Header */}
+                      <div className="text-center mb-6">
+                        <div className="bg-green-500/20 rounded-full w-20 h-20 md:w-12 md:h-12 flex items-center justify-center mx-auto mb-4 border border-green-500/30">
+                          <Users className="w-10 h-10 md:w-6 md:h-6 text-green-400" />
+                        </div>
+                        <h3 className="text-green-400 text-2xl md:text-xl xl:text-2xl font-bold mb-2">Basic Plan</h3>
+                        <p className="text-slate-400 text-sm md:text-sm">Essential Trading Tools</p>
+                        <div className="mt-3 text-3xl font-bold text-white">
+                          $29<span className="text-lg text-slate-400">/month</span>
+                        </div>
+                      </div>
+
+                      {/* Features */}
+                      <div className="space-y-3">
+                        {features.map((feature, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-xl border border-slate-700/50 hover:border-green-500/20 transition-all duration-200"
+                          >
+                            <div className="bg-green-500/10 p-2 rounded-lg">
+                              <feature.icon className="w-5 h-5 md:w-4 md:h-4 text-green-400" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="text-white font-medium mb-1">{feature.label}</div>
+                              <div>
+                                {typeof feature.basic === "string" ? (
+                                  <span className="text-green-400 font-medium text-sm bg-green-500/20 px-3 py-1 rounded-full border border-green-500/30">
+                                    {feature.basic}
+                                  </span>
+                                ) : feature.basic ? (
+                                  <div className="flex items-center gap-2 text-green-400">
+                                    <Check className="w-4 h-4" />
+                                    <span className="font-medium text-sm">Included</span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2 text-red-500">
+                                    <X className="w-4 h-4" />
+                                    <span className="font-medium text-sm">Not Available</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* CTA Button */}
+                      <button className="w-full mt-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg">
+                        Choose Basic Plan
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Premium Plan */}
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/30 to-orange-500/30 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300"></div>
+                    <div className="relative bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500 rounded-2xl p-6 border border-amber-300/50 hover:border-amber-300 transition-all duration-300">
+                      {/* Popular Badge */}
+                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                        <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg">
+                          Most Popular
+                        </div>
+                      </div>
+
+                      {/* Plan Header */}
+                      <div className="text-center mb-6 mt-2">
+                        <div className="bg-amber-100/30 rounded-full w-20 h-20 md:w-12 md:h-12 flex items-center justify-center mx-auto mb-4 border-2 border-amber-200/50 backdrop-blur-sm">
+                          <Crown className="w-10 h-10 md:w-6 md:h-6 text-amber-800" />
+                        </div>
+                        <h3 className="text-amber-900 text-2xl md:text-xl xl:text-2xl font-bold mb-2 drop-shadow-sm">
+                          Premium Plan
+                        </h3>
+                        <p className="text-amber-800 text-sm font-medium">Complete Trading Suite</p>
+                        <div className="mt-3 text-3xl font-bold text-amber-900 drop-shadow-sm">
+                          $79<span className="text-lg text-amber-800">/month</span>
+                        </div>
+                      </div>
+
+                      {/* Features */}
+                      <div className="space-y-3">
+                        {features.map((feature, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-3 p-3 bg-amber-400/20 rounded-xl border border-amber-300/40 backdrop-blur-sm hover:bg-amber-400/30 transition-all duration-200"
+                          >
+                            <div className="bg-amber-800/20 p-2 rounded-lg border border-amber-700/30">
+                              <feature.icon className="w-5 h-5 md:w-4 md:h-4 text-amber-800" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="text-amber-900 font-medium mb-1 drop-shadow-sm">{feature.label}</div>
+                              <div className="bg-gradient-to-r from-amber-100 to-yellow-100 px-3 py-1 rounded-full font-semibold text-sm text-amber-900 inline-flex items-center gap-2 border border-amber-200 shadow-sm">
+                                <Check className="w-4 h-4" />
+                                {feature.premium}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* CTA Button */}
+                      <button className="w-full mt-6 bg-gradient-to-r from-amber-800 to-orange-800 hover:from-amber-900 hover:to-orange-900 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg">
+                        Choose Premium Plan
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <h3 className="text-green-400 text-lg font-bold mb-1">Basic</h3>
-            <p className="text-gray-400 text-xs">Essential Tools</p>
           </div>
-          
-          <div className="space-y-1">
-            {features.map((feature, idx) => (
-              <div key={idx} className="flex items-center justify-between p-1.5 bg-gray-800/50 rounded">
-                <div className="flex items-center gap-2">
-                  <feature.icon className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                  <div className="min-w-0">
-                    <div className="text-white font-medium text-xs">{feature.label}</div>
-                  </div>
-                </div>
-                <div className="text-right ml-2">
-                  {typeof feature.basic === "string" ? (
-                    <span className="text-green-400 font-medium text-xs bg-green-500/20 px-1.5 py-0.5 rounded">
-                      {feature.basic}
-                    </span>
-                  ) : feature.basic ? (
-                    <Check className="w-3 h-3 text-green-400" />
-                  ) : (
-                    <X className="w-3 h-3 text-red-500" />
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Premium Plan Mobile Card */}
-        <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg p-3 shadow-lg border border-yellow-400 relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 bg-black text-white text-center py-1.5">
-            <h3 className="text-sm font-bold">Premium</h3>
-            <p className="text-yellow-400 text-xs font-medium">Comprehensive Suite</p>
-          </div>
-          
-          <div className="mt-10 space-y-1">
-            {features.map((feature, idx) => (
-              <div key={idx} className="flex items-center justify-between p-1.5 bg-yellow-500/20 rounded">
-                <div className="flex items-center gap-2">
-                  <feature.icon className="w-3 h-3 text-yellow-600 flex-shrink-0" />
-                  <div className="min-w-0">
-                    <div className="text-black font-medium text-xs">{feature.label}</div>
-                  </div>
-                </div>
-                <div className="text-right ml-2">
-                  <div className="bg-yellow-300 px-1.5 py-0.5 rounded font-semibold text-xs text-black">
-                    ✅ {feature.premium}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+        )}
+      </>
+    )
+  }
 
   return (
-    <section className="flex justify-center items-center bg-gradient-to-br from-[#1a1a1a] to-[#2d2d2d] py-6 px-4 min-h-screen">
-      <div className="w-full max-w-5xl">
+    <section className="flex justify-center items-center min-h-[80vh] py-4 md:py-6 px-4 relative overflow-hidden">
+      {/* Stock Market Themed Background */}
+      <div className="absolute bg-gradient-to-tr from-[#333333] to-[#515151]"></div>
+      <div className="absolute inset-0 ]"></div>
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent transform rotate-45"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/3 to-transparent transform -rotate-45"></div>
+      </div>
+
+      <div className="w-full max-w-3xl relative z-10">
         {/* Header */}
         <div className="text-center mb-4">
-          <h2 className="text-2xl md:text-3xl font-bold text-white mb-2 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 bg-gradient-to-r from-blue-400 via-purple-400 to-green-400 bg-clip-text text-transparent">
             Choose Your Plan
           </h2>
-          <p className="text-gray-400 text-sm md:text-base max-w-2xl mx-auto">
-            {isMobile ? "Compare our plans below" : "Drag the slider to compare our Basic and Premium plans"}
+          <p className="text-slate-400 text-sm md:text-base max-w-2xl mx-auto mb-3">
+            {isMobile
+              ? "Swipe to compare our Basic and Premium plans"
+              : "Drag the slider to compare our Basic and Premium plans"}
           </p>
+          <ComparisonModal />
         </div>
 
-        {/* Mobile View */}
-        <MobileView />
-
-        {/* Desktop Compare Slider Container */}
-        <div className="hidden lg:flex justify-center">
+        {/* Compare Slider Container */}
+        <div
+          ref={sliderRef}
+          className={cn(
+            "w-full max-w-3xl mx-auto overflow-hidden rounded-xl md:rounded-2xl shadow-2xl relative border border-slate-700/50",
+            className,
+          )}
+          style={{
+            cursor: slideMode === "drag" ? "grab" : "col-resize",
+            height: "auto",
+            minHeight: isMobile ? "600px" : "800px",
+          }}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={mouseLeaveHandler}
+          onMouseEnter={mouseEnterHandler}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onTouchMove={handleTouchMove}
+        >
+          {/* Slider Handle */}
           <div
-            ref={sliderRef}
-            className={cn("w-full max-w-4xl h-[350px] overflow-hidden rounded-xl shadow-xl", className)}
+            className="absolute h-full w-1 md:w-2 top-0 z-40 bg-gradient-to-b from-transparent from-[5%] to-[95%] via-yellow-400 to-transparent rounded-full"
             style={{
-              position: "relative",
-              cursor: slideMode === "drag" ? "grab" : "col-resize",
+              left: `${sliderXPercent}%`,
+              transform: "translateX(-50%)",
             }}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={mouseLeaveHandler}
-            onMouseEnter={mouseEnterHandler}
-            onMouseDown={handleMouseDown}
-            onMouseUp={handleMouseUp}
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-            onTouchMove={handleTouchMove}
           >
-            {/* Slider Handle */}
-            <div
-              className="h-full w-1.5 absolute top-0 m-auto z-30 bg-gradient-to-b from-transparent from-[5%] to-[95%] via-yellow-400 to-transparent rounded-full"
-              style={{
-                left: `${sliderXPercent}%`,
-                top: "0",
-                zIndex: 40,
-                transform: "translateX(-50%)",
-              }}
-            >
-              <div className="w-32 h-full bg-gradient-to-r from-yellow-400/30 via-yellow-400/10 to-transparent absolute top-1/2 -translate-y-1/2 left-0 opacity-60" />
-              {showHandlebar && (
-                <div className="h-8 w-8 rounded-lg top-1/2 -translate-y-1/2 bg-gradient-to-br from-yellow-400 to-yellow-500 z-30 -right-4 absolute flex items-center justify-center shadow-[0px_-4px_20px_0px_#FFC70040] border-2 border-white">
-                  <div className="flex flex-col gap-0.5">
-                    <div className="w-0.5 h-0.5 bg-black rounded-full"></div>
-                    <div className="w-0.5 h-0.5 bg-black rounded-full"></div>
-                    <div className="w-0.5 h-0.5 bg-black rounded-full"></div>
-                  </div>
+            <div className="w-20 md:w-40 h-full bg-gradient-to-r from-yellow-400/30 via-yellow-400/10 to-transparent absolute top-1/2 -translate-y-1/2 left-0 opacity-60" />
+            {showHandlebar && (
+              <div className="h-8 w-8 md:h-12 md:w-12 rounded-lg md:rounded-xl top-1/2 -translate-y-1/2 bg-gradient-to-br from-yellow-400 to-yellow-500 -right-4 md:-right-6 absolute flex items-center justify-center shadow-[0px_-4px_20px_0px_#FFC70040] border-2 border-white">
+                <div className="flex flex-col gap-0.5 md:gap-1">
+                  <div className="w-1 h-1 md:w-1.5 md:h-1.5 bg-black rounded-full"></div>
+                  <div className="w-1 h-1 md:w-1.5 md:h-1.5 bg-black rounded-full"></div>
+                  <div className="w-1 h-1 md:w-1.5 md:h-1.5 bg-black rounded-full"></div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+          </div>
 
-            {/* Basic Plan (Left Side) */}
-            <div className="overflow-hidden w-full h-full relative z-20 pointer-events-none">
-              <div
-                className="absolute inset-0 z-20 rounded-xl shrink-0 w-full h-full select-none overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900"
-                style={{
-                  clipPath: `inset(0 ${100 - sliderXPercent}% 0 0)`,
-                }}
-              >
-                <div className="p-4 h-full flex flex-col">
-                  {/* Basic Plan Header */}
-                  <div className="text-center mb-3">
-                    <div className="bg-green-500/20 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
-                      <Users className="w-6 h-6 text-green-400" />
-                    </div>
-                    <h3 className="text-green-400 text-xl font-bold mb-1">Basic</h3>
-                    <p className="text-gray-400 text-xs">Essential Tools</p>
-                  </div>
-                  
-                  {/* Basic Plan Features */}
-                  <div className="space-y-2 flex-1">
-                    {features.map((feature, idx) => (
-                      <div key={idx} className="bg-gray-800/50 rounded p-2 border border-gray-700">
-                        <div className="text-center mb-1">
-                          <div className="flex items-center justify-center gap-2 mb-1">
-                            <feature.icon className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                            <div className="text-white font-medium text-xs text-center">{feature.label}</div>
-                          </div>
+          {/* Basic Plan (Left Side) */}
+          <div
+            className="absolute inset-0 z-20 rounded-xl md:rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 overflow-hidden border-r border-slate-700/50"
+            style={{
+              clipPath: `inset(0 ${100 - sliderXPercent}% 0 0)`,
+            }}
+          >
+            <div className="p-3 md:p-4 xl:p-6 h-full flex flex-col justify-center">
+              {/* Basic Plan Header */}
+              <div className="text-center mb-2 md:mb-3">
+                <div className="bg-green-500/20 rounded-full w-20 h-20 md:w-12 md:h-12 flex items-center justify-center mx-auto mb-2 border border-green-500/30">
+                  <Users className="w-10 h-10 md:w-6 md:h-6 text-green-400" />
+                </div>
+                <h3 className="text-green-400 text-lg md:text-xl xl:text-2xl font-bold mb-1">Basic</h3>
+                <p className="text-slate-400 text-xs md:text-sm">Essential Tools</p>
+              </div>
+
+              {/* Basic Plan Features */}
+              <div className="space-y-1 flex-1 flex flex-col justify-center">
+                {features.map((feature, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-slate-800/50 rounded-lg border border-slate-700/50 h-[60px] md:h-[70px] flex items-center justify-center hover:bg-slate-700/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 w-full px-2 md:px-3">
+                      <feature.icon className="w-3 h-3 md:w-4 md:h-4 text-slate-400 flex-shrink-0" />
+                      <div className="flex-1 flex flex-col justify-center">
+                        <div className="text-white font-semibold text-xs md:text-sm mb-1 text-center">
+                          {feature.label}
                         </div>
                         <div className="flex justify-center">
                           {typeof feature.basic === "string" ? (
-                            <span className="text-green-400 font-semibold text-xs bg-green-500/20 px-2 py-1 rounded">
+                            <span className="text-green-400 font-semibold text-xs bg-green-500/20 px-2 py-0.5 rounded-full border border-green-500/30">
                               {feature.basic}
                             </span>
                           ) : feature.basic ? (
                             <div className="flex items-center gap-1 text-green-400">
-                              <Check className="w-4 h-4" />
+                              <Check className="w-3 h-3" />
                               <span className="font-semibold text-xs">Included</span>
                             </div>
                           ) : (
                             <div className="flex items-center gap-1 text-red-500">
-                              <X className="w-4 h-4" />
-                              <span className="font-semibold text-xs">Not Included</span>
+                              <X className="w-3 h-3" />
+                              <span className="font-semibold text-xs">Not Available</span>
                             </div>
                           )}
                         </div>
                       </div>
-                    ))}
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
             </div>
+          </div>
 
-            {/* Premium Plan (Right Side) */}
-            <div className="absolute inset-0 z-[19] rounded-xl w-full h-full select-none bg-gradient-to-br from-yellow-500 to-yellow-600">
-              <div className="p-4 h-full flex flex-col">
-                {/* Premium Plan Header */}
-                <div className="text-center mb-3">
-                  <div className="bg-black text-white text-center py-3 px-4 rounded-lg shadow-md">
-                    <div className="bg-yellow-500/20 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
-                      <Star className="w-6 h-6 text-yellow-400" />
+          {/* Premium Plan (Right Side) */}
+          <div className="absolute inset-0 z-10 rounded-xl md:rounded-2xl bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500">
+            <div className="p-3 md:p-4 xl:p-6 h-full flex flex-col justify-center">
+              {/* Premium Plan Header */}
+              <div className="text-center mb-2 md:mb-3">
+                <div className="bg-amber-100/30 rounded-full w-20 h-20 md:w-12 md:h-12 flex items-center justify-center mx-auto mb-4 border-2 border-amber-200/50 backdrop-blur-sm">
+                  <Crown className="w-10 h-10 md:w-6 md:h-6 text-amber-800" />
+                </div>
+                <h3 className="text-amber-900 text-lg md:text-xl xl:text-2xl font-bold mb-2 drop-shadow-sm">Premium</h3>
+                <p className="text-amber-800 text-xs md:text-sm font-medium">Comprehensive Suite</p>
+              </div>
+
+              {/* Premium Plan Features */}
+              <div className="space-y-1 flex-1 flex flex-col justify-center">
+                {features.map((feature, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-amber-400/20 rounded-lg border border-amber-300/40 h-[60px] md:h-[70px] flex items-center justify-center backdrop-blur-sm hover:bg-amber-400/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 w-full px-2 md:px-3">
+                      <feature.icon className="w-3 h-3 md:w-4 md:h-4 text-amber-800 flex-shrink-0" />
+                      <div className="flex-1 flex flex-col justify-center">
+                        <div className="text-amber-900 font-semibold text-xs md:text-sm mb-1 text-center drop-shadow-sm">
+                          {feature.label}
+                        </div>
+                        <div className="flex justify-center">
+                          <div className="bg-gradient-to-r from-amber-100 to-yellow-100 px-2 py-0.5 rounded-full font-bold text-xs text-amber-900 shadow-lg inline-flex items-center gap-1 border border-amber-200">
+                            <Check className="w-3 h-3" />
+                            {feature.premium}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <h3 className="text-xl font-bold">Premium</h3>
-                    <p className="text-yellow-400 font-semibold text-xs">Comprehensive Suite</p>
                   </div>
-                </div>
-                
-                {/* Premium Plan Features */}
-                <div className="space-y-2 flex-1">
-                  {features.map((feature, idx) => (
-                    <div key={idx} className="bg-yellow-500/20 rounded p-2 border border-yellow-400/30">
-                      <div className="text-center mb-1">
-                        <div className="flex items-center justify-center gap-2 mb-1">
-                          <feature.icon className="w-4 h-4 text-yellow-600 flex-shrink-0" />
-                          <div className="text-black font-medium text-xs text-center">{feature.label}</div>
-                        </div>
-                      </div>
-                      <div className="flex justify-center">
-                        <div className="bg-yellow-300 px-3 py-1 rounded font-bold text-xs text-black shadow-md">
-                          ✅ {feature.premium}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                ))}
               </div>
             </div>
           </div>
@@ -421,13 +558,13 @@ export const PricingCompare = ({
 
         {/* Instructions */}
         <div className="text-center mt-3">
-          <p className="text-gray-400 text-xs">
-            {autoplay && !isMouseOver ? "Auto-comparing plans..." : "← Drag to compare plans →"}
+          <p className="text-slate-400 text-xs md:text-sm">
+            {isMobile ? "← Swipe to compare plans →" : "← Drag to compare plans →"}
           </p>
         </div>
       </div>
     </section>
-  );
-};
+  )
+}
 
-export default PricingCompare;
+export default PricingCompare

@@ -12,7 +12,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { bundleService, Bundle } from "@/services/bundle.service";
 import { Navbar } from "@/components/navbar";
 import PremiumStackedCardTestimonials from "@/components/premium-stacked-card-testimonials";
-import PricingTable from "@/components/pricingComponents";
+import { PricingCompare } from "@/components/pricingComponents";
 
 // Animation variants
 const fadeIn = {
@@ -1007,7 +1007,7 @@ export default function PremiumSubscriptionPage() {
       </section>
 
       {/* Pricing Section */}
-      <PricingTable />
+      <PricingCompare />
 
       {/* CTA Section */}
       <section className="py-10 bg-gradient-to-r from-[#1e4e45] via-[#7a8c3b] to-[#ffc107] text-gray-900">

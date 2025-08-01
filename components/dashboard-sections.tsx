@@ -127,8 +127,10 @@ export function ExpertRecommendationsSection() {
     const fetchSubscriptionAccess = async () => {
       if (isAuthenticated) {
         try {
-          const accessData = await subscriptionService.getSubscriptionAccess()
+          console.log("🔄 Fetching fresh subscription access from API...")
+          const accessData = await subscriptionService.getFreshSubscriptionAccess()
           setSubscriptionAccess(accessData)
+          console.log("✅ Subscription access updated:", accessData)
         } catch (error) {
           console.error("Failed to fetch subscription access:", error)
         }
@@ -282,8 +284,19 @@ export function ModelPortfolioSection() {
     const fetchSubscriptionAccess = async () => {
       if (isAuthenticated) {
         try {
-          const accessData = await subscriptionService.getSubscriptionAccess()
+          // Force refresh to ensure we get the latest subscription status after payment
+          const accessData = await subscriptionService.getFreshSubscriptionAccess()
           setSubscriptionAccess(accessData)
+          console.log("📊 Updated subscription access:", accessData)
+          
+          // Debug: Check all user subscriptions
+          const allSubscriptions = await subscriptionService.getUserSubscriptions(true)
+          console.log("🔍 All user subscriptions:", allSubscriptions)
+          
+          // Debug: Check if any subscriptions are active
+          const activeSubscriptions = allSubscriptions.filter(sub => sub.isActive)
+          console.log("✅ Active subscriptions:", activeSubscriptions)
+          
         } catch (error) {
           console.error("Failed to fetch subscription access:", error)
         }
@@ -316,6 +329,26 @@ export function ModelPortfolioSection() {
           }
         } catch (error) {
           console.error("❌ Debug failed:", error)
+          return null
+        }
+      }
+      
+      // Debug subscription access
+      (window as any).debugSubscriptionAccess = async () => {
+        console.log("🔧 Manual subscription access debug...")
+        try {
+          const accessData = await subscriptionService.getSubscriptionAccess(true)
+          console.log("📊 Current subscription access:", accessData)
+          
+          const allSubscriptions = await subscriptionService.getUserSubscriptions(true)
+          console.log("🔍 All user subscriptions:", allSubscriptions)
+          
+          const activeSubscriptions = allSubscriptions.filter(sub => sub.isActive)
+          console.log("✅ Active subscriptions:", activeSubscriptions)
+          
+          return { accessData, allSubscriptions, activeSubscriptions }
+        } catch (error) {
+          console.error("❌ Subscription debug failed:", error)
           return null
         }
       }
@@ -416,9 +449,8 @@ export function ModelPortfolioSection() {
 
       <div className="space-y-4">
         {portfolios.map((portfolio) => {
-          // Use the same access control logic as /model-portfolios page
-          // Check if portfolio has a message field - if yes, user needs to subscribe
-          const hasPortfolioAccess = !portfolio.message
+          // Use proper subscription-based access control
+          const hasPortfolioAccess = getPortfolioAccess(portfolio._id, subscriptionAccess, isAuthenticated)
           
           return (
             <PortfolioCard 
@@ -444,10 +476,10 @@ function getPortfolioAccess(portfolioId: string, subscriptionAccess: Subscriptio
   // Premium users have access to all portfolios
   if (subscriptionAccess.hasPremium) return true
   
-  // Basic users have access to basic portfolios (you may need to adjust this based on your portfolio categorization)
+  // Basic users have access to basic portfolios
   if (subscriptionAccess.hasBasic) {
-    // For now, basic users get access to none in dashboard - adjust as needed
-    return false
+    // Basic users get access to portfolios (adjust categorization as needed)
+    return true
   }
   
   // Individual portfolio access

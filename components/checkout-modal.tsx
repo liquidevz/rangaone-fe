@@ -303,11 +303,26 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
             console.log("eMandate verification response:", verificationResponse);
 
-            if (verificationResponse.success || verificationResponse.message.includes("not authenticated yet")) {
+            if (verificationResponse.success || 
+                verificationResponse.message.includes("not authenticated yet") ||
+                verificationResponse.message.includes("created state")) {
+              
+              // Try to activate the subscription if it's in created state
+              if (verificationResponse.message.includes("created state")) {
+                try {
+                  console.log("🔄 Activating eMandate subscription...");
+                  await subscriptionService.activateEmandateSubscription(emandateId);
+                  console.log("✅ eMandate subscription activated successfully");
+                } catch (error) {
+                  console.warn("⚠️ Failed to activate subscription, but continuing:", error);
+                }
+              }
+              
               await subscriptionService.forceRefresh();
               setPaymentStep("success");
               
-              const isNotAuthenticated = verificationResponse.message.includes("not authenticated yet");
+              const isNotAuthenticated = verificationResponse.message.includes("not authenticated yet") || 
+                                       verificationResponse.message.includes("created state");
               
               toast({
                 title: `${subscriptionType === "yearly" ? "Yearly" : "Quarterly"} ${isNotAuthenticated ? "eMandate Created" : "Subscription Activated"}`,
@@ -343,7 +358,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 } else {
                   throw new Error(retryResponse.message || "eMandate verification failed after retry");
                 }
-              } else if (verificationResponse.message.includes("not authenticated yet")) {
+              } else if (verificationResponse.message.includes("not authenticated yet") || 
+                         verificationResponse.message.includes("created state")) {
                 console.log("eMandate created but not authenticated yet - this is normal for eMandate subscriptions");
                 
                 await subscriptionService.forceRefresh();
@@ -384,11 +400,26 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             
             console.log("eMandate verification response:", verificationResponse);
 
-            if (verificationResponse.success || verificationResponse.message.includes("not authenticated yet")) {
+            if (verificationResponse.success || 
+                verificationResponse.message.includes("not authenticated yet") ||
+                verificationResponse.message.includes("created state")) {
+              
+              // Try to activate the subscription if it's in created state
+              if (verificationResponse.message.includes("created state")) {
+                try {
+                  console.log("🔄 Activating eMandate subscription...");
+                  await subscriptionService.activateEmandateSubscription(subscriptionId);
+                  console.log("✅ eMandate subscription activated successfully");
+                } catch (error) {
+                  console.warn("⚠️ Failed to activate subscription, but continuing:", error);
+                }
+              }
+              
               await subscriptionService.forceRefresh();
               setPaymentStep("success");
               
-              const isNotAuthenticated = verificationResponse.message.includes("not authenticated yet");
+              const isNotAuthenticated = verificationResponse.message.includes("not authenticated yet") || 
+                                       verificationResponse.message.includes("created state");
               
               toast({
                 title: `${subscriptionType === "yearly" ? "Yearly" : "Quarterly"} ${isNotAuthenticated ? "eMandate Created" : "Subscription Activated"}`,
@@ -424,6 +455,21 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 } else {
                   throw new Error(retryResponse.message || "eMandate verification failed after retry");
                 }
+              } else if (verificationResponse.message.includes("created state")) {
+                console.log("eMandate created but not authenticated yet - this is normal for eMandate subscriptions");
+                
+                await subscriptionService.forceRefresh();
+                setPaymentStep("success");
+                
+                toast({
+                  title: `${subscriptionType === "yearly" ? "Yearly" : "Quarterly"} eMandate Created`,
+                  description: `Your ${subscriptionType} subscription has been created. Please complete the eMandate authentication to activate it.`,
+                });
+
+                setTimeout(() => {
+                  onClose();
+                  resetModal();
+                }, 2000);
               } else {
                 throw new Error(verificationResponse.message || "eMandate verification failed");
               }
