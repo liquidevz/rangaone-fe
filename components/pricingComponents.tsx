@@ -1,6 +1,7 @@
 "use client"
 import type React from "react"
 import { useState, useEffect, useRef, useCallback } from "react"
+import { createPortal } from "react-dom"
 import { cn } from "@/lib/utils"
 import {
   Check,
@@ -230,45 +231,56 @@ export const PricingCompare = ({
     const handleOpenModal = () => {
       setShowComparison(true)
       stopAutoplay()
+      document.body.style.overflow = 'hidden'
+      document.documentElement.style.overflow = 'hidden'
     }
 
     const handleCloseModal = () => {
       setShowComparison(false)
+      document.body.style.overflow = ''
+      document.documentElement.style.overflow = ''
     }
 
     return (
       <>
-        <Button
-          onClick={handleOpenModal}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
-        >
-          <GitCompare className="w-4 h-4 mr-2" />
+      <button 
+        onClick={handleOpenModal}
+        className="relative inline-flex h-10 overflow-hidden rounded-full p-[1px] focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50">
+        <span className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#FFB800_0%,#FFD700_33%,#FFFFFF_66%,#FFB800_100%)]" />
+        <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-gray-900 px-3 py-1 text-sm font-medium text-white backdrop-blur-3xl">
           Compare Plans
-          <Sparkles className="w-4 h-4 ml-2" />
-        </Button>
+        </span>
+      </button>
 
-        {showComparison && (
+        {showComparison && createPortal(
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-300"
             onClick={handleCloseModal}
+            onWheel={(e) => e.preventDefault()}
           >
             <div
-              className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700/50 rounded-2xl max-w-5xl w-full max-h-[85vh] overflow-hidden shadow-2xl"
+              className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700/50 rounded-3xl w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300"
               onClick={(e) => e.stopPropagation()}
+              onWheel={(e) => e.stopPropagation()}
             >
               {/* Modal Header */}
-              <div className="relative bg-gradient-to-r from-blue-900/50 to-purple-900/50 p-6 border-b border-slate-700/50">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.1),transparent_50%)]"></div>
+              <div className="relative bg-gradient-to-br from-[#333333] to-[#515151] p-6 border-b border-slate-700/50">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.15),transparent_70%)]"></div>
                 <div className="relative flex justify-between items-center">
-                  <div>
-                    <h2 className="text-white text-3xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                      Plan Comparison
-                    </h2>
-                    <p className="text-slate-400">Choose the perfect plan for your trading journey</p>
+                  <div className="flex items-center gap-4">
+                    <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-3 rounded-2xl">
+                      <GitCompare className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-white text-2xl lg:text-3xl font-bold mb-1 px-[23rem]">
+                        Plan Comparison
+                      </h2>
+                      <p className="text-slate-300 text-sm lg:text-base px-[18rem]">Choose the perfect plan for your trading journey</p>
+                    </div>
                   </div>
                   <button
                     onClick={handleCloseModal}
-                    className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
+                    className="text-slate-400 hover:text-white transition-all duration-200 p-2 hover:bg-white/10 rounded-xl hover:scale-110"
                   >
                     <X className="w-6 h-6" />
                   </button>
@@ -276,22 +288,19 @@ export const PricingCompare = ({
               </div>
 
               {/* Modal Content */}
-              <div className="p-6 overflow-y-auto max-h-[calc(85vh-120px)]">
-                <div className="grid md:grid-cols-2 gap-8">
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                   {/* Basic Plan */}
                   <div className="relative group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300"></div>
-                    <div className="relative bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 border border-slate-700/50 hover:border-green-500/30 transition-all duration-300">
+                    <div className="absolute inset-0 bg-green-500/5 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
+                    <div className="relative bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-sm rounded-3xl p-6 border border-slate-700/50 hover:border-green-500/40 transition-all duration-300 hover:shadow-2xl hover:shadow-green-500/10">
                       {/* Plan Header */}
                       <div className="text-center mb-6">
-                        <div className="bg-green-500/20 rounded-full w-20 h-20 md:w-12 md:h-12 flex items-center justify-center mx-auto mb-4 border border-green-500/30">
-                          <Users className="w-10 h-10 md:w-6 md:h-6 text-green-400" />
+                        <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-2xl w-20 h-20 flex items-center justify-center mx-auto mb-4 border border-green-500/30 shadow-lg">
+                          <Users className="w-10 h-10 text-green-400" />
                         </div>
-                        <h3 className="text-green-400 text-2xl md:text-xl xl:text-2xl font-bold mb-2">Basic Plan</h3>
-                        <p className="text-slate-400 text-sm md:text-sm">Essential Trading Tools</p>
-                        <div className="mt-3 text-3xl font-bold text-white">
-                          $29<span className="text-lg text-slate-400">/month</span>
-                        </div>
+                        <h3 className="text-green-400 text-2xl font-bold mb-2">Basic Plan</h3>
+                        <p className="text-slate-400 text-base">Essential Trading Tools</p>
                       </div>
 
                       {/* Features */}
@@ -299,27 +308,27 @@ export const PricingCompare = ({
                         {features.map((feature, idx) => (
                           <div
                             key={idx}
-                            className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-xl border border-slate-700/50 hover:border-green-500/20 transition-all duration-200"
+                            className="flex items-center gap-3 p-3 bg-slate-800/40 rounded-xl border border-slate-700/30 hover:border-green-500/30 transition-all duration-200 hover:bg-slate-700/40"
                           >
-                            <div className="bg-green-500/10 p-2 rounded-lg">
-                              <feature.icon className="w-5 h-5 md:w-4 md:h-4 text-green-400" />
+                            <div className="bg-green-500/15 p-2 rounded-lg flex-shrink-0">
+                              <feature.icon className="w-4 h-4 text-green-400" />
                             </div>
-                            <div className="flex-1">
-                              <div className="text-white font-medium mb-1">{feature.label}</div>
-                              <div>
+                            <div className="flex-1 text-center">
+                              <div className="text-white font-medium mb-1 text-sm">{feature.label}</div>
+                              <div className="flex justify-center">
                                 {typeof feature.basic === "string" ? (
-                                  <span className="text-green-400 font-medium text-sm bg-green-500/20 px-3 py-1 rounded-full border border-green-500/30">
+                                  <span className="text-green-400 font-medium text-xs bg-green-500/20 px-2.5 py-1 rounded-full border border-green-500/30">
                                     {feature.basic}
                                   </span>
                                 ) : feature.basic ? (
                                   <div className="flex items-center gap-2 text-green-400">
-                                    <Check className="w-4 h-4" />
-                                    <span className="font-medium text-sm">Included</span>
+                                    <Check className="w-3 h-3" />
+                                    <span className="font-medium text-xs">Included</span>
                                   </div>
                                 ) : (
-                                  <div className="flex items-center gap-2 text-red-500">
-                                    <X className="w-4 h-4" />
-                                    <span className="font-medium text-sm">Not Available</span>
+                                  <div className="flex items-center gap-2 text-red-400">
+                                    <X className="w-3 h-3" />
+                                    <span className="font-medium text-xs">Not Available</span>
                                   </div>
                                 )}
                               </div>
@@ -329,35 +338,33 @@ export const PricingCompare = ({
                       </div>
 
                       {/* CTA Button */}
-                      <button className="w-full mt-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg">
-                        Choose Basic Plan
+                      <button className="w-full mt-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-green-500/25">
+                        Get Started Free
                       </button>
                     </div>
                   </div>
 
                   {/* Premium Plan */}
                   <div className="relative group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/30 to-orange-500/30 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300"></div>
-                    <div className="relative bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500 rounded-2xl p-6 border border-amber-300/50 hover:border-amber-300 transition-all duration-300">
+                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
+                    <div className="relative bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500 rounded-3xl p-6 border-2 border-amber-300/60 hover:border-amber-300 transition-all duration-300 hover:shadow-2xl hover:shadow-amber-500/20">
                       {/* Popular Badge */}
-                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                        <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg">
+                      <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                        <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-purple-700 text-white px-6 py-2 rounded-full text-sm font-bold shadow-xl border border-purple-400/30">
+                          <Sparkles className="w-4 h-4 inline mr-2" />
                           Most Popular
                         </div>
                       </div>
 
                       {/* Plan Header */}
-                      <div className="text-center mb-6 mt-2">
-                        <div className="bg-amber-100/30 rounded-full w-20 h-20 md:w-12 md:h-12 flex items-center justify-center mx-auto mb-4 border-2 border-amber-200/50 backdrop-blur-sm">
-                          <Crown className="w-10 h-10 md:w-6 md:h-6 text-amber-800" />
+                      <div className="text-center mb-6 mt-3">
+                        <div className="bg-gradient-to-br from-amber-100/40 to-yellow-100/40 rounded-2xl w-20 h-20 flex items-center justify-center mx-auto mb-4 border-2 border-amber-200/60 backdrop-blur-sm shadow-lg">
+                          <Crown className="w-10 h-10 text-amber-800" />
                         </div>
-                        <h3 className="text-amber-900 text-2xl md:text-xl xl:text-2xl font-bold mb-2 drop-shadow-sm">
+                        <h3 className="text-amber-900 text-2xl font-bold mb-2 drop-shadow-sm">
                           Premium Plan
                         </h3>
-                        <p className="text-amber-800 text-sm font-medium">Complete Trading Suite</p>
-                        <div className="mt-3 text-3xl font-bold text-amber-900 drop-shadow-sm">
-                          $79<span className="text-lg text-amber-800">/month</span>
-                        </div>
+                        <p className="text-amber-800 text-base font-medium">Complete Trading Suite</p>
                       </div>
 
                       {/* Features */}
@@ -367,14 +374,16 @@ export const PricingCompare = ({
                             key={idx}
                             className="flex items-center gap-3 p-3 bg-amber-400/20 rounded-xl border border-amber-300/40 backdrop-blur-sm hover:bg-amber-400/30 transition-all duration-200"
                           >
-                            <div className="bg-amber-800/20 p-2 rounded-lg border border-amber-700/30">
-                              <feature.icon className="w-5 h-5 md:w-4 md:h-4 text-amber-800" />
+                            <div className="bg-amber-800/20 p-2 rounded-lg border border-amber-700/30 flex-shrink-0">
+                              <feature.icon className="w-4 h-4 text-amber-800" />
                             </div>
-                            <div className="flex-1">
-                              <div className="text-amber-900 font-medium mb-1 drop-shadow-sm">{feature.label}</div>
-                              <div className="bg-gradient-to-r from-amber-100 to-yellow-100 px-3 py-1 rounded-full font-semibold text-sm text-amber-900 inline-flex items-center gap-2 border border-amber-200 shadow-sm">
-                                <Check className="w-4 h-4" />
-                                {feature.premium}
+                            <div className="flex-1 text-center">
+                              <div className="text-amber-900 font-medium mb-1 text-sm drop-shadow-sm">{feature.label}</div>
+                              <div className="flex justify-center">
+                                <div className="bg-gradient-to-r from-amber-100 to-yellow-100 px-2.5 py-1 rounded-full font-semibold text-xs text-amber-900 inline-flex items-center gap-1.5 border border-amber-200 shadow-sm">
+                                  <Check className="w-3 h-3" />
+                                  <span>{feature.premium}</span>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -382,22 +391,23 @@ export const PricingCompare = ({
                       </div>
 
                       {/* CTA Button */}
-                      <button className="w-full mt-6 bg-gradient-to-r from-amber-800 to-orange-800 hover:from-amber-900 hover:to-orange-900 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg">
-                        Choose Premium Plan
+                      <button className="w-full mt-6 bg-gradient-to-r from-amber-800 to-orange-800 hover:from-amber-900 hover:to-orange-900 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-amber-500/30">
+                        Upgrade to Premium
                       </button>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </>
     )
   }
 
   return (
-    <section className="flex justify-center items-center min-h-[80vh] py-4 md:py-6 px-4 relative overflow-hidden">
+    <section className="flex justify-center items-center min-h-[80vh] py-4 md:py-6 px-4 relative overflow-hidden select-none">
       {/* Stock Market Themed Background */}
       <div className="absolute bg-gradient-to-tr from-[#333333] to-[#515151]"></div>
       <div className="absolute inset-0 ]"></div>
@@ -409,7 +419,7 @@ export const PricingCompare = ({
       <div className="w-full max-w-3xl relative z-10">
         {/* Header */}
         <div className="text-center mb-4">
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 bg-gradient-to-r from-blue-400 via-purple-400 to-green-400 bg-clip-text text-transparent">
+          <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-[#f4d03f] mb-2 ">
             Choose Your Plan
           </h2>
           <p className="text-slate-400 text-sm md:text-base max-w-2xl mx-auto mb-3">
@@ -417,7 +427,8 @@ export const PricingCompare = ({
               ? "Swipe to compare our Basic and Premium plans"
               : "Drag the slider to compare our Basic and Premium plans"}
           </p>
-          <ComparisonModal />
+          {/* Hide Compare Plans button on mobile */}
+          {!isMobile && <ComparisonModal />}
         </div>
 
         {/* Compare Slider Container */}
@@ -430,7 +441,7 @@ export const PricingCompare = ({
           style={{
             cursor: slideMode === "drag" ? "grab" : "col-resize",
             height: "auto",
-            minHeight: isMobile ? "600px" : "800px",
+            minHeight: isMobile ? "700px" : "800px",
           }}
           onMouseMove={handleMouseMove}
           onMouseLeave={mouseLeaveHandler}
@@ -463,7 +474,7 @@ export const PricingCompare = ({
 
           {/* Basic Plan (Left Side) */}
           <div
-            className="absolute inset-0 z-20 rounded-xl md:rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 overflow-hidden border-r border-slate-700/50"
+            className="absolute inset-0 z-20 rounded-xl md:rounded-2xl bg-[#001633] overflow-hidden border-r border-slate-700/50"
             style={{
               clipPath: `inset(0 ${100 - sliderXPercent}% 0 0)`,
             }}
@@ -474,7 +485,7 @@ export const PricingCompare = ({
                 <div className="bg-green-500/20 rounded-full w-20 h-20 md:w-12 md:h-12 flex items-center justify-center mx-auto mb-2 border border-green-500/30">
                   <Users className="w-10 h-10 md:w-6 md:h-6 text-green-400" />
                 </div>
-                <h3 className="text-green-400 text-lg md:text-xl xl:text-2xl font-bold mb-1">Basic</h3>
+                <h3 className="text-green-400 text-3xl md:text-xl xl:text-2xl font-bold ">Basic</h3>
                 <p className="text-slate-400 text-xs md:text-sm">Essential Tools</p>
               </div>
 
@@ -521,10 +532,10 @@ export const PricingCompare = ({
             <div className="p-3 md:p-4 xl:p-6 h-full flex flex-col justify-center">
               {/* Premium Plan Header */}
               <div className="text-center mb-2 md:mb-3">
-                <div className="bg-amber-100/30 rounded-full w-20 h-20 md:w-12 md:h-12 flex items-center justify-center mx-auto mb-4 border-2 border-amber-200/50 backdrop-blur-sm">
+                <div className="bg-amber-100/30 rounded-full w-20 h-20 md:w-12 md:h-12 flex items-center justify-center mx-auto mb-2 border-2 border-amber-200/50 backdrop-blur-sm">
                   <Crown className="w-10 h-10 md:w-6 md:h-6 text-amber-800" />
                 </div>
-                <h3 className="text-amber-900 text-lg md:text-xl xl:text-2xl font-bold mb-2 drop-shadow-sm">Premium</h3>
+                <h3 className="text-amber-900 text-3xl md:text-xl xl:text-2xl font-bold drop-shadow-sm">Premium</h3>
                 <p className="text-amber-800 text-xs md:text-sm font-medium">Comprehensive Suite</p>
               </div>
 
