@@ -52,6 +52,18 @@ const getExitRange = (content: string | { key: string; value: string; _id?: stri
   return null;
 };
 
+// Helper function to extract stop-loss from tip content
+const getStopLoss = (content: string | { key: string; value: string; _id?: string; }[] | undefined): string | null => {
+  if (!content) return null;
+  
+  if (Array.isArray(content)) {
+    const stopLossItem = content.find(item => item.key === 'stop-loss');
+    return stopLossItem?.value || null;
+  }
+  
+  return null;
+};
+
 export default function StockRecommendationPage() {
   const params = useParams();
   const stockId = params.stockid as string;
@@ -383,23 +395,9 @@ export default function StockRecommendationPage() {
                       </div>
                     )}
                     
-                    {tipData.createdAt && (
-                      <div className="text-center">
-                        <p className="font-bold text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Created On</p>
-                        <p className="md:text-xl text-[0.9rem] font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{recommendedDate}</p>
-                      </div>
-                    )}
-                    
-                    {tipData.horizon && (
-                      <div className="text-center">
-                        <p className="font-bold text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Horizon</p>
-                        <p className="md:text-xl text-[0.9rem] font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.horizon}</p>
-                      </div>
-                    )}
-                    
                     {tipData.targetPrice && (
                       <div className="text-center">
-                        <p className="font-bold  text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Target Price</p>
+                        <p className="font-bold text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Target Price</p>
                         <p className="md:text-xl text-[0.9rem] font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.targetPrice}</p>
                       </div>
                     )}
@@ -411,10 +409,22 @@ export default function StockRecommendationPage() {
                       </div>
                     )}
                     
-                    {stockData?.currentPrice && (
+                    <div className="text-center">
+                      <p className="font-bold text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Stop Loss</p>
+                      <p className="md:text-xl text-[0.9rem] font-bold text-red-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{getStopLoss(tipData.content) || 'N/A'}</p>
+                    </div>
+                    
+                    {tipData.horizon && (
                       <div className="text-center">
-                        <p className="font-bold text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Stop Loss</p>
-                        <p className="md:text-xl text-[0.9rem] font-bold text-blue-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>₹{stockData.currentPrice}</p>
+                        <p className="font-bold text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Horizon</p>
+                        <p className="md:text-xl text-[0.9rem] font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.horizon}</p>
+                      </div>
+                    )}
+                    
+                    {tipData.createdAt && (
+                      <div className="text-center">
+                        <p className="font-bold text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Created On</p>
+                        <p className="md:text-xl text-[0.9rem] font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{recommendedDate}</p>
                       </div>
                     )}
                   </>
