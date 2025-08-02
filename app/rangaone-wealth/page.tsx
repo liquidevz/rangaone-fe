@@ -114,6 +114,10 @@ export default function RangaOneWealth() {
         const access = await subscriptionService.getSubscriptionAccess(true);
         setSubscriptionAccess(access);
         console.log("Subscription access data being passed:", access);
+        
+        // Debug subscription access
+        const debugInfo = await subscriptionService.debugSubscriptionAccess();
+        console.log("🔍 Debug subscription access:", debugInfo);
       } catch (error) {
         console.error("Failed to load subscription access:", error);
       }

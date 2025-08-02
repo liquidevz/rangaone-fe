@@ -23,7 +23,7 @@ interface UserSubscription {
   updatedAt: string;
 }
 
-interface SubscriptionAccess {
+export interface SubscriptionAccess {
   hasBasic: boolean;
   hasPremium: boolean;
   portfolioAccess: string[];
@@ -201,7 +201,7 @@ export const subscriptionService = {
     if (!token) throw new Error("Authentication required");
 
     try {
-      const response = await post("/api/subscriptions/verify", {
+      const response = await post("/api/subscriptions/verify`", {
         paymentId, orderId, signature
       }, { headers: { Authorization: `Bearer ${token}` } });
 
@@ -280,6 +280,15 @@ export const subscriptionService = {
     const portfolioAccess: string[] = [];
 
     for (const sub of activeSubscriptions) {
+      console.log('🔍 Processing subscription:', sub);
+      
+      // Check if this is an eMandate subscription (premium by default)
+      if (sub.subscriptionType === 'yearlyEmandate' || sub.eMandateId) {
+        console.log('✅ Found eMandate subscription - granting premium access');
+        hasPremium = true;
+        continue;
+      }
+      
       if (sub.productType === 'Bundle') {
         let category = (sub as any).bundleCategory;
         
@@ -301,6 +310,7 @@ export const subscriptionService = {
           }
         }
         
+        console.log('📦 Bundle category:', category);
         if (category === 'basic') hasBasic = true;
         else if (category === 'premium') hasPremium = true;
         else hasPremium = true; // Default to premium
@@ -328,6 +338,7 @@ export const subscriptionService = {
       subscriptionType
     };
 
+    console.log('🎯 Final access data:', accessData);
     this._accessCache = accessData;
     return accessData;
   },
@@ -345,6 +356,48 @@ export const subscriptionService = {
   async hasPremiumAccess(): Promise<boolean> {
     const access = await this.getSubscriptionAccess();
     return access.hasPremium;
+  },
+
+  // Check if user can access tips (requires premium subscription)
+  async canAccessTips(): Promise<boolean> {
+    return await this.hasPremiumAccess();
+  },
+
+  // Debug method to check subscription status and tips access
+  async debugSubscriptionAccess(): Promise<{
+    subscriptions: UserSubscription[];
+    access: SubscriptionAccess;
+    canAccessTips: boolean;
+    canAccessPremiumTips: boolean;
+  }> {
+    const subscriptions = await this.getUserSubscriptions(true);
+    const access = await this.getSubscriptionAccess(true);
+    const canAccessTips = await this.canAccessTips();
+    const canAccessPremiumTips = await this.hasPremiumAccess();
+    
+    console.log('🔍 Subscription Debug Info:', {
+      subscriptions,
+      access,
+      canAccessTips,
+      canAccessPremiumTips
+    });
+    
+    return {
+      subscriptions,
+      access,
+      canAccessTips,
+      canAccessPremiumTips
+    };
+  },
+
+  // Force refresh subscription data after payment
+  async refreshAfterPayment(): Promise<void> {
+    console.log('🔄 Refreshing subscription data after payment...');
+    this.clearCache();
+    // Force fresh fetch
+    await this.getUserSubscriptions(true);
+    await this.getSubscriptionAccess(true);
+    console.log('✅ Subscription data refreshed');
   }
 };
 

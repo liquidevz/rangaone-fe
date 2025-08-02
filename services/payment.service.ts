@@ -1,4 +1,4 @@
-import { post } from "@/lib/axios";
+import { post, get } from "@/lib/axios";
 import { authService } from "./auth.service";
 
 // Razorpay types
@@ -58,6 +58,31 @@ export interface PaymentHistory {
   amount: number;
   currency: string;
   status: "created" | "paid" | "failed" | "captured";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserSubscription {
+  _id: string;
+  user: {
+    _id: string;
+    username: string;
+    email: string;
+    fullName: string;
+  };
+  portfolio?: {
+    _id: string;
+    name: string;
+    PortfolioCategory: string;
+  };
+  productId: {
+    _id: string;
+    name: string;
+    PortfolioCategory: string;
+  };
+  isActive: boolean;
+  productType: "Portfolio" | "Bundle";
+  expiryDate: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -138,7 +163,7 @@ export const paymentService = {
 
     try {
       const response = await post<VerifyPaymentResponse>(
-        "/api/subscriptions/verify",
+        "/api/subscriptions/verify`",
         payload,
         {
           headers: {
@@ -177,21 +202,9 @@ export const paymentService = {
     } catch (error: any) {
       console.error("Payment verification request failed:", error);
       
-      // Handle 200 responses that might be parsed as errors
-      if (error.response?.status === 200) {
-        console.log("Got 200 response, treating as success:", error.response.data);
-        return {
-          success: true,
-          message: "Payment verified successfully"
-        };
-      }
-      
-      // Extract error message from response if available
-      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
-      
       return {
         success: false,
-        message: `Verification failed: ${errorMessage}`
+        message: `Verification failed: ${error.message}`
       };
     }
   },
@@ -202,6 +215,20 @@ export const paymentService = {
     return await post<PaymentHistory[]>(
       "/api/subscriptions/history",
       {},
+      {
+        headers: {
+          accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+  },
+
+  // Get user's active subscriptions
+  getUserSubscriptions: async (): Promise<UserSubscription[]> => {
+    const token = authService.getAccessToken();
+    return await get<UserSubscription[]>(
+      "/api/user/subscriptions",
       {
         headers: {
           accept: "application/json",
@@ -267,9 +294,11 @@ export const paymentService = {
       description: `${
         "planType" in orderData ? orderData.planType || "Monthly" : "Monthly"
       } Subscription Payment`,
-      // order_id: orderId,
       ...("subscriptionId" in orderData
-        ? { subscription_id: orderData.subscriptionId }
+        ? { 
+            subscription_id: orderData.subscriptionId,
+            recurring: 1 // Enable recurring payments for eMandate
+          }
         : {
             order_id: orderData.orderId,
             amount: orderData.amount,
@@ -339,10 +368,10 @@ export const paymentService = {
         return false;
       }
 
-      console.log("Razorpay configuration test passed");
+      console.log("Razorpay configuration is valid");
       return true;
     } catch (error) {
-      console.error("Razorpay configuration test failed:", error);
+      console.error("Error testing Razorpay config:", error);
       return false;
     }
   },
@@ -413,6 +442,16 @@ export const paymentService = {
       );
 
       console.log("eMandate verification response:", response);
+      
+      // Refresh subscription data if verification was successful
+      if (response.success) {
+        try {
+          const { subscriptionService } = await import('./subscription.service');
+          await subscriptionService.refreshAfterPayment();
+        } catch (error) {
+          console.error('Failed to refresh subscription data:', error);
+        }
+      }
       
       return response;
       

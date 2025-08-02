@@ -6,7 +6,7 @@ import axios, {
 } from "axios";
 
 //apply base url for axios
-const API_URL: string = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+const API_URL: string = process.env.NEXT_PUBLIC_API_BASE_URL || "https://stocks-backend-cmjxc.ondigitalocean.app";
 
 // Custom redirect handler that can be set by the app
 let redirectHandler: ((path: string) => void) | null = null;

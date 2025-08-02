@@ -151,7 +151,8 @@ export default function PricingSection() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -30 }}
                       transition={{ duration: 0.4 }}
-                      className={`w-full p-3 sm:p-6 ${isYearly ? 'border-[3px]' : 'border-0'} rounded-xl transition-transform duration-300 ease-in-out hover:scale-105 ${
+                      onClick={() => handleBundlePurchase(bundle, subscriptionType)}
+                      className={`w-full p-3 sm:p-6 ${isYearly ? 'border-[3px]' : 'border-0'} rounded-xl transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer ${
                         isPremium
                           ? isYearly
                             ? "bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)] text-[#333333] border-[#333333] shadow-[0px_4px_21.5px_8px_#AD9000]"
@@ -201,7 +202,10 @@ export default function PricingSection() {
                       <motion.button
                         whileHover={{ scale: 1.015 }}
                         whileTap={{ scale: 0.985 }}
-                        onClick={() => handleBundlePurchase(bundle, subscriptionType)}
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent double triggering
+                          handleBundlePurchase(bundle, subscriptionType);
+                        }}
                         className={`w-full py-2 sm:py-4 text-sm sm:text-base font-semibold rounded-2xl uppercase ${
                           isPremium
                             ? isYearly

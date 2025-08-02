@@ -40,6 +40,18 @@ const getTipColorScheme = (category: "basic" | "premium") => {
   }
 };
 
+// Helper function to extract exit-range from tip content
+const getExitRange = (content: string | { key: string; value: string; _id?: string; }[] | undefined): string | null => {
+  if (!content) return null;
+  
+  if (Array.isArray(content)) {
+    const exitRangeItem = content.find(item => item.key === 'exit-range');
+    return exitRangeItem?.value || null;
+  }
+  
+  return null;
+};
+
 export default function StockRecommendationPage() {
   const params = useParams();
   const stockId = params.stockid as string;
@@ -190,33 +202,36 @@ export default function StockRecommendationPage() {
     );
   }
 
-  const recommendedDate = tipData.createdAt ? format(new Date(tipData.createdAt), 'dd MMMM yyyy') : 'N/A';
+  const recommendedDate = tipData.createdAt ? format(new Date(tipData.createdAt), 'dd MMM yyyy') : 'N/A';
   const colorScheme = getTipColorScheme(tipData.category as "basic" | "premium" || "basic");
 
   return (
     <DashboardLayout>
       <PageHeader title="RANGAONE WEALTH" subtitle="" />
       <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className="max-w-4xl mx-auto px-1 py-6">
           
           <div className="text-center mb-6">
-            <h2 className="text-xl font-bold">EXPERT RECOMMENDATIONS</h2>
+            <h2 className="text-xl font-bold" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>EXPERT RECOMMENDATIONS</h2>
           </div>
 
           {/* Box 1 - Stock Info */}
           <div 
-            className="p-[3px] rounded-lg mb-6 mx-auto max-w-[18rem]"
-            style={{ background: colorScheme.gradient }}
+            className="p-[3px] rounded-lg mb-6 mx-auto max-w-[15rem]"
+            style={{ 
+              background: colorScheme.gradient,
+              boxShadow: '0 0 9px rgba(0, 0, 0, 0.3)'
+            }}
           >
-            <div className="bg-white rounded-lg p-4">
+            <div className="bg-white rounded-lg p-2">
               <div className="flex justify-between items-start"> 
                 <div>
-                  <div className={`p-[2px] rounded inline-block mb-2 ${
+                  <div className={`p-[2px] rounded inline-block ${
                     tipData.category === 'premium' 
                       ? 'bg-gradient-to-r from-yellow-400 to-yellow-700' 
                       : 'bg-gradient-to-r from-blue-400 to-blue-700'
                   }`}>
-                    <div className={`text-xs font-semibold rounded px-2 py-1 text-white ${
+                    <div className={`text-xs font-semibold rounded px-2 py-0.5 text-white ${
                       tipData.category === 'premium' 
                         ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' 
                         : 'bg-gradient-to-r from-blue-500 to-blue-600'
@@ -224,23 +239,10 @@ export default function StockRecommendationPage() {
                       {tipData.category === 'premium' ? 'Premium' : 'Basic'}
                     </div>
                   </div>
-                  <h3 className="text-xl font-bold">{stockData?.symbol || tipData.stockId || 'STOCK'}</h3>
-                  <p className="text-sm text-gray-600">{stockData?.exchange || 'NSE'}</p>
-                  {tipData.analysistConfidence && (
-                    <div className="mt-2">
-                      <p className="text-xs text-gray-600">Analyst Confidence</p>
-                      <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                        <div 
-                          className="h-2 rounded-full" 
-                          style={{ 
-                            width: `${(tipData.analysistConfidence || 0) * 10}%`,
-                            backgroundColor: colorScheme.textColor 
-                          }}
-                        ></div>
-                      </div>
-                      <p className="text-xs mt-1" style={{ color: colorScheme.textColor }}>High</p>
-                    </div>
-                  )}
+                  <h3 className="text-xl font-bold" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{stockData?.symbol || tipData.stockId || 'STOCK'}
+                    <p className="text-sm font-light text-gray-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{stockData?.exchange || 'NSE'}</p>
+                  </h3>
+                  
                 </div>
                 
                 {(tipData.status?.toLowerCase() === 'closed' || tipData.exitStatus || tipData.exitStatusPercentage) ? (
@@ -257,109 +259,162 @@ export default function StockRecommendationPage() {
                       }`}>
                         <p className={`text-xl mb-1 font-semibold ${
                           (tipData.exitStatus?.toLowerCase().includes('loss') || (tipData.exitStatusPercentage && parseFloat(tipData.exitStatusPercentage.replace('%', '')) < 0)) ? 'text-white' : 'text-black'
-                        }`}>{tipData.exitStatus || 'Exit Status'}</p>
+                        }`} style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.exitStatus || 'Exit Status'}</p>
                         <p className={`text-2xl font-bold ${
                           (tipData.exitStatus?.toLowerCase().includes('loss') || (tipData.exitStatusPercentage && parseFloat(tipData.exitStatusPercentage.replace('%', '')) < 0)) ? 'text-white' : 'text-black'
-                        }`}>{tipData.exitStatusPercentage?.includes('%') ? tipData.exitStatusPercentage : `${tipData.exitStatusPercentage || '0'}%`}</p>
+                        }`} style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.exitStatusPercentage?.includes('%') ? tipData.exitStatusPercentage : `${tipData.exitStatusPercentage || '0'}%`}</p>
                       </div>
                     </div>
                   )
                 ) : (
                   tipData.targetPercentage && (
                     <div className="bg-[#219612] p-[2px] rounded-lg">
-                      <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-md px-4 py-2 text-center min-w-[80px]">
-                        <p className="text-sm mb-1 text-black font-bold">Target</p>
-                        <p className="text-2xl font-bold text-black">{tipData.targetPercentage?.includes('%') ? tipData.targetPercentage : `${tipData.targetPercentage || '0'}%`}</p>
+                      <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-md text-center min-w-[80px] py-1">
+                        <p className="text-md text-black font-bold" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Target</p>
+                        <p className="text-2xl font-bold text-black" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.targetPercentage?.includes('%') ? tipData.targetPercentage : `${tipData.targetPercentage || '0'}%`}</p>
+                        <p className="text-xs text-black font-bold" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Upto</p>
                       </div>
                     </div>
                   )
                 )}
               </div>
+              
+              {tipData.analysistConfidence && (
+                <div className="relative">
+                  <div className="flex justify-between items-center mb-1">
+                    <p className="text-xs text-gray-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Analyst Confidence</p>
+                    <p className="text-xs" style={{ color: colorScheme.textColor, fontFamily: 'Helvetica, Arial, sans-serif' }}>
+                      {tipData.analysistConfidence >= 8 ? 'Very High' : 
+                       tipData.analysistConfidence >= 6 ? 'High' : 
+                       tipData.analysistConfidence >= 4 ? 'Medium' : 
+                       tipData.analysistConfidence >= 2 ? 'Low' : 'Very Low'}
+                    </p>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="h-2 rounded-full" 
+                      style={{ 
+                        width: `${(tipData.analysistConfidence || 0) * 10}%`,
+                        backgroundColor: colorScheme.textColor 
+                      }}
+                    ></div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
           {tipData.title && (
             <div className="mb-6 text-center">
-              <h2 className="text-lg font-bold">Title:- {tipData.title}</h2>
+              <h2 className="text-lg font-bold" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Title:- {tipData.title}</h2>
             </div>
           )}
-
-          {/* Box 2 - Recommendation Details */}
-          <div 
+        </div>
+        
+        {/* Box 2 - Recommendation Details */}
+      <div className="max-w-4xl mx-auto px-5">
+        <div 
             className="p-[3px] rounded-lg mb-6 mx-auto max-w-2xl"
-            style={{ background: colorScheme.gradient }}
+            style={{ 
+              background: colorScheme.gradient,
+              boxShadow: '0 0 9px rgba(0, 0, 0, 0.3)'
+            }}
           >
-            <div className="bg-white rounded-lg p-6">
+            <div className="bg-white rounded-lg p-4">
               <div className="text-center mb-4">
-                <div 
-                  className="text-white rounded-lg px-6 py-2 inline-block"
-                  style={{ background: colorScheme.bgGradient }}
-                >
-                  <h3 className="text-lg font-bold">Recommendation Details</h3>
+                <div className="bg-[#131859] text-white rounded-2xl px-4 py-1 inline-block border-4 border-[#2C349A]">
+                  <h3 className="md:text-2xl text-sm font-bold" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Recommendation Details</h3>
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-6">
-                {/* Common fields */}
-                {tipData.buyRange && (
-                  <div className="text-center">
-                    <p className="font-bold mb-2">Buy Range</p>
-                    <p className="text-xl font-bold text-green-600">{tipData.buyRange}</p>
-                  </div>
-                )}
-                
-                {tipData.createdAt && (
-                  <div className="text-center">
-                    <p className="font-bold mb-2">Recommended Date</p>
-                    <p className="text-xl font-bold text-green-600">{recommendedDate}</p>
-                  </div>
-                )}
-                
-                {tipData.horizon && (
-                  <div className="text-center">
-                    <p className="font-bold mb-2">Horizon</p>
-                    <p className="text-xl font-bold text-green-600">{tipData.horizon}</p>
-                  </div>
-                )}
-                
+              <div className="grid grid-cols-2 gap-5">
                 {/* Closed tip fields */}
                 {(tipData.status?.toLowerCase() === 'closed' || tipData.exitStatus) ? (
                   <>
-                    {tipData.exitPrice && (
+                    {tipData.buyRange && (
                       <div className="text-center">
-                        <p className="font-bold mb-2">Exited Price</p>
-                        <p className="text-xl font-bold text-green-600">{tipData.exitPrice}</p>
+                        <p className="font-bold md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Buy Range</p>
+                        <p className="md:text-xl text-md font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.buyRange}</p>
+                      </div>
+                    )}
+                    
+                    {getExitRange(tipData.content) && (
+                      <div className="text-center">
+                        <p className="font-bold md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Exit Range</p>
+                        <p className="md:text-xl text-md font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{getExitRange(tipData.content)}</p>
+                      </div>
+                    )}
+                    
+                    {tipData.horizon && (
+                      <div className="text-center">
+                        <p className="font-bold md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Horizon</p>
+                        <p className="md:text-xl text-md font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.horizon}</p>
+                      </div>
+                    )}
+                    
+                    {tipData.createdAt && (
+                      <div className="text-center">
+                        <p className="font-bold md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Created On</p>
+                        <p className="md:text-xl text-md font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{recommendedDate}</p>
+                      </div>
+                    )}
+                    
+                    {(tipData.exitStatus || tipData.exitStatusPercentage) && (
+                      <div className="text-center">
+                        <p className="font-bold md:text-2xl lg:text-2xl text-black" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.exitStatus || 'Exit Status'}</p>
+                        <p className="md:text-xl text-md font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.exitStatusPercentage?.includes('%') ? tipData.exitStatusPercentage : `${tipData.exitStatusPercentage || '0'}%`}</p>
                       </div>
                     )}
                     
                     {tipData.updatedAt && (
                       <div className="text-center">
-                        <p className="font-bold mb-2">Exit Date</p>
-                        <p className="text-xl font-bold text-green-600">{format(new Date(tipData.updatedAt), 'dd MMMM yyyy')}</p>
+                        <p className="font-bold md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Exit Date</p>
+                        <p className="md:text-xl text-md font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{format(new Date(tipData.updatedAt), 'dd MMM yyyy')}</p>
                       </div>
                     )}
                   </>
                 ) : (
                   /* Active tip fields */
                   <>
+                    {tipData.buyRange && (
+                      <div className="text-center">
+                        <p className="font-bold md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Buy Range</p>
+                        <p className="md:text-xl text-md font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.buyRange}</p>
+                      </div>
+                    )}
+                    
+                    {tipData.createdAt && (
+                      <div className="text-center">
+                        <p className="font-bold md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Created On</p>
+                        <p className="md:text-xl text-md font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{recommendedDate}</p>
+                      </div>
+                    )}
+                    
+                    {tipData.horizon && (
+                      <div className="text-center">
+                        <p className="font-bold md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Horizon</p>
+                        <p className="md:text-xl text-md font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.horizon}</p>
+                      </div>
+                    )}
+                    
                     {tipData.targetPrice && (
                       <div className="text-center">
-                        <p className="font-bold mb-2">Target Price</p>
-                        <p className="text-xl font-bold text-green-600">{tipData.targetPrice}</p>
+                        <p className="font-bold md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Target Price</p>
+                        <p className="md:text-xl text-md font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.targetPrice}</p>
                       </div>
                     )}
                     
                     {tipData.addMoreAt && (
                       <div className="text-center">
-                        <p className="font-bold mb-2">Add More At</p>
-                        <p className="text-xl font-bold text-green-600">{tipData.addMoreAt}</p>
+                        <p className="font-bold md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Add More At</p>
+                        <p className="md:text-xl text-md font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.addMoreAt}</p>
                       </div>
                     )}
                     
                     {stockData?.currentPrice && (
                       <div className="text-center">
-                        <p className="font-bold mb-2">Live Price</p>
-                        <p className="text-xl font-bold text-blue-600">₹{stockData.currentPrice}</p>
+                        <p className="font-bold md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Stop Loss</p>
+                        <p className="md:text-xl text-md font-bold text-blue-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>₹{stockData.currentPrice}</p>
                       </div>
                     )}
                   </>
@@ -367,19 +422,19 @@ export default function StockRecommendationPage() {
               </div>
             </div>
           </div>
-
+          </div>          
           {/* Box 3 - Why Buy This */}
           <div 
             className="p-[3px] rounded-lg mx-auto max-w-4xl"
-            style={{ background: colorScheme.gradient }}
+            style={{ 
+              background: colorScheme.gradient,
+              boxShadow: '0 0 9px rgba(0, 0, 0, 0.3)'
+            }}
           >
-            <div className="bg-white rounded-lg p-6">
+            <div className="bg-white rounded-lg p-4">
               <div className="mb-4">
-                <div 
-                  className="text-white rounded-lg px-6 py-2 inline-block"
-                  style={{ background: colorScheme.bgGradient }}
-                >
-                  <h3 className="text-lg font-bold">Why Buy This?</h3>
+                <div className="bg-[#131859] text-white rounded-2xl px-4 py-1 inline-block border-4 border-[#2C349A]">
+                  <h3 className="text-2xl font-bold" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Why Buy This?</h3>
                 </div>
               </div>
               
@@ -387,6 +442,7 @@ export default function StockRecommendationPage() {
                 <div className="mb-6">
                   <div 
                     className="text-lg leading-relaxed"
+                    style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}
                     dangerouslySetInnerHTML={{ __html: tipData.description }} 
                   />
                 </div>
@@ -399,6 +455,7 @@ export default function StockRecommendationPage() {
                     <button
                       onClick={() => window.open(tipData.downloadLinks[0].linkUrl || tipData.downloadLinks[0].url, "_blank")}
                       className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg font-bold rounded-lg inline-flex items-center"
+                      style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}
                     >
                       View Detailed Report
                       <ExternalLink className="ml-2 h-5 w-5" />
@@ -408,7 +465,6 @@ export default function StockRecommendationPage() {
               )}
             </div>
           </div>
-        </div>
       </div>
     </DashboardLayout>
   );

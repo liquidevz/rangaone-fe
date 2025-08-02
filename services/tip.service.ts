@@ -15,6 +15,17 @@ export interface TipsFilterParams {
 }
 
 export const tipsService = {
+  // Check if user should see premium tips based on subscription
+  shouldShowPremiumTips: async (): Promise<boolean> => {
+    try {
+      const { subscriptionService } = await import('./subscription.service');
+      return await subscriptionService.hasPremiumAccess();
+    } catch (error) {
+      console.error('Failed to check premium access:', error);
+      return false;
+    }
+  },
+
   // Fetch general tips (without portfolio association)
   getAll: async (params?: TipsFilterParams): Promise<Tip[]> => {
     const queryParams = new URLSearchParams();
