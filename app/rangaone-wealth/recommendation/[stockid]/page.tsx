@@ -1,7 +1,7 @@
 "use client";
 
 import DashboardLayout from "@/components/dashboard-layout";
-import { PageHeader } from "@/components/page-header";
+import { InnerPageHeader } from "@/components/inner-page-header";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { tipsService, type Tip } from "@/services/tip.service";
@@ -226,7 +226,7 @@ export default function StockRecommendationPage() {
 
   return (
     <DashboardLayout>
-      <PageHeader title="RANGAONE WEALTH" subtitle="" />
+      <InnerPageHeader title="RANGAONE WEALTH" subtitle="" />
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-4xl mx-auto px-1 py-6">
           
@@ -245,16 +245,16 @@ export default function StockRecommendationPage() {
             <div className="bg-white rounded-lg p-2">
               <div className="flex justify-between items-start"> 
                 <div>
-                  <div className={`p-[2px] rounded inline-block ${
-                    tipData.category === 'premium' 
-                      ? 'bg-gradient-to-r from-yellow-400 to-yellow-700' 
-                      : 'bg-gradient-to-r from-blue-400 to-blue-700'
-                  }`}>
-                    <div className={`text-xs font-semibold rounded px-2 py-0.5 text-white ${
+                                                          <div className={`p-[2px] rounded inline-block ${
                       tipData.category === 'premium' 
-                        ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' 
-                        : 'bg-gradient-to-r from-blue-500 to-blue-600'
+                        ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' 
+                        : 'bg-gradient-to-r from-blue-400 to-blue-700'
                     }`}>
+                      <div className={`text-xs font-semibold rounded px-2 py-0.5 ${
+                        tipData.category === 'premium' 
+                          ? 'bg-gray-800 text-yellow-400' 
+                          : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                      }`}>
                       {tipData.category === 'premium' ? 'Premium' : 'Basic'}
                     </div>
                   </div>
@@ -287,11 +287,11 @@ export default function StockRecommendationPage() {
                   )
                 ) : (
                   tipData.targetPercentage && (
-                    <div className="bg-[#219612] p-[2px] rounded-lg">
-                      <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-md text-center min-w-[80px] py-1">
-                        <p className="text-md text-black font-bold" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Target</p>
-                        <p className="text-2xl font-bold text-black" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{formatPercentage(tipData.targetPercentage)}</p>
-                        <p className="text-xs text-black font-bold" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Upto</p>
+                    <div className="bg-[#219612] p-[2px] rounded-lg ">
+                      <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-md text-center min-w-[80px] py-0.5">
+                        <p className="text-sm text-black font-bold text-center mb-0" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Target</p>
+                        <p className="text-3xl font-bold text-black -mt-1 mb-0" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{formatPercentage(tipData.targetPercentage)}</p>
+                        <p className="text-xs text-black font-bold text-right px-1 -mt-1" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Upto</p>
                       </div>
                     </div>
                   )
@@ -346,21 +346,21 @@ export default function StockRecommendationPage() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-5">
+              <div className="grid grid-cols-2 gap-3">
                 {/* Closed tip fields */}
                 {(tipData.status?.toLowerCase() === 'closed' || tipData.exitStatus) ? (
                   <>
                     {tipData.buyRange && (
                       <div className="text-center">
-                        <p className="font-bold md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Buy Range</p>
+                        <p className="font-bol md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Buy Range</p>
                         <p className="md:text-xl text-md font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.buyRange}</p>
                       </div>
                     )}
                     
-                    {getExitRange(tipData.content) && (
+                    {tipData.exitPrice && (
                       <div className="text-center">
                         <p className="font-bold text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Exit Range</p>
-                        <p className="md:text-xl text-[0.9rem] font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{getExitRange(tipData.content)}</p>
+                        <p className="md:text-xl text-[0.9rem] font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.exitPrice}</p>
                       </div>
                     )}
                     

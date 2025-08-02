@@ -50,8 +50,8 @@ export default function RangaOneWealth() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const router = useRouter();
-  const [mainFilter, setMainFilter] = useState<string>("all");
-  const [closedFilter, setClosedFilter] = useState<string>("all");
+  const [mainFilter, setMainFilter] = useState<string>("basic");
+  const [closedFilter, setClosedFilter] = useState<string>("basic");
 
   const { isAuthenticated, isLoading: authLoading } = useAuth(); // Get auth state
   const [subscriptionAccess, setSubscriptionAccess] = useState<SubscriptionAccess | undefined>(); // State for subscription access
@@ -240,33 +240,23 @@ export default function RangaOneWealth() {
       <Card className="mt-12 mb-12 shadow-sm border border-gray-200">
         <CardContent className="p-6">
           <h2 className="text-xl font-bold mb-4 text-center">Open Recommendations</h2>
-          <div className="flex justify-center mb-4 gap-2">
-            <Button
-              variant={mainFilter === "all" ? "default" : "outline"}
-              onClick={() => setMainFilter("all")}
-            >
-              All
-            </Button>
-            <Button
-              variant={mainFilter === "basic" ? "default" : "outline"}
-              onClick={() => setMainFilter("basic")}
-              className="bg-blue-600 hover:bg-blue-700 text-[#FFFFF0] border-blue-600"
-            >
-              Basic
-            </Button>
-            <Button
-              variant={mainFilter === "premium" ? "default" : "outline"}
-              onClick={() => setMainFilter("premium")}
-              className="bg-yellow-600 hover:bg-yellow-700 text-[#FFFFF0] border-yellow-600"
-            >
-              Premium
-            </Button>
+          <div className="flex justify-center mb-4 gap-3">
+            <div className="p-[2px] rounded inline-block shadow-sm cursor-pointer bg-gradient-to-r from-blue-400 to-blue-700" onClick={() => setMainFilter("basic")}>
+              <div className="text-sm font-semibold rounded px-3 py-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                Basic
+              </div>
+            </div>
+            <div className="p-[2px] rounded inline-block shadow-sm cursor-pointer bg-gradient-to-r from-yellow-400 to-yellow-500" onClick={() => setMainFilter("premium")}>
+              <div className="text-sm font-semibold rounded px-3 py-1 bg-gray-800 text-yellow-400">
+                Premium
+              </div>
+            </div>
           </div>
           <TipsCarousel 
             tips={filteredMainTips} 
             loading={loading} 
             onTipClick={handleTipClick} 
-            categoryFilter={mainFilter as 'basic' | 'premium' | 'all'}
+            categoryFilter={mainFilter as 'basic' | 'premium'}
             sliderSize="large"
             userSubscriptionAccess={subscriptionAccess} // Pass subscription access
           />
@@ -277,33 +267,23 @@ export default function RangaOneWealth() {
       <Card className="mt-12 mb-12 shadow-sm border border-gray-200">
         <CardContent className="p-6">
           <h2 className="text-xl font-bold mb-4 text-center">Closed Recommendations</h2>
-          <div className="flex justify-center mb-4 gap-2">
-            <Button
-              variant={closedFilter === "all" ? "default" : "outline"}
-              onClick={() => setClosedFilter("all")}
-            >
-              All
-            </Button>
-            <Button
-              variant={closedFilter === "basic" ? "default" : "outline"}
-              onClick={() => setClosedFilter("basic")}
-              className="bg-blue-600 hover:bg-blue-700 text-[#FFFFF0] border-blue-600"
-            >
-              Basic
-            </Button>
-            <Button
-              variant={closedFilter === "premium" ? "default" : "outline"}
-              onClick={() => setClosedFilter("premium")}
-              className="bg-yellow-600 hover:bg-yellow-700 text-[#FFFFF0] border-yellow-600"
-            >
-              Premium
-            </Button>
+          <div className="flex justify-center mb-4 gap-3">
+            <div className="p-[2px] rounded inline-block shadow-sm cursor-pointer bg-gradient-to-r from-blue-400 to-blue-700" onClick={() => setClosedFilter("basic")}>
+              <div className="text-sm font-semibold rounded px-3 py-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                Basic
+              </div>
+            </div>
+            <div className="p-[2px] rounded inline-block shadow-sm cursor-pointer bg-gradient-to-r from-yellow-400 to-yellow-500" onClick={() => setClosedFilter("premium")}>
+              <div className="text-sm font-semibold rounded px-3 py-1 bg-gray-800 text-yellow-400">
+                Premium
+              </div>
+            </div>
           </div>
           <TipsCarousel 
             tips={filteredClosedTips} 
             loading={loading} 
             onTipClick={handleTipClick} 
-            categoryFilter={closedFilter as 'basic' | 'premium' | 'all'}
+            categoryFilter={closedFilter as 'basic' | 'premium'}
             userSubscriptionAccess={subscriptionAccess} // Pass subscription access
           />
         </CardContent>

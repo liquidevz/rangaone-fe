@@ -128,10 +128,10 @@ const getTipColorScheme = (
     };
   } else {
     return {
-      gradient: "linear-gradient(90deg, #595CFF 30%, #3333330A 90%)",
+      gradient: "linear-gradient(90deg, #595CFFCC 30%, #3333330A 90%)",
       textColor: "#1E40AF",
       bgGradient: "linear-gradient(135deg, #18657B 0%, #131859 100%)",
-      borderColor: "#595CFF",
+      borderColor: "#595CFFCC",
       badge: {
         bg: "#18657B",
         text: "#DBEAFE",
@@ -382,10 +382,10 @@ const TipCard = ({
         "relative w-full h-full",
         "rounded-xl transition-all duration-500 cursor-pointer flex-shrink-0",
         isActive
-          ? "scale-105 sm:scale-110 lg:scale-105 shadow-2xl z-20"
-          : "scale-95 sm:scale-90 lg:scale-95 opacity-70 shadow-md",
+          ? "scale-105 sm:scale-110 lg:scale-105 shadow-xl z-20"
+          : "scale-95 sm:scale-90 lg:scale-95 opacity-100 shadow-md",
         onClick &&
-          "hover:scale-100 sm:hover:scale-105 lg:hover:scale-100 hover:shadow-xl"
+          "hover:scale-100 sm:hover:scale-105 lg:hover:scale-100 hover:shadow-md"
       )}
       style={{
         background: colorScheme.gradient,
@@ -423,13 +423,13 @@ const TipCard = ({
                 ) : (
                   <div className={`p-[2px] rounded inline-block shadow-sm whitespace-nowrap ${
                     tip.category === 'premium' 
-                      ? 'bg-gradient-to-r from-yellow-400 to-yellow-700' 
+                      ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' 
                       : 'bg-gradient-to-r from-blue-400 to-blue-700'
                   }`}>
-                    <div className={`text-xs sm:text-sm font-semibold rounded px-2 sm:px-2.5 py-0.5 sm:py-1 text-white ${
+                    <div className={`text-xs sm:text-sm font-semibold rounded px-2 sm:px-2.5 py-0.5 sm:py-1 ${
                       tip.category === 'premium' 
-                        ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' 
-                        : 'bg-gradient-to-r from-blue-500 to-blue-600'
+                        ? 'bg-gray-800 text-yellow-400' 
+                        : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
                     }`}>
                       {tip.category.charAt(0).toUpperCase() +
                         tip.category.slice(1)}
