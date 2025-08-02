@@ -458,7 +458,7 @@ export default function StockRecommendationPage() {
               {tipData.description && (
                 <div className="mb-6">
                   <div 
-                    className="text-lg leading-relaxed prose prose-lg max-w-none [&_ul]:list-disc [&_ul]:ml-6 [&_ol]:list-decimal [&_ol]:ml-6 [&_li]:mb-2"
+                    className="text-lg leading-relaxed prose prose-lg max-w-none [&_ul]:list-disc [&_ul]:ml-6 [&_ol]:list-decimal [&_ol]:ml-6 [&_li]:mb-2 [&_h1]:text-3xl [&_h1]:font-bold [&_h1]:text-gray-900 [&_h1]:mb-4 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-gray-900 [&_h2]:mb-3 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:text-gray-900 [&_h3]:mb-2 [&_h4]:text-lg [&_h4]:font-bold [&_h4]:text-gray-900 [&_h4]:mb-2 [&_h5]:text-base [&_h5]:font-bold [&_h5]:text-gray-900 [&_h5]:mb-2 [&_h6]:text-sm [&_h6]:font-bold [&_h6]:text-gray-900 [&_h6]:mb-2"
                     style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}
                     dangerouslySetInnerHTML={{ __html: tipData.description }} 
                   />
