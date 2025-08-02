@@ -67,6 +67,7 @@ export default function PortfolioDetailsPage() {
   const [hoveredSegment, setHoveredSegment] = useState<PortfolioAllocationItem | null>(null);
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [selectedTimePeriod, setSelectedTimePeriod] = useState<TimePeriod>('1m');
+  const [chartLoading, setChartLoading] = useState(false);
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -129,6 +130,15 @@ export default function PortfolioDetailsPage() {
     }>;
   }
 
+  // Chart data interface for the API response
+  interface ChartDataPoint {
+    date: string;
+    value: number;
+    cash: number;
+    change: number;
+    changePercent: number;
+  }
+
   type TimePeriod = '1w' | '1m' | '3m' | '6m' | '1Yr' | 'Since Inception';
 
   interface PortfolioAllocationItem {
@@ -183,7 +193,12 @@ export default function PortfolioDetailsPage() {
   // Handle time period selection
   const handleTimePeriodChange = async (period: TimePeriod) => {
     setSelectedTimePeriod(period);
-    await fetchPriceHistory(portfolioId, period);
+    setChartLoading(true);
+    try {
+      await fetchPriceHistory(portfolioId, period);
+    } finally {
+      setChartLoading(false);
+    }
   };
 
   // Handle manual price refresh
@@ -399,42 +414,30 @@ export default function PortfolioDetailsPage() {
     return validHoldings;
   };
 
-  // Fetch price history for charts with proper benchmark comparison
+  // Fetch price history for charts using the new API structure
   const fetchPriceHistory = async (portfolioId: string, period: TimePeriod = 'Since Inception') => {
     try {
       const apiPeriod = mapPeriodToAPI(period);
-      console.log(`🔍 Fetching price history for period: ${period} (API: ${apiPeriod})`);
+      console.log(`🔍 Fetching price history for portfolio ${portfolioId} with period: ${period} (API: ${apiPeriod})`);
       
-      // Use the portfolio service to fetch price history
-      const response = await portfolioService.getPriceHistory(portfolioId, apiPeriod);
+      // Use the new API endpoint structure with portfolio ID and period filter
+      const response = await axiosApi.get(`/api/portfolios/${portfolioId}/price-history?period=${apiPeriod}`);
       
-      if (response && response.data && Array.isArray(response.data)) {
-        // Transform the API data according to the specification:
-        // API returns: { portfolioId, period, dataPoints, data: [{ date, value, cash, change, changePercent }] }
-        const transformedData = response.data.map((item: any) => {
+      if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        console.log('📊 Raw API response:', response.data);
+        console.log('📊 API data points count:', response.data.data?.length);
+        console.log('📊 API data sample:', response.data.data?.slice(0, 3));
+        
+        // Use the API data directly as it matches our chart requirements
+        const apiData: ChartDataPoint[] = response.data.data;
+        
+        // Transform the API data to chart format
+        const transformedData = apiData.map((item: ChartDataPoint) => {
           const date = new Date(item.date);
-          const portfolioValue = parseFloat(item.value || 0);
-          const portfolioChange = parseFloat(item.changePercent || 0);
-          
-          // For now, generate benchmark data based on compareWith
-          // TODO: In future, fetch actual benchmark data from a separate API
-          const benchmarkName = (portfolio as any)?.compareWith || (portfolio as any)?.index || 'NIFTY 50';
-          let benchmarkChange = portfolioChange;
-          
-          // Apply different multipliers based on benchmark type
-          if (benchmarkName.includes('NIFTY 50')) {
-            benchmarkChange = portfolioChange * 0.85 + (Math.random() - 0.5) * 0.3;
-          } else if (benchmarkName.includes('SENSEX')) {
-            benchmarkChange = portfolioChange * 0.88 + (Math.random() - 0.5) * 0.25;
-          } else if (benchmarkName.includes('MIDCAP')) {
-            benchmarkChange = portfolioChange * 0.95 + (Math.random() - 0.5) * 0.8;
-          } else if (benchmarkName.includes('SMALLCAP')) {
-            benchmarkChange = portfolioChange * 1.1 + (Math.random() - 0.5) * 1.2;
-          } else {
-            benchmarkChange = portfolioChange * 0.9 + (Math.random() - 0.5) * 0.4;
-          }
-          
-          const benchmarkValue = portfolioValue * (1 + (benchmarkChange - portfolioChange) / 100);
+          const portfolioValue = parseFloat(item.value?.toString() || '0');
+          const portfolioChange = parseFloat(item.changePercent?.toString() || '0');
+          const cashValue = parseFloat(item.cash?.toString() || '0');
+          const changeValue = parseFloat(item.change?.toString() || '0');
           
           // Format date based on period
           let formattedDate: string;
@@ -444,6 +447,8 @@ export default function PortfolioDetailsPage() {
             formattedDate = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
           } else if (period === '3m' || period === '6m') {
             formattedDate = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+          } else if (period === '1Yr') {
+            formattedDate = date.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
           } else {
             formattedDate = date.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
           }
@@ -451,14 +456,20 @@ export default function PortfolioDetailsPage() {
           return {
             date: formattedDate,
             portfolioValue: portfolioValue,
-            benchmarkValue: Math.max(benchmarkValue, 0),
             portfolioChange: portfolioChange,
-            benchmarkChange: parseFloat(benchmarkChange.toFixed(2)),
+            cash: cashValue,
+            change: changeValue,
+            // For benchmark comparison, we'll use a simple calculation
+            // In a real implementation, you'd fetch benchmark data separately
+            benchmarkValue: portfolioValue * (1 + (portfolioChange * 0.8) / 100),
+            benchmarkChange: portfolioChange * 0.8,
           };
         });
         
-        console.log(`📊 Transformed chart data for ${transformedData.length} points:`, transformedData);
-        console.log(`📈 Portfolio: ${(portfolio as any)?.name || 'Portfolio'} vs Benchmark: ${(portfolio as any)?.compareWith || (portfolio as any)?.index || 'NIFTY 50'}`);
+            console.log(`📊 Transformed chart data for ${transformedData.length} points:`, transformedData);
+    console.log(`📈 Portfolio: ${(portfolio as any)?.name || 'Portfolio'}`);
+    console.log('📅 Sample dates from transformed data:', transformedData.slice(0, 3).map(d => d.date));
+    console.log('📅 All dates for 1w:', transformedData.map(d => d.date));
         
         setPriceHistory(transformedData);
         
@@ -494,7 +505,7 @@ export default function PortfolioDetailsPage() {
     // Set appropriate data points and intervals based on period
     switch (period) {
       case '1w':
-        dataPoints = 7;
+        dataPoints = 5; // 5 trading days (Monday to Friday)
         dateInterval = 'day';
         break;
       case '1m':
@@ -529,7 +540,15 @@ export default function PortfolioDetailsPage() {
       // Calculate proper date intervals
       switch (dateInterval) {
         case 'day':
-          date.setDate(date.getDate() - (dataPoints - i - 1));
+          if (period === '1w') {
+            // For 1 week, generate 5 trading days (Monday to Friday)
+            const currentDate = new Date();
+            // Start from 4 days ago (Monday) and go forward
+            currentDate.setDate(currentDate.getDate() - 4 + i);
+            date = currentDate;
+          } else {
+            date.setDate(date.getDate() - (dataPoints - i - 1));
+          }
           break;
         case 'week':
           date.setDate(date.getDate() - ((dataPoints - i - 1) * 7));
@@ -556,6 +575,8 @@ export default function PortfolioDetailsPage() {
         formattedDate = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
       } else if (period === '3m' || period === '6m') {
         formattedDate = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+      } else if (period === '1Yr') {
+        formattedDate = date.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
       } else {
         formattedDate = date.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
       }
@@ -1015,90 +1036,102 @@ export default function PortfolioDetailsPage() {
         {/* Returns Graph */}
         <Card className="mb-4 sm:mb-6">
           <CardContent className="p-4 sm:p-6">
-            <h3 className="text-lg font-semibold text-blue-600 mb-4">Returns Graph</h3>
+            <h3 className="text-lg font-semibold text-blue-600 mb-4">
+              Returns Graph - {selectedTimePeriod === '1w' ? '1 Week' : 
+                              selectedTimePeriod === '1m' ? '1 Month' : 
+                              selectedTimePeriod === '3m' ? '3 Months' : 
+                              selectedTimePeriod === '6m' ? '6 Months' : 
+                              selectedTimePeriod === '1Yr' ? '1 Year' : 
+                              'All Time'}
+            </h3>
             
-            {/* Time period buttons */}
-            <div className="flex flex-wrap gap-1 sm:gap-2 mb-4">
-              {[
-                { key: '1w', label: '1 Week' },
-                { key: '1m', label: '1 Month' },
-                { key: '3m', label: '3 Months' },
-                { key: '6m', label: '6 Months' },
-                { key: '1Yr', label: '1 Year' },
-                { key: 'Since Inception', label: 'All Time' }
-              ].map(({ key, label }) => (
-                <Button
-                  key={key}
-                  variant={key === selectedTimePeriod ? 'default' : 'outline'}
-                  size="sm"
-                  className={`text-xs px-2 py-1 sm:px-3 sm:py-2 sm:text-sm transition-all duration-200 whitespace-nowrap ${
-                    key === selectedTimePeriod 
-                      ? 'bg-blue-600 text-[#FFFFF0] border-blue-600 shadow-md' 
-                      : 'text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-400 hover:shadow-sm'
-                  }`}
-                  onClick={() => handleTimePeriodChange(key as TimePeriod)}
+            {/* Time period dropdown filter */}
+            <div className="flex items-center gap-4 mb-6">
+              <div className="relative">
+                <select
+                  value={selectedTimePeriod}
+                  onChange={(e) => handleTimePeriodChange(e.target.value as TimePeriod)}
+                  className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
                 >
-                  <span className="hidden sm:inline">{label}</span>
-                  <span className="sm:hidden">{key}</span>
-                </Button>
-              ))}
-        </div>
+                  <option value="1w">1w</option>
+                  <option value="1m">1m</option>
+                  <option value="3m">3m</option>
+                  <option value="6m">6m</option>
+                  <option value="1Yr">1y</option>
+                  <option value="Since Inception">all</option>
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
 
-            <div className="h-56 sm:h-64 md:h-80 lg:h-96">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart 
-                  data={priceHistory}
-                  margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-                >
+            <div className="h-64 sm:h-72 md:h-80 lg:h-96 bg-white rounded-lg border border-gray-200 p-4">
+              {chartLoading ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                    <p className="text-gray-600">Loading chart data...</p>
+                  </div>
+                </div>
+              ) : priceHistory.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart 
+                    data={priceHistory}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                  >
                   <CartesianGrid 
-                    strokeDasharray="2 2" 
-                    stroke="#e0e7ff" 
-                    opacity={0.6}
+                    strokeDasharray="3 3" 
+                    stroke="#f3f4f6" 
+                    opacity={0.8}
                   />
                   <XAxis 
                     dataKey="date" 
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fontSize: 10, fill: '#6b7280' }}
-                    interval={selectedTimePeriod === '1w' ? 0 : 'preserveStartEnd'}
+                    tick={{ fontSize: 11, fill: '#6b7280', fontWeight: 500 }}
+                    interval={0}
                     angle={selectedTimePeriod === '1w' || selectedTimePeriod === '1m' ? -45 : 0}
                     textAnchor={selectedTimePeriod === '1w' || selectedTimePeriod === '1m' ? 'end' : 'middle'}
                     height={selectedTimePeriod === '1w' || selectedTimePeriod === '1m' ? 60 : 40}
+                    minTickGap={5}
                   />
                   <YAxis 
                     axisLine={false}
                     tickLine={false}
-                    tickFormatter={(value) => `${value > 0 ? '+' : ''}${value.toFixed(1)}%`}
-                    tick={{ fontSize: 10, fill: '#6b7280' }}
-                    domain={['dataMin - 1', 'dataMax + 1']}
-                    width={50}
+                    tickFormatter={(value) => `₹${value.toLocaleString()}`}
+                    tick={{ fontSize: 11, fill: '#6b7280', fontWeight: 500 }}
+                    domain={['dataMin - 1000', 'dataMax + 1000']}
+                    width={80}
                   />
                   <Tooltip 
                     formatter={(value: number, name: string) => [
-                      `${value > 0 ? '+' : ''}${value.toFixed(2)}%`,
-                      name === 'portfolioChange' 
-                        ? (safeString((portfolio as any)?.name || 'Portfolio')).substring(0, 20) + '...'
+                      `₹${value.toLocaleString()}`,
+                      name === 'portfolioValue' 
+                        ? (safeString((portfolio as any)?.name || 'Portfolio'))
                         : safeString((portfolio as any)?.compareWith || (portfolio as any)?.index || 'NIFTY 50')
                     ]}
                     labelFormatter={(label) => label}
                     contentStyle={{
                       backgroundColor: '#ffffff',
-                      border: '1px solid #e2e8f0',
+                      border: '1px solid #e5e7eb',
                       borderRadius: '8px',
-                      fontSize: '11px',
-                      padding: '8px',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      fontSize: '12px',
+                      padding: '12px',
+                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
                     }}
                   />
                   <Line 
                     type="monotone" 
-                    dataKey="portfolioChange" 
+                    dataKey="portfolioValue" 
                     stroke="#10B981" 
                     strokeWidth={3}
-                    name="portfolioChange"
+                    name="portfolioValue"
                     dot={false}
                     activeDot={{ 
-                      r: 4, 
+                      r: 5, 
                       fill: '#10B981', 
                       stroke: '#ffffff',
                       strokeWidth: 2
@@ -1106,14 +1139,14 @@ export default function PortfolioDetailsPage() {
                   />
                   <Line 
                     type="monotone" 
-                    dataKey="benchmarkChange" 
+                    dataKey="benchmarkValue" 
                     stroke="#6B7280" 
                     strokeWidth={2}
-                    strokeDasharray="4 4"
-                    name="benchmarkChange"
+                    strokeDasharray="5 5"
+                    name="benchmarkValue"
                     dot={false}
                     activeDot={{ 
-                      r: 3, 
+                      r: 4, 
                       fill: '#6B7280',
                       stroke: '#ffffff',
                       strokeWidth: 1
@@ -1121,21 +1154,29 @@ export default function PortfolioDetailsPage() {
                   />
                   <Legend 
                     wrapperStyle={{ 
-                      fontSize: '11px', 
-                      paddingTop: '15px',
+                      fontSize: '12px', 
+                      paddingTop: '20px',
                       textAlign: 'center'
                     }}
                     iconType="line"
                     formatter={(value) => {
-                      if (value === 'portfolioChange') {
+                      if (value === 'portfolioValue') {
                         const name = safeString((portfolio as any)?.name || 'Portfolio');
-                        return name.length > 25 ? name.substring(0, 25) + '...' : name;
+                        return name.length > 20 ? name.substring(0, 20) + '...' : name;
                       }
                       return safeString((portfolio as any)?.compareWith || (portfolio as any)?.index || 'NIFTY 50');
                     }}
                   />
                 </LineChart>
               </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <div className="text-gray-400 mb-2">📊</div>
+                    <p className="text-gray-600">Loading chart data...</p>
+                  </div>
+                </div>
+              )}
           </div>
           </CardContent>
         </Card>
