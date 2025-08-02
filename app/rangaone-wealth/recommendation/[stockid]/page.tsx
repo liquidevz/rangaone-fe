@@ -64,6 +64,13 @@ const getStopLoss = (content: string | { key: string; value: string; _id?: strin
   return null;
 };
 
+// Helper function to format percentage as whole number
+const formatPercentage = (value: string | number | undefined): string => {
+  if (!value) return '0%';
+  const numValue = typeof value === 'string' ? parseFloat(value.replace('%', '')) : value;
+  return `${Math.floor(numValue)}%`;
+};
+
 export default function StockRecommendationPage() {
   const params = useParams();
   const stockId = params.stockid as string;
@@ -229,7 +236,7 @@ export default function StockRecommendationPage() {
 
           {/* Box 1 - Stock Info */}
           <div 
-            className="p-[3px] rounded-lg mb-6 mx-auto max-w-[15rem]"
+            className="p-[3px] rounded-lg mb-6 mx-auto max-w-[15rem] md:max-w-[20rem]"
             style={{ 
               background: colorScheme.gradient,
               boxShadow: '0 0 9px rgba(0, 0, 0, 0.3)'
@@ -274,7 +281,7 @@ export default function StockRecommendationPage() {
                         }`} style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.exitStatus || 'Exit Status'}</p>
                         <p className={`text-2xl font-bold ${
                           (tipData.exitStatus?.toLowerCase().includes('loss') || (tipData.exitStatusPercentage && parseFloat(tipData.exitStatusPercentage.replace('%', '')) < 0)) ? 'text-white' : 'text-black'
-                        }`} style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.exitStatusPercentage?.includes('%') ? tipData.exitStatusPercentage : `${tipData.exitStatusPercentage || '0'}%`}</p>
+                        }`} style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{formatPercentage(tipData.exitStatusPercentage)}</p>
                       </div>
                     </div>
                   )
@@ -283,7 +290,7 @@ export default function StockRecommendationPage() {
                     <div className="bg-[#219612] p-[2px] rounded-lg">
                       <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-md text-center min-w-[80px] py-1">
                         <p className="text-md text-black font-bold" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Target</p>
-                        <p className="text-2xl font-bold text-black" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.targetPercentage?.includes('%') ? tipData.targetPercentage : `${tipData.targetPercentage || '0'}%`}</p>
+                        <p className="text-2xl font-bold text-black" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{formatPercentage(tipData.targetPercentage)}</p>
                         <p className="text-xs text-black font-bold" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Upto</p>
                       </div>
                     </div>
@@ -318,7 +325,7 @@ export default function StockRecommendationPage() {
 
           {tipData.title && (
             <div className="mb-6 text-center">
-              <h2 className="text-lg font-bold" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Title:- {tipData.title}</h2>
+              <h2 className="text-lg" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}><b>Title:-</b> {tipData.title}</h2>
             </div>
           )}
         </div>
@@ -374,7 +381,7 @@ export default function StockRecommendationPage() {
                     {(tipData.exitStatus || tipData.exitStatusPercentage) && (
                       <div className="text-center">
                         <p className="font-bold text-[0.9rem] md:text-2xl lg:text-2xl text-black" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.exitStatus || 'Exit Status'}</p>
-                        <p className="md:text-xl text-[0.9rem] font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.exitStatusPercentage?.includes('%') ? tipData.exitStatusPercentage : `${tipData.exitStatusPercentage || '0'}%`}</p>
+                        <p className="md:text-xl text-[0.9rem] font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{formatPercentage(tipData.exitStatusPercentage)}</p>
                       </div>
                     )}
                     
@@ -435,7 +442,7 @@ export default function StockRecommendationPage() {
           </div>          
           {/* Box 3 - Why Buy This */}
           <div 
-            className="p-[3px] rounded-lg mx-auto max-w-4xl"
+            className="p-[3px] rounded-lg mx-auto max-w-5xl"
             style={{ 
               background: colorScheme.gradient,
               boxShadow: '0 0 9px rgba(0, 0, 0, 0.3)'
@@ -451,7 +458,7 @@ export default function StockRecommendationPage() {
               {tipData.description && (
                 <div className="mb-6">
                   <div 
-                    className="text-lg leading-relaxed"
+                    className="text-lg leading-relaxed prose prose-lg max-w-none [&_ul]:list-disc [&_ul]:ml-6 [&_ol]:list-decimal [&_ol]:ml-6 [&_li]:mb-2"
                     style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}
                     dangerouslySetInnerHTML={{ __html: tipData.description }} 
                   />
