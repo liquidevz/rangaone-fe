@@ -201,7 +201,7 @@ export const subscriptionService = {
     if (!token) throw new Error("Authentication required");
 
     try {
-      const response = await post("/api/subscriptions/verify`", {
+      const response = await post("/api/subscriptions/verify", {
         paymentId, orderId, signature
       }, { headers: { Authorization: `Bearer ${token}` } });
 
