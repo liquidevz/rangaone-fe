@@ -163,7 +163,7 @@ export const paymentService = {
 
     try {
       const response = await post<VerifyPaymentResponse>(
-        "/api/subscriptions/verify`",
+        "/api/subscriptions/verify",
         payload,
         {
           headers: {
