@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { portfolioService } from "@/services/portfolio.service";
+import { subscriptionService, type SubscriptionAccess } from "@/services/subscription.service";
 import { useAuth } from "@/components/auth/auth-context";
 import { MethodologyModal } from "@/components/methodology-modal";
 import type { Portfolio } from "@/lib/types";
@@ -121,6 +122,7 @@ function SubscriptionModal({ open, onClose, productId, productType }: { open: bo
 
 export default function ModelPortfoliosPage() {
   const [portfolios, setPortfolios] = useState<PortfolioWithMessage[]>([]);
+  const [subscriptionAccess, setSubscriptionAccess] = useState<SubscriptionAccess | null>(null);
   const [loading, setLoading] = useState(true);
   const [methodologyModal, setMethodologyModal] = useState<{
     isOpen: boolean;
@@ -184,9 +186,15 @@ export default function ModelPortfoliosPage() {
     return isNaN(num) ? 0 : num;
   };
 
-  // Check if user has access to a portfolio (no message field means access granted)
+  // Check if user has access to a portfolio using subscription access data
   const hasPortfolioAccess = (portfolio: PortfolioWithMessage): boolean => {
-    return !portfolio.message;
+    if (!isAuthenticated || !subscriptionAccess) {
+      return false;
+    }
+    
+    // Access is STRICTLY based on portfolioAccess array only
+    // Even if hasPremium is true, only portfolios in the array are accessible
+    return subscriptionAccess.portfolioAccess.includes(portfolio._id);
   };
 
   useEffect(() => {
@@ -195,6 +203,25 @@ export default function ModelPortfoliosPage() {
 
       try {
         setLoading(true);
+
+        // Fetch subscription access data if authenticated
+        if (isAuthenticated) {
+          try {
+            const accessData = await subscriptionService.getSubscriptionAccess();
+            setSubscriptionAccess(accessData);
+            console.log("📊 Model portfolios subscription access from API:", accessData);
+            console.log("🔑 Dynamic portfolioAccess IDs from /api/user/subscriptions:", accessData.portfolioAccess);
+            console.log("🔍 Total accessible portfolios:", accessData.portfolioAccess.length);
+          } catch (error) {
+            console.error("Failed to fetch subscription access:", error);
+            setSubscriptionAccess({
+              hasBasic: false,
+              hasPremium: false,
+              portfolioAccess: [],
+              subscriptionType: 'none'
+            });
+          }
+        }
 
         if (isAuthenticated) {
           // Fetch portfolios from /api/user/portfolios
@@ -287,7 +314,17 @@ export default function ModelPortfoliosPage() {
   };
 
   const handleViewDetails = (portfolioId: string) => {
-    router.push(`/model-portfolios/${portfolioId}`);
+    // Additional check before navigation
+    const portfolio = portfolios.find(p => p._id === portfolioId);
+    if (portfolio && hasPortfolioAccess(portfolio)) {
+      router.push(`/model-portfolios/${portfolioId}`);
+    } else {
+      toast({
+        title: "Access Required",
+        description: "Please subscribe to view this portfolio's details.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleMethodologyClick = (
@@ -333,6 +370,16 @@ export default function ModelPortfoliosPage() {
             {portfolios.map((portfolio) => {
               const hasAccess = hasPortfolioAccess(portfolio);
               const isLocked = !hasAccess;
+              
+              // Debug logging for each portfolio access check
+              console.log(`🔍 Portfolio Access Check:`, {
+                portfolioId: portfolio._id,
+                portfolioName: portfolio.name,
+                hasAccess: hasAccess,
+                isInAccessArray: subscriptionAccess?.portfolioAccess.includes(portfolio._id),
+                accessArray: subscriptionAccess?.portfolioAccess,
+                isLocked: isLocked
+              });
               // Find methodology PDF link in description array
               let methodologyLink: string | undefined = undefined;
               if (Array.isArray(portfolio.description)) {

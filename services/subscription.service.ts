@@ -23,6 +23,14 @@ interface UserSubscription {
   updatedAt: string;
 }
 
+interface UserSubscriptionsResponse {
+  success: boolean;
+  bundleSubscriptions: UserSubscription[];
+  individualSubscriptions: UserSubscription[];
+  totalSubscriptions: number;
+  accessData: SubscriptionAccess;
+}
+
 export interface SubscriptionAccess {
   hasBasic: boolean;
   hasPremium: boolean;
@@ -229,40 +237,58 @@ export const subscriptionService = {
     }
   },
 
-  async getUserSubscriptions(forceRefresh = false): Promise<UserSubscription[]> {
+  async getUserSubscriptions(forceRefresh = false): Promise<{
+    subscriptions: UserSubscription[];
+    accessData: SubscriptionAccess;
+  }> {
     const token = authService.getAccessToken();
-    if (!token) return [];
+    if (!token) return { 
+      subscriptions: [], 
+      accessData: { hasBasic: false, hasPremium: false, portfolioAccess: [], subscriptionType: 'none' }
+    };
 
     const now = Date.now();
-    if (!forceRefresh && this._subscriptionCache && now < this._cacheExpiry) {
-      return this._subscriptionCache;
+    if (!forceRefresh && this._subscriptionCache && this._accessCache && now < this._cacheExpiry) {
+      return { 
+        subscriptions: this._subscriptionCache, 
+        accessData: this._accessCache 
+      };
     }
 
     try {
-      let response: any;
-      try {
-        response = await get("/api/user/subscriptions", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-      } catch {
-        // Fallback to alternative endpoint
-        response = await get("/api/subscriptions/user-subscriptions", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        response = response.bundleSubscriptions 
-          ? [...response.bundleSubscriptions, ...response.individualSubscriptions] 
-          : response;
-      }
+      const response = await get<UserSubscriptionsResponse>("/api/user/subscriptions", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
-      // Normalize response to array
-      const subscriptions = Array.isArray(response) ? response : [];
+      // Extract subscriptions and access data from the API response
+      const bundleSubscriptions = response.bundleSubscriptions || [];
+      const individualSubscriptions = response.individualSubscriptions || [];
+      const subscriptions = [...bundleSubscriptions, ...individualSubscriptions];
+      
+      // Use the accessData directly from the API response
+      const accessData: SubscriptionAccess = response.accessData || {
+        hasBasic: false,
+        hasPremium: false,
+        portfolioAccess: [],
+        subscriptionType: 'none'
+      };
       
       this._subscriptionCache = subscriptions;
+      this._accessCache = accessData;
       this._cacheExpiry = now + 60000; // 1 minute cache
-      return subscriptions;
+      
+      console.log('🎯 Access data from /api/user/subscriptions API:', accessData);
+      console.log('🔑 Dynamic portfolioAccess array from API (NO HARDCODED IDs):', accessData.portfolioAccess);
+      console.log('📊 User subscription type:', accessData.subscriptionType);
+      console.log('✅ This data is fetched dynamically for each user from the backend');
+      
+      return { subscriptions, accessData };
     } catch (error) {
       console.error("Failed to fetch subscriptions", error);
-      return [];
+      return { 
+        subscriptions: [], 
+        accessData: { hasBasic: false, hasPremium: false, portfolioAccess: [], subscriptionType: 'none' }
+      };
     }
   },
 
@@ -272,80 +298,26 @@ export const subscriptionService = {
       return this._accessCache;
     }
 
-    const subscriptions = await this.getUserSubscriptions(forceRefresh);
-    const activeSubscriptions = subscriptions.filter(sub => sub.isActive);
-
-    let hasBasic = false;
-    let hasPremium = false;
-    const portfolioAccess: string[] = [];
-
-    for (const sub of activeSubscriptions) {
-      console.log('🔍 Processing subscription:', sub);
-      
-      // Check if this is an eMandate subscription (premium by default)
-      if (sub.subscriptionType === 'yearlyEmandate' || sub.eMandateId) {
-        console.log('✅ Found eMandate subscription - granting premium access');
-        hasPremium = true;
-        continue;
-      }
-      
-      if (sub.productType === 'Bundle') {
-        let category = (sub as any).bundleCategory;
-        
-        if (!category && typeof sub.productId === 'object') {
-          category = (sub.productId as any).category;
-        }
-        
-        if (!category) {
-          const bundleId = typeof sub.productId === 'string' 
-            ? sub.productId 
-            : (sub.productId as any)?._id;
-          if (bundleId) {
-            try {
-              const bundle = await bundleService.getById(bundleId);
-              category = bundle?.category;
-            } catch (error) {
-              console.error(`Bundle fetch failed: ${bundleId}`, error);
-            }
-          }
-        }
-        
-        console.log('📦 Bundle category:', category);
-        if (category === 'basic') hasBasic = true;
-        else if (category === 'premium') hasPremium = true;
-        else hasPremium = true; // Default to premium
-      } 
-      else if (sub.productType === 'Portfolio') {
-        let portfolioId: string | undefined;  
-        if (typeof sub.portfolio === 'string') portfolioId = sub.portfolio;
-        else if (typeof sub.portfolio === 'object') portfolioId = (sub.portfolio as any)?._id;
-        else if (typeof sub.productId === 'string') portfolioId = sub.productId;
-        else if (typeof sub.productId === 'object') portfolioId = (sub.productId as any)?._id;
-        
-        if (portfolioId) portfolioAccess.push(portfolioId);
-      }
-    }
-
-    const subscriptionType: 'none' | 'basic' | 'premium' | 'individual' = 
-      hasPremium ? 'premium' :
-      hasBasic ? 'basic' :
-      portfolioAccess.length ? 'individual' : 'none';
-
-    const accessData: SubscriptionAccess = {
-      hasBasic,
-      hasPremium,
-      portfolioAccess: Array.from(new Set(portfolioAccess)),
-      subscriptionType
-    };
-
-    console.log('🎯 Final access data:', accessData);
-    this._accessCache = accessData;
+    // Get access data directly from the API
+    const { accessData } = await this.getUserSubscriptions(forceRefresh);
     return accessData;
   },
 
   async hasPortfolioAccess(portfolioId: string): Promise<boolean> {
     const access = await this.getSubscriptionAccess();
-    return access.hasPremium || access.portfolioAccess.includes(portfolioId);
+    // Access is STRICTLY based on portfolioAccess array only
+    // Even if hasPremium is true, only portfolios in the array are accessible
+    const hasAccess = access.portfolioAccess.includes(portfolioId);
+    
+    console.log(`🔍 Portfolio access check for ID "${portfolioId}":`, {
+      portfolioId,
+      portfolioAccessArray: access.portfolioAccess,
+      isInArray: hasAccess,
+      arrayLength: access.portfolioAccess.length,
+      note: "This check is PURELY dynamic - no hardcoded IDs"
+    });
+    
+    return hasAccess;
   },
 
   async hasBasicAccess(): Promise<boolean> {
@@ -370,8 +342,7 @@ export const subscriptionService = {
     canAccessTips: boolean;
     canAccessPremiumTips: boolean;
   }> {
-    const subscriptions = await this.getUserSubscriptions(true);
-    const access = await this.getSubscriptionAccess(true);
+    const { subscriptions, accessData: access } = await this.getUserSubscriptions(true);
     const canAccessTips = await this.canAccessTips();
     const canAccessPremiumTips = await this.hasPremiumAccess();
     
@@ -396,7 +367,6 @@ export const subscriptionService = {
     this.clearCache();
     // Force fresh fetch
     await this.getUserSubscriptions(true);
-    await this.getSubscriptionAccess(true);
     console.log('✅ Subscription data refreshed');
   }
 };

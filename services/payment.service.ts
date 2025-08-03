@@ -227,7 +227,11 @@ export const paymentService = {
   // Get user's active subscriptions
   getUserSubscriptions: async (): Promise<UserSubscription[]> => {
     const token = authService.getAccessToken();
-    return await get<UserSubscription[]>(
+    const response = await get<{
+      bundleSubscriptions: UserSubscription[];
+      individualSubscriptions: UserSubscription[];
+      accessData: any;
+    }>(
       "/api/user/subscriptions",
       {
         headers: {
@@ -236,6 +240,9 @@ export const paymentService = {
         },
       }
     );
+    
+    // Combine both subscription arrays for backward compatibility
+    return [...(response.bundleSubscriptions || []), ...(response.individualSubscriptions || [])];
   },
 
   // Load Razorpay script

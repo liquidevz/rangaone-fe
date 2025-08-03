@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import type { Portfolio, Holding } from "@/lib/types";
 import { portfolioService } from "@/services/portfolio.service";
+import { subscriptionService, type SubscriptionAccess } from "@/services/subscription.service";
 import axiosApi from "@/lib/axios";
 import { authService } from "@/services/auth.service";
 import { stockPriceService, type StockPriceData } from "@/services/stock-price.service";
@@ -22,6 +23,7 @@ import {
   Calendar,
   ExternalLink,
   Clock,
+  Lock,
 } from "lucide-react";
 import { useParams, useSearchParams } from "next/navigation";
 import React, { useEffect, useState, useRef, useMemo } from "react";
@@ -56,6 +58,9 @@ export default function PortfolioDetailsPage() {
   const { toast } = useToast();
   
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
+  const [subscriptionAccess, setSubscriptionAccess] = useState<SubscriptionAccess | null>(null);
+  const [hasAccess, setHasAccess] = useState<boolean>(false);
+  const [accessChecked, setAccessChecked] = useState<boolean>(false);
   const [holdingsWithPrices, setHoldingsWithPrices] = useState<HoldingWithPrice[]>([]);
   const [priceHistory, setPriceHistory] = useState<PriceHistoryData[]>([]);
   const [fullPriceHistory, setFullPriceHistory] = useState<PriceHistoryData[]>([]);
@@ -97,7 +102,62 @@ export default function PortfolioDetailsPage() {
     }
   }, [searchParams, loading]);
 
+  // Check subscription access
+  useEffect(() => {
+    async function checkAccess() {
+      try {
+        const accessData = await subscriptionService.getSubscriptionAccess();
+        setSubscriptionAccess(accessData);
+        
+        // Check if user has access to this specific portfolio
+        // Access is STRICTLY based on portfolioAccess array only
+        const hasPortfolioAccess = accessData.portfolioAccess.includes(portfolioId);
+        setHasAccess(hasPortfolioAccess);
+        
+        console.log("📊 Individual portfolio access check:", {
+          portfolioId,
+          hasPremium: accessData.hasPremium,
+          portfolioAccess: accessData.portfolioAccess,
+          hasAccess: hasPortfolioAccess,
+          isIdInArray: accessData.portfolioAccess.includes(portfolioId),
+          arrayLength: accessData.portfolioAccess.length,
+          note: "Access based ONLY on portfolioAccess array from /api/user/subscriptions, regardless of hasPremium flag"
+        });
+        
+        // Additional verification logging
+        if (accessData.portfolioAccess.length > 0) {
+          console.log("🔑 User has access to these portfolio IDs (from API):", accessData.portfolioAccess);
+          accessData.portfolioAccess.forEach((id, index) => {
+            console.log(`  ${index + 1}. ${id} ${id === portfolioId ? '← CURRENT PORTFOLIO' : ''}`);
+          });
+        } else {
+          console.log("🔒 User has no portfolio access (empty portfolioAccess array from API)");
+        }
+        
+        if (!hasPortfolioAccess) {
+          toast({
+            title: "Access Required",
+            description: "You don't have access to this portfolio. Please subscribe to view details.",
+            variant: "destructive",
+          });
+          // Redirect to model portfolios page after a short delay
+          setTimeout(() => {
+            router.push('/model-portfolios');
+          }, 2000);
+        }
+        
+      } catch (error) {
+        console.error("Failed to check subscription access:", error);
+        setHasAccess(false);
+      } finally {
+        setAccessChecked(true);
+      }
+    }
 
+    if (portfolioId) {
+      checkAccess();
+    }
+  }, [portfolioId, toast, router]);
 
   interface StockPrice {
     _id: string;
@@ -615,6 +675,11 @@ export default function PortfolioDetailsPage() {
 
   useEffect(() => {
     async function loadPortfolioData() {
+      // Only load portfolio data if access has been checked and user has access
+      if (!accessChecked || !hasAccess) {
+        return;
+      }
+      
       try {
         setLoading(true);
         console.log("Loading portfolio data for ID:", portfolioId);
@@ -676,14 +741,41 @@ export default function PortfolioDetailsPage() {
     }
 
     loadPortfolioData();
-  }, [portfolioId, toast]);
+  }, [portfolioId, toast, accessChecked, hasAccess]);
 
-  if (loading) {
+  if (!accessChecked || loading) {
     return (
       <DashboardLayout>
         <div className="max-w-7xl mx-auto p-4">
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+            <span className="ml-3">
+              {!accessChecked ? "Checking access..." : "Loading portfolio..."}
+            </span>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!hasAccess) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-7xl mx-auto p-4">
+          <div className="text-center py-12">
+            <div className="bg-gradient-to-br from-yellow-400 to-amber-500 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+              <Lock className="h-8 w-8 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold mb-4">Access Required</h2>
+            <p className="text-gray-600 mb-6">You need to subscribe to view this portfolio's details.</p>
+            <div className="space-x-4">
+              <Button onClick={() => router.push('/model-portfolios')}>
+                Back to Portfolios
+              </Button>
+              <Button variant="outline" onClick={() => router.push('/premium-subscription')}>
+                Subscribe Now
+              </Button>
+            </div>
           </div>
         </div>
       </DashboardLayout>

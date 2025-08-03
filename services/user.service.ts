@@ -182,8 +182,14 @@ class UserService {
    */
   async getSubscriptions(): Promise<UserSubscription[]> {
     try {
-      const response = await axiosApi.get<UserSubscription[]>(`${this.baseUrl}/subscriptions`);
-      return response.data;
+      const response = await axiosApi.get<{
+        bundleSubscriptions: UserSubscription[];
+        individualSubscriptions: UserSubscription[];
+        accessData: any;
+      }>(`${this.baseUrl}/subscriptions`);
+      
+      // Combine both subscription arrays for backward compatibility
+      return [...(response.data.bundleSubscriptions || []), ...(response.data.individualSubscriptions || [])];
     } catch (error) {
       console.error('Failed to fetch user subscriptions:', error);
       throw new Error('Unable to load subscriptions. Please try again later.');

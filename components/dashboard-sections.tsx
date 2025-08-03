@@ -128,7 +128,7 @@ export function ExpertRecommendationsSection() {
       if (isAuthenticated) {
         try {
           console.log("🔄 Fetching fresh subscription access from API...")
-          const accessData = await subscriptionService.getFreshSubscriptionAccess()
+          const accessData = await subscriptionService.forceRefresh()
           setSubscriptionAccess(accessData)
           console.log("✅ Subscription access updated:", accessData)
         } catch (error) {
@@ -150,8 +150,9 @@ export function ExpertRecommendationsSection() {
           console.log("🔍 Fresh subscription access data:", accessData)
           
           // Get raw subscription data
-          const rawSubscriptions = await subscriptionService.getUserSubscriptions(true)
+          const { subscriptions: rawSubscriptions, accessData: rawAccessData } = await subscriptionService.getUserSubscriptions(true)
           console.log("📊 Raw subscription data:", rawSubscriptions)
+          console.log("📊 Raw access data:", rawAccessData)
           
           return accessData
         } catch (error) {
@@ -285,13 +286,14 @@ export function ModelPortfolioSection() {
       if (isAuthenticated) {
         try {
           // Force refresh to ensure we get the latest subscription status after payment
-          const accessData = await subscriptionService.getFreshSubscriptionAccess()
+          const accessData = await subscriptionService.forceRefresh()
           setSubscriptionAccess(accessData)
           console.log("📊 Updated subscription access:", accessData)
           
           // Debug: Check all user subscriptions
-          const allSubscriptions = await subscriptionService.getUserSubscriptions(true)
+          const { subscriptions: allSubscriptions, accessData: debugAccessData } = await subscriptionService.getUserSubscriptions(true)
           console.log("🔍 All user subscriptions:", allSubscriptions)
+          console.log("🔍 Debug access data:", debugAccessData)
           
           // Debug: Check if any subscriptions are active
           const activeSubscriptions = allSubscriptions.filter(sub => sub.isActive)
