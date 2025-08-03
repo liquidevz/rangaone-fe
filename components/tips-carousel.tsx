@@ -588,7 +588,6 @@ export default function TipsCarousel({
 }: TipsCarouselProps) {
   const [tips, setTips] = useState<TipCardData[]>([]);
   const [loading, setLoading] = useState(propLoading || false);
-  const [symbolsLoading, setSymbolsLoading] = useState(false);
   const [subscriptionAccess, setSubscriptionAccess] = useState<
     SubscriptionAccess | undefined
   >(userSubscriptionAccess);
@@ -753,18 +752,16 @@ export default function TipsCarousel({
     }
   }, [currentIndex, tips, currentTipDate]);
 
-  // Fetch stock symbols for tips that have stockId using global cache
+  // Fetch stock symbols for tips that have stockId using global cache (non-blocking)
   const fetchStockSymbols = async (apiTips: Tip[]) => {
     const tipsWithStockId = apiTips.filter((tip) => tip.stockId);
     if (tipsWithStockId.length === 0) {
-      setSymbolsLoading(false);
       return;
     }
 
     try {
-      setSymbolsLoading(true);
       console.log(
-        `🔍 Fetching stock symbols for ${tipsWithStockId.length} tips using cache service`
+        `🔍 Fetching stock symbols for ${tipsWithStockId.length} tips using cache service (non-blocking)`
       );
       
       // Extract unique stock IDs
@@ -772,25 +769,56 @@ export default function TipsCarousel({
         return tip.stockId!.replace(/\.[A-Z]+$/, '').trim();
       })));
 
-      // Use the cache service to get all symbols
-      const symbolResults = await stockSymbolCacheService.getMultipleSymbols(stockIds);
+      // Get immediately available cached symbols first
+      const initialSymbols = new Map<string, string>();
+      stockIds.forEach(stockId => {
+        const cachedSymbol = stockSymbolCacheService.getCachedSymbol(stockId);
+        if (cachedSymbol) {
+          initialSymbols.set(stockId, cachedSymbol);
+        }
+      });
+
+      // Set initial cached symbols immediately if any are available
+      if (initialSymbols.size > 0) {
+        setStockSymbols(initialSymbols);
+        console.log(`📋 Set ${initialSymbols.size} cached symbols immediately`);
+      }
+
+      // Then fetch the remaining symbols in the background
+      const uncachedIds = stockIds.filter(id => !stockSymbolCacheService.isSymbolCached(id));
       
-      // Convert to the format expected by the component
-      setStockSymbols(symbolResults);
+      if (uncachedIds.length > 0) {
+        console.log(`🔄 Fetching ${uncachedIds.length} uncached symbols in background`);
+        
+        // Fetch missing symbols without blocking the UI
+        const symbolResults = await stockSymbolCacheService.getMultipleSymbols(uncachedIds);
+        
+        // Update state with new symbols (merge with existing)
+        setStockSymbols(prevSymbols => {
+          const newSymbols = new Map(prevSymbols);
+          symbolResults.forEach((symbol, stockId) => {
+            newSymbols.set(stockId, symbol);
+          });
+          return newSymbols;
+        });
+        
+        console.log(`✅ Added ${symbolResults.size} new symbols from background fetch`);
+      }
       
-      console.log(
-        `✅ Successfully fetched ${symbolResults.size} symbols using cache service`
-      );
     } catch (error) {
       console.error("❌ Failed to fetch stock symbols:", error);
-    } finally {
-      setSymbolsLoading(false);
     }
   };
 
   const convertTipsToCarouselFormat = (apiTips: Tip[]): TipCardData[] => {
     return apiTips.map((tip, index) => {
-      // Use fetched stock symbol from state first
+      // Priority order for stock name:
+      // 1. Cached symbol from state
+      // 2. Cached symbol from cache service
+      // 3. Parsed from title
+      // 4. Stock ID (as last resort)
+      // 5. Generic fallback
+      
       let stockName = stockSymbols.get(tip.stockId || "");
       
       // If not in state, check the cache service directly
@@ -798,15 +826,24 @@ export default function TipsCarousel({
         stockName = stockSymbolCacheService.getCachedSymbol(tip.stockId) || undefined;
       }
       
-      // Only use stockId as last resort if symbols are still loading
-      if (!stockName && tip.stockId && !symbolsLoading) {
-        stockName = tip.stockId;
+      // Try to extract from title (often contains readable names)
+      if (!stockName && tip.title) {
+        const titleParts = tip.title.split(/[:\-]/);
+        const potentialName = titleParts[0]?.trim();
+        if (potentialName && potentialName.length > 2 && potentialName !== tip.stockId) {
+          stockName = potentialName;
+        }
       }
       
-      // Other fallbacks
-      if (!stockName) {
-        stockName = tip.title?.split(":")[0]?.split("-")[0]?.trim();
+      // Only use stockId as last resort (and only if it looks like a readable symbol)
+      if (!stockName && tip.stockId) {
+        // Only use stock ID if it's relatively short and looks like a symbol
+        if (tip.stockId.length <= 12 && /^[A-Z0-9&\-\.]+$/i.test(tip.stockId)) {
+          stockName = tip.stockId;
+        }
       }
+      
+      // Final fallback
       if (!stockName) {
         stockName = `Stock ${index + 1}`;
       }
@@ -983,15 +1020,13 @@ export default function TipsCarousel({
           );
         }
 
-        // Fetch stock symbols first, then convert tips
-        await fetchStockSymbols(filteredTips);
-        
-        // Wait a bit to ensure symbols are loaded
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
+        // Convert tips immediately with available data
         const carouselTips = convertTipsToCarouselFormat(filteredTips);
         setTips(carouselTips);
         setLoading(false);
+
+        // Fetch stock symbols in the background (non-blocking)
+        fetchStockSymbols(filteredTips);
         return;
       }
 
@@ -1010,14 +1045,13 @@ export default function TipsCarousel({
           });
         }
 
-        // Fetch stock symbols first, then convert tips
-        await fetchStockSymbols(apiTips);
-        
-        // Wait a bit to ensure symbols are loaded
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
+        // Convert tips immediately with available data
         const carouselTips = convertTipsToCarouselFormat(apiTips);
         setTips(carouselTips);
+        setLoading(false);
+
+        // Fetch stock symbols in the background (non-blocking)
+        fetchStockSymbols(apiTips);
       } catch (error) {
         console.error("Failed to fetch tips:", error);
         const sampleTips: TipCardData[] = [
@@ -1047,7 +1081,6 @@ export default function TipsCarousel({
           },
         ];
         setTips(sampleTips);
-      } finally {
         setLoading(false);
       }
     };
@@ -1055,9 +1088,9 @@ export default function TipsCarousel({
     fetchTips();
   }, [portfolioId, propTips, categoryFilter]);
 
-  // Re-convert tips when stock symbols are updated (only if not already loading)
+  // Re-convert tips when stock symbols are updated (progressive updates)
   useEffect(() => {
-    if (propTips && !loading && !symbolsLoading && stockSymbols.size > 0) {
+    if (propTips && !loading && stockSymbols.size > 0) {
       let filteredTips = propTips;
       if (categoryFilter !== "all") {
         filteredTips = propTips.filter(
@@ -1067,7 +1100,7 @@ export default function TipsCarousel({
       const carouselTips = convertTipsToCarouselFormat(filteredTips);
       setTips(carouselTips);
     }
-  }, [stockSymbols, propTips, categoryFilter, loading, symbolsLoading]);
+  }, [stockSymbols, propTips, categoryFilter, loading]);
 
   useEffect(() => {
     const fetchSubscriptionAccess = async () => {
@@ -1126,14 +1159,12 @@ export default function TipsCarousel({
     }
   }, [tips.length, containerWidth, dimensions.cardWidth, x]);
 
-  if (loading || symbolsLoading) {
+  if (loading) {
     return (
       <div className="relative w-full flex flex-col items-center justify-center overflow-hidden py-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">
-            {loading ? "Loading tips..." : "Loading stock symbols..."}
-          </p>
+          <p className="text-gray-600">Loading tips...</p>
         </div>
       </div>
     );

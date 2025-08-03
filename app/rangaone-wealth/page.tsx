@@ -48,6 +48,7 @@ export default function RangaOneWealth() {
   const [activeDate, setActiveDate] = useState<Date>(new Date());
   const [closedDate, setClosedDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(true);
+  const [categoryLoading, setCategoryLoading] = useState<{basic: boolean, premium: boolean}>({basic: false, premium: false});
   const { toast } = useToast();
   const router = useRouter();
   const [mainFilter, setMainFilter] = useState<string>("basic");
@@ -56,76 +57,100 @@ export default function RangaOneWealth() {
   const { isAuthenticated, isLoading: authLoading } = useAuth(); // Get auth state
   const [subscriptionAccess, setSubscriptionAccess] = useState<SubscriptionAccess | undefined>(); // State for subscription access
 
-  // Load and organize tips
-  useEffect(() => {
-    async function loadTips() {
-      try {
-        console.log("Loading tips from /api/user/tips...");
-        const data = await tipsService.getAll(); // This now only uses /api/user/tips
-        console.log("Tips loaded successfully:", data);
-        
-        // Ensure data is an array
-        const tipsArray = Array.isArray(data) ? data : [];
-        
-        // Sort tips by date (oldest first)
-        const sortedTips = [...tipsArray].sort((a, b) =>
+  // Load tips efficiently by category
+  const loadTipsByCategory = async (category: 'basic' | 'premium') => {
+    setCategoryLoading(prev => ({ ...prev, [category]: true }));
+    try {
+      console.log(`Loading ${category} tips from API...`);
+      const data = await tipsService.getAll({ category }); // Server-side filtering
+      console.log(`${category} tips loaded:`, data.length);
+      
+      // Ensure data is an array
+      const tipsArray = Array.isArray(data) ? data : [];
+      
+      // Sort tips by date (oldest first for chronological order)
+      const sortedTips = [...tipsArray].sort((a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+      
+      // Update the appropriate tips based on category
+      const active = sortedTips.filter(tip => tip.status === "Active");
+      const closed = sortedTips.filter(tip => tip.status !== "Active");
+      
+      // Update state based on current filter
+      setActiveTips(prevActive => {
+        // Remove old tips of this category and add new ones
+        const filteredOld = prevActive.filter(tip => tip.category?.toLowerCase() !== category);
+        return [...filteredOld, ...active].sort((a, b) => 
           new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
-        
-        setAllTips(sortedTips);
-        
-        // Separate and sort active/closed tips
-        const active = sortedTips.filter(tip => tip.status === "Active");
-        const closed = sortedTips.filter(tip => tip.status !== "Active");
-        
-        setActiveTips(active);
-        setClosedTips(closed);
+      });
+      
+      setClosedTips(prevClosed => {
+        // Remove old tips of this category and add new ones
+        const filteredOld = prevClosed.filter(tip => tip.category?.toLowerCase() !== category);
+        return [...filteredOld, ...closed].sort((a, b) => 
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+      });
+      
+      console.log(`✅ ${category} tips loaded: ${active.length} active, ${closed.length} closed`);
+      
+    } catch (error) {
+      console.error(`Failed to load ${category} tips:`, error);
+      toast({
+        title: "Error",
+        description: `Failed to load ${category} tips. Please try again later.`,
+        variant: "destructive",
+      });
+    } finally {
+      setCategoryLoading(prev => ({ ...prev, [category]: false }));
+    }
+  };
 
-        // Set initial dates to latest tips
-        if (active.length > 0) {
-          setActiveDate(new Date(active[0].createdAt));
-        }
-        if (closed.length > 0) {
-          setClosedDate(new Date(closed[0].createdAt));
-        }
+  // Load initial data and subscription access
+  useEffect(() => {
+    async function loadInitialData() {
+      setLoading(true);
+      try {
+        // Load subscription access
+        const access = await subscriptionService.getSubscriptionAccess(true);
+        setSubscriptionAccess(access);
+        console.log("Subscription access data:", access);
         
-        console.log("Tips organized - Active:", active.length, "Closed:", closed.length);
-        console.log("All Tips data being passed:", sortedTips);
+        // Load initial category (basic) tips
+        await loadTipsByCategory('basic');
+        
       } catch (error) {
-        console.error("Failed to load tips:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load tips. Please try again later.",
-          variant: "destructive",
-        });
-        
-        // Set empty arrays to prevent crashes
-        setAllTips([]);
-        setActiveTips([]);
-        setClosedTips([]);
+        console.error("Failed to load initial data:", error);
       } finally {
         setLoading(false);
       }
     }
 
-    // Load subscription access
-    async function loadSubscriptionAccess() {
-      try {
-        const access = await subscriptionService.getSubscriptionAccess(true);
-        setSubscriptionAccess(access);
-        console.log("Subscription access data being passed:", access);
-        
-        // Debug subscription access
-        const debugInfo = await subscriptionService.debugSubscriptionAccess();
-        console.log("🔍 Debug subscription access:", debugInfo);
-      } catch (error) {
-        console.error("Failed to load subscription access:", error);
-      }
-    }
-
-    loadTips();
-    loadSubscriptionAccess();
+    loadInitialData();
   }, [toast]);
+
+  // Handle filter changes
+  const handleMainFilterChange = async (newFilter: string) => {
+    if (newFilter === mainFilter) return; // No change
+    
+    setMainFilter(newFilter);
+    
+    if (newFilter === 'basic' || newFilter === 'premium') {
+      await loadTipsByCategory(newFilter as 'basic' | 'premium');
+    }
+  };
+
+  const handleClosedFilterChange = async (newFilter: string) => {
+    if (newFilter === closedFilter) return; // No change
+    
+    setClosedFilter(newFilter);
+    
+    if (newFilter === 'basic' || newFilter === 'premium') {
+      await loadTipsByCategory(newFilter as 'basic' | 'premium');
+    }
+  };
 
   // Memoized date ranges
   const { activeDateRange, closedDateRange } = useMemo(() => {
@@ -241,20 +266,30 @@ export default function RangaOneWealth() {
         <CardContent className="p-6">
           <h2 className="text-xl font-bold mb-4 text-center font-helvetica">Open Recommendations</h2>
           <div className="flex justify-center mb-4 gap-3">
-            <div className="p-[4px] rounded-xl inline-block shadow-sm cursor-pointer bg-gradient-to-r from-[#A0A2FF] to-[#6E6E6E]" onClick={() => setMainFilter("basic")}>
+            <div 
+              className={`p-[4px] rounded-xl inline-block shadow-sm cursor-pointer transition-all bg-gradient-to-r from-[#A0A2FF] to-[#6E6E6E] ${
+                categoryLoading.basic ? "opacity-50 pointer-events-none" : ""
+              }`}
+              onClick={() => handleMainFilterChange("basic")}
+            >
               <div className="text-xl font-bold rounded-lg px-4 py-2 bg-gradient-to-r from-[#396C87] to-[#151D5C] text-white">
-                Basic
+                {categoryLoading.basic ? "Loading..." : "Basic"}
               </div>
             </div>
-            <div className="p-[4px] rounded-xl inline-block shadow-sm cursor-pointer bg-gradient-to-r from-yellow-400 to-yellow-500" onClick={() => setMainFilter("premium")}>
+            <div 
+              className={`p-[4px] rounded-xl inline-block shadow-sm cursor-pointer transition-all bg-gradient-to-r from-yellow-400 to-yellow-500 ${
+                categoryLoading.premium ? "opacity-50 pointer-events-none" : ""
+              }`}
+              onClick={() => handleMainFilterChange("premium")}
+            >
               <div className="text-xl font-outfit font-bold rounded-lg px-4 py-2 bg-gray-800 text-yellow-400">
-                Premium
+                {categoryLoading.premium ? "Loading..." : "Premium"}
               </div>
             </div>
           </div>
           <TipsCarousel 
             tips={filteredMainTips} 
-            loading={loading} 
+            loading={loading || categoryLoading[mainFilter as keyof typeof categoryLoading]} 
             onTipClick={handleTipClick} 
             categoryFilter={mainFilter as 'basic' | 'premium'}
             sliderSize="large"
@@ -268,20 +303,30 @@ export default function RangaOneWealth() {
         <CardContent className="p-6">
           <h2 className="text-xl font-bold mb-4 text-center">Closed Recommendations</h2>
           <div className="flex justify-center mb-4 gap-3">
-            <div className="p-[4px] rounded-xl inline-block shadow-sm cursor-pointer bg-gradient-to-r from-[#A0A2FF] to-[#6E6E6E]" onClick={() => setClosedFilter("basic")}>
+            <div 
+              className={`p-[4px] rounded-xl inline-block shadow-sm cursor-pointer transition-all bg-gradient-to-r from-[#A0A2FF] to-[#6E6E6E] ${
+                categoryLoading.basic ? "opacity-50 pointer-events-none" : ""
+              }`}
+              onClick={() => handleClosedFilterChange("basic")}
+            >
               <div className="text-xl font-bold rounded-lg px-4 py-2 bg-gradient-to-r from-[#396C87] to-[#151D5C] text-white">
-                Basic
+                {categoryLoading.basic ? "Loading..." : "Basic"}
               </div>
             </div>
-            <div className="p-[4px] rounded-xl inline-block shadow-sm cursor-pointer bg-gradient-to-r from-yellow-400 to-yellow-500" onClick={() => setClosedFilter("premium")}>
+            <div 
+              className={`p-[4px] rounded-xl inline-block shadow-sm cursor-pointer transition-all bg-gradient-to-r from-yellow-400 to-yellow-500 ${
+                categoryLoading.premium ? "opacity-50 pointer-events-none" : ""
+              }`}
+              onClick={() => handleClosedFilterChange("premium")}
+            >
               <div className="text-xl font-outfit font-bold rounded-lg px-4 py-2 bg-gray-800 text-yellow-400">
-                Premium
+                {categoryLoading.premium ? "Loading..." : "Premium"}
               </div>
             </div>
           </div>
           <TipsCarousel 
             tips={filteredClosedTips} 
-            loading={loading} 
+            loading={loading || categoryLoading[closedFilter as keyof typeof categoryLoading]} 
             onTipClick={handleTipClick} 
             categoryFilter={closedFilter as 'basic' | 'premium'}
             userSubscriptionAccess={subscriptionAccess} // Pass subscription access

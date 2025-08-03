@@ -245,20 +245,20 @@ export default function StockRecommendationPage() {
             <div className="bg-white rounded-lg p-2">
               <div className="flex justify-between items-start"> 
                 <div>
-                                                          <div className={`p-[4px] rounded inline-block ${
+                                                          <div className={`p-[2px] rounded inline-block ${
                       tipData.category === 'premium' 
                         ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' 
-                        : 'bg-gradient-to-r from-blue-400 to-blue-700'
+                        : 'bg-gradient-to-r from-[#A0A2FF] to-[#6E6E6E]'
                     }`}>
                       <div className={`text-xs font-semibold rounded px-2 py-0.5 ${
                         tipData.category === 'premium' 
                           ? 'bg-gray-800 text-yellow-400' 
-                          : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                          : 'bg-gradient-to-r from-[#396C87] to-[#151D5C] text-white'
                       }`}>
                       {tipData.category === 'premium' ? 'Premium' : 'Basic'}
                     </div>
                   </div>
-                  <h3 className="text-xl font-bold" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{stockData?.symbol || tipData.stockId || 'STOCK'}
+                  <h3 className="md:text-xl text-md font-bold" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{stockData?.symbol || tipData.stockId || 'STOCK'}
                     <p className="text-sm font-light text-gray-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{stockData?.exchange || 'NSE'}</p>
                   </h3>
                   
@@ -271,24 +271,27 @@ export default function StockRecommendationPage() {
                         ? 'bg-gradient-to-r from-[#627281] to-[#A6AFB6]' 
                         : 'bg-[#219612]'
                     }`}>
-                      <div className={`rounded-md px-4 py-2 text-center min-w-[80px] ${
+                      <div className={`rounded-lg text-center min-w-[80px] py-0.5 px-1 ${
                         (tipData.exitStatus?.toLowerCase().includes('loss') || (tipData.exitStatusPercentage && parseFloat(tipData.exitStatusPercentage.replace('%', '')) < 0))
                           ? 'bg-gradient-to-tr from-[#A6AFB6] to-[#627281]' 
                           : 'bg-gradient-to-r from-green-50 to-green-100'
                       }`}>
-                        <p className={`text-xl mb-1 font-semibold ${
+                        <p className={`text-sm font-bold text-center mb-0 ${
                           (tipData.exitStatus?.toLowerCase().includes('loss') || (tipData.exitStatusPercentage && parseFloat(tipData.exitStatusPercentage.replace('%', '')) < 0)) ? 'text-white' : 'text-black'
                         }`} style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.exitStatus || 'Exit Status'}</p>
-                        <p className={`text-2xl font-bold ${
+                        <p className={`text-3xl font-bold -mt-1 mb-0 ${
                           (tipData.exitStatus?.toLowerCase().includes('loss') || (tipData.exitStatusPercentage && parseFloat(tipData.exitStatusPercentage.replace('%', '')) < 0)) ? 'text-white' : 'text-black'
                         }`} style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{formatPercentage(tipData.exitStatusPercentage)}</p>
+                        <p className={`text-xs font-bold text-right px-1 -mt-1 ${
+                          (tipData.exitStatus?.toLowerCase().includes('loss') || (tipData.exitStatusPercentage && parseFloat(tipData.exitStatusPercentage.replace('%', '')) < 0)) ? 'text-white' : 'text-black'
+                        }`} style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}></p>
                       </div>
                     </div>
                   )
                 ) : (
                   tipData.targetPercentage && (
                     <div className="bg-[#219612] p-[4px] rounded-xl ">
-                      <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg text-center min-w-[80px] py-0.5">
+                      <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg text-center min-w-[80px] py-0.5 px-1">
                         <p className="text-sm text-black font-bold text-center mb-0" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Target</p>
                         <p className="text-3xl font-bold text-black -mt-1 mb-0" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{formatPercentage(tipData.targetPercentage)}</p>
                         <p className="text-xs text-black font-bold text-right px-1 -mt-1" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Upto</p>
@@ -302,7 +305,7 @@ export default function StockRecommendationPage() {
                 <div className="relative">
                   <div className="flex justify-between items-center mb-1">
                     <p className="text-xs text-gray-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Analyst Confidence</p>
-                    <p className="text-xs" style={{ color: colorScheme.textColor, fontFamily: 'Helvetica, Arial, sans-serif' }}>
+                    <p className="text-xs mt-0.5" style={{ color: colorScheme.textColor, fontFamily: 'Helvetica, Arial, sans-serif' }}>
                       {tipData.analysistConfidence >= 8 ? 'Very High' : 
                        tipData.analysistConfidence >= 6 ? 'High' : 
                        tipData.analysistConfidence >= 4 ? 'Medium' : 
@@ -352,42 +355,42 @@ export default function StockRecommendationPage() {
                   <>
                     {tipData.buyRange && (
                       <div className="text-center">
-                        <p className="font-bol md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Buy Range</p>
+                        <p className="md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Buy Range</p>
                         <p className="md:text-xl text-md font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.buyRange}</p>
                       </div>
                     )}
                     
                     {tipData.exitPrice && (
                       <div className="text-center">
-                        <p className="font-bold text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Exit Range</p>
+                        <p className="text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Exit Range</p>
                         <p className="md:text-xl text-[0.9rem] font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.exitPrice}</p>
                       </div>
                     )}
                     
                     {tipData.horizon && (
                       <div className="text-center">
-                        <p className="font-bold text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Horizon</p>
+                        <p className="text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Horizon</p>
                         <p className="md:text-xl text-[0.9rem] font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.horizon}</p>
                       </div>
                     )}
                     
                     {tipData.createdAt && (
                       <div className="text-center">
-                        <p className="font-bold text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Created On</p>
+                        <p className="text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Created On</p>
                         <p className="md:text-xl text-[0.9rem] font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{recommendedDate}</p>
                       </div>
                     )}
                     
                     {(tipData.exitStatus || tipData.exitStatusPercentage) && (
                       <div className="text-center">
-                        <p className="font-bold text-[0.9rem] md:text-2xl lg:text-2xl text-black" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.exitStatus || 'Exit Status'}</p>
+                        <p className="text-[0.9rem] md:text-2xl lg:text-2xl text-black" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.exitStatus || 'Exit Status'}</p>
                         <p className="md:text-xl text-[0.9rem] font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{formatPercentage(tipData.exitStatusPercentage)}</p>
                       </div>
                     )}
                     
                     {tipData.updatedAt && (
                       <div className="text-center">
-                        <p className="font-bold text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Exit Date</p>
+                        <p className="text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Exit Date</p>
                         <p className="md:text-xl text-[0.9rem] font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{format(new Date(tipData.updatedAt), 'dd MMM yyyy')}</p>
                       </div>
                     )}
@@ -397,40 +400,40 @@ export default function StockRecommendationPage() {
                   <>
                     {tipData.buyRange && (
                       <div className="text-center">
-                        <p className="font-bold text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Buy Range</p>
+                        <p className="text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Buy Range</p>
                         <p className="md:text-xl text-[0.9rem] font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.buyRange}</p>
                       </div>
                     )}
                     
                     {tipData.targetPrice && (
                       <div className="text-center">
-                        <p className="font-bold text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Target Price</p>
+                        <p className="text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Target Price</p>
                         <p className="md:text-xl text-[0.9rem] font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.targetPrice}</p>
                       </div>
                     )}
                     
                     {tipData.addMoreAt && (
                       <div className="text-center">
-                        <p className="font-bold text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Add More At</p>
+                        <p className="text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Add More At</p>
                         <p className="md:text-xl text-[0.9rem] font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.addMoreAt}</p>
                       </div>
                     )}
                     
                     <div className="text-center">
-                      <p className="font-bold text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Stop Loss</p>
+                      <p className="text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Stop Loss</p>
                       <p className="md:text-xl text-[0.9rem] font-bold text-red-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{getStopLoss(tipData.content) || 'N/A'}</p>
                     </div>
                     
                     {tipData.horizon && (
                       <div className="text-center">
-                        <p className="font-bold text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Horizon</p>
+                        <p className="text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Horizon</p>
                         <p className="md:text-xl text-[0.9rem] font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.horizon}</p>
                       </div>
                     )}
                     
                     {tipData.createdAt && (
                       <div className="text-center">
-                        <p className="font-bold text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Created On</p>
+                        <p className="text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Created On</p>
                         <p className="md:text-xl text-[0.9rem] font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{recommendedDate}</p>
                       </div>
                     )}
