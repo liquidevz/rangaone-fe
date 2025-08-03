@@ -245,7 +245,7 @@ export default function StockRecommendationPage() {
             <div className="bg-white rounded-lg p-2">
               <div className="flex justify-between items-start"> 
                 <div>
-                                                          <div className={`p-[2px] rounded inline-block ${
+                                                          <div className={`p-[4px] rounded inline-block ${
                       tipData.category === 'premium' 
                         ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' 
                         : 'bg-gradient-to-r from-blue-400 to-blue-700'
@@ -266,7 +266,7 @@ export default function StockRecommendationPage() {
                 
                 {(tipData.status?.toLowerCase() === 'closed' || tipData.exitStatus || tipData.exitStatusPercentage) ? (
                   (tipData.exitStatus || tipData.exitStatusPercentage) && (
-                    <div className={`p-[2px] rounded-lg ${
+                    <div className={`p-[4px] rounded-xl ${
                       (tipData.exitStatus?.toLowerCase().includes('loss') || (tipData.exitStatusPercentage && parseFloat(tipData.exitStatusPercentage.replace('%', '')) < 0))
                         ? 'bg-gradient-to-r from-[#627281] to-[#A6AFB6]' 
                         : 'bg-[#219612]'
@@ -287,8 +287,8 @@ export default function StockRecommendationPage() {
                   )
                 ) : (
                   tipData.targetPercentage && (
-                    <div className="bg-[#219612] p-[2px] rounded-lg ">
-                      <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-md text-center min-w-[80px] py-0.5">
+                    <div className="bg-[#219612] p-[4px] rounded-xl ">
+                      <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg text-center min-w-[80px] py-0.5">
                         <p className="text-sm text-black font-bold text-center mb-0" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Target</p>
                         <p className="text-3xl font-bold text-black -mt-1 mb-0" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{formatPercentage(tipData.targetPercentage)}</p>
                         <p className="text-xs text-black font-bold text-right px-1 -mt-1" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Upto</p>

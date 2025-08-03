@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { motion, useMotionValue, animate, type PanInfo } from "framer-motion";
+import { motion, useMotionValue, animate, useTransform, type PanInfo, type MotionValue } from "framer-motion";
 import { format, differenceInDays, addDays, isSameDay } from "date-fns";
 
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ import {
   type SubscriptionAccess,
 } from "@/services/subscription.service";
 import { stockPriceService } from "@/services/stock-price.service";
+import { stockSymbolCacheService } from "@/services/stock-symbol-cache.service";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { portfolioService } from "@/services/portfolio.service";
@@ -140,6 +141,49 @@ const getTipColorScheme = (
   }
 };
 
+// Tick component for the new slider
+type TickProps = {
+  index: number
+  x: MotionValue<number>
+  sliderWidth: number
+  segmentWidth: number
+}
+
+// These values control the appearance of the ticks
+const MAX_HEIGHT = 40 // Height of the center tick in pixels
+const MIN_HEIGHT = 16 // Height of the furthest ticks
+const FALLOFF_DISTANCE = 160 // How quickly the ticks shrink
+
+function Tick({ index, x, sliderWidth, segmentWidth, isSelected = false }: TickProps & { isSelected?: boolean }) {
+  const halfSegment = segmentWidth / 2
+
+  // useTransform is a powerful hook from Framer Motion.
+  // It creates a new MotionValue that transforms the output of another.
+  // Here, it's watching the main slider's `x` position.
+  const height = useTransform(x, (latestX) => {
+    // Calculate the absolute position of this specific tick on the screen
+    const tickPosition = latestX + index * segmentWidth + halfSegment
+    const centerOfSlider = sliderWidth / 2
+
+    // Find the distance between this tick and the center of the slider
+    const distanceFromCenter = Math.abs(tickPosition - centerOfSlider)
+
+    // Map the distance to a height value using a smooth falloff
+    const scale = Math.max(0, 1 - distanceFromCenter / FALLOFF_DISTANCE)
+    const easedScale = scale * scale // A simple quadratic easing for a nice effect
+
+    // Return the calculated height
+    return MIN_HEIGHT + (MAX_HEIGHT - MIN_HEIGHT) * easedScale
+  })
+
+  return (
+    <motion.div 
+      className={`w-0.5 ${isSelected ? 'bg-blue-600' : 'bg-black'}`} 
+      style={{ height }} 
+    />
+  )
+}
+
 interface DateTimelineSliderProps {
   dateRange: {
     min: Date;
@@ -158,182 +202,157 @@ export function DateTimelineSlider({
   className,
   datesWithTips = [],
 }: DateTimelineSliderProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(0);
-  const [tickSpacing] = useState(32); // More space for clarity
-  const [isDragging, setIsDragging] = useState(false);
+  const sliderRef = useRef<HTMLDivElement>(null)
+  const [sliderWidth, setSliderWidth] = useState(0)
+  const x = useMotionValue(0)
 
-  const x = useMotionValue(0);
+  const segmentWidth = 32
+  const halfSegment = segmentWidth / 2
 
-  // Timeline: earliest on left, latest on right
-  const totalDays = useMemo(
-    () => differenceInDays(dateRange.max, dateRange.min) + 1,
-    [dateRange.min, dateRange.max]
-  );
-  const timelineWidth = useMemo(
-    () => totalDays * tickSpacing,
-    [totalDays, tickSpacing]
-  );
-  const currentPosition = useMemo(
-    () => differenceInDays(selectedDate, dateRange.min),
-    [selectedDate, dateRange.min]
-  );
+  // Get unique dates with tip counts
+  const dateData = useMemo(() => {
+    const dateMap = new Map<string, { date: Date; count: number }>();
+    
+    datesWithTips.forEach(date => {
+      const dateKey = format(date, 'yyyy-MM-dd');
+      if (dateMap.has(dateKey)) {
+        dateMap.get(dateKey)!.count++;
+      } else {
+        dateMap.set(dateKey, { date, count: 1 });
+      }
+    });
+    
+    return Array.from(dateMap.values())
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
+  }, [datesWithTips]);
+
+  const dates = useMemo(() => {
+    return dateData.map(item => item.date);
+  }, [dateData]);
+
+  // Find the current selected index
+  const selectedIndex = useMemo(() => {
+    return dates.findIndex(date => isSameDay(date, selectedDate));
+  }, [dates, selectedDate]);
 
   useEffect(() => {
-    if (containerRef.current) {
-      const updateWidth = () =>
-        setContainerWidth(containerRef.current?.offsetWidth ?? 0);
-      updateWidth();
-      window.addEventListener("resize", updateWidth);
-      return () => window.removeEventListener("resize", updateWidth);
+    if (sliderRef.current) {
+      setSliderWidth(sliderRef.current.offsetWidth)
     }
-  }, []);
+  }, [])
+
+  const formatDisplayDate = (date: Date) => {
+    const weekday = format(date, "EEEE");
+    const dateStr = format(date, "dd MMM yyyy");
+    return `${weekday}, ${dateStr}`;
+  };
 
   useEffect(() => {
-    if (containerWidth > 0 && !isDragging) {
-      const targetX = containerWidth / 2 - currentPosition * tickSpacing;
-      animate(x, targetX, {
-        type: "spring",
-        stiffness: 400,
-        damping: 40,
-        velocity: 0.2,
-      });
-    }
-  }, [selectedDate, containerWidth, currentPosition, tickSpacing, x, isDragging]);
+    const unsubscribeX = x.on("change", (latestX) => {
+      if (sliderWidth === 0 || !dates.length) return
+      const centerOffset = sliderWidth / 2
+      const rawIndex = (centerOffset - latestX - halfSegment) / segmentWidth
+      const newIndex = Math.max(0, Math.min(dates.length - 1, Math.round(rawIndex)))
 
-  const handleDragStart = () => setIsDragging(true);
+      if (newIndex !== selectedIndex && dates[newIndex]) {
+        onDateChange(dates[newIndex])
+      }
+    })
+    return () => unsubscribeX()
+  }, [x, dates, selectedIndex, onDateChange, segmentWidth, sliderWidth, halfSegment])
 
   const handleDragEnd = () => {
-    const finalX = x.get();
-    const centeredPositionInTimeline = containerWidth / 2 - finalX;
-    const dayIndex = Math.round(centeredPositionInTimeline / tickSpacing);
-    const clampedDayIndex = Math.max(0, Math.min(totalDays - 1, dayIndex));
-    const newDate = addDays(dateRange.min, clampedDayIndex);
+    if (sliderWidth === 0 || !dates.length) return
+    const centerOffset = sliderWidth / 2
+    const targetX = centerOffset - halfSegment - selectedIndex * segmentWidth
 
-    // Snap to the new date
-    const snapX = containerWidth / 2 - clampedDayIndex * tickSpacing;
-    animate(x, snapX, {
+    animate(x, targetX, {
       type: "spring",
       stiffness: 500,
-      damping: 30,
-      velocity: 0.5,
-    });
+      damping: 50,
+      mass: 1,
+    })
+  }
 
-    if (!isSameDay(newDate, selectedDate)) {
-      onDateChange(newDate);
+  useEffect(() => {
+    if (sliderWidth > 0 && selectedIndex >= 0) {
+      const centerOffset = sliderWidth / 2
+      const initialX = centerOffset - halfSegment - selectedIndex * segmentWidth
+      animate(x, initialX, { type: "spring", stiffness: 500, damping: 50 })
     }
-    setTimeout(() => setIsDragging(false), 100);
-  };
+  }, [selectedIndex, segmentWidth, x, sliderWidth, dates, halfSegment])
 
-  const dragConstraints = {
-    right: containerWidth / 2,
-    left: containerWidth / 2 - timelineWidth,
-  };
+  const totalRulerWidth = Math.max(0, (dates.length - 1) * segmentWidth)
 
-  const formatDisplayDate = (date: Date) => format(date, "dd MMM yyyy");
-  const dateHasTip = (date: Date) =>
-    datesWithTips.some((tipDate) => isSameDay(tipDate, date));
-
-  const ticks = useMemo(() => {
-    return Array.from({ length: totalDays }).map((_, i) => {
-      const tickDate = addDays(dateRange.min, i);
-      const isHighlighted = isSameDay(tickDate, selectedDate);
-      const hasTip = dateHasTip(tickDate);
-      return {
-        position: i * tickSpacing,
-        isHighlighted,
-        hasTip,
-        date: tickDate,
-        showLabel: isHighlighted || i % 5 === 0,
-      };
-    });
-  }, [totalDays, tickSpacing, dateRange.min, selectedDate, datesWithTips]);
-
-  return (
-    <div
-      ref={containerRef}
-      className={`relative w-full max-w-2xl h-24 mx-auto overflow-hidden cursor-grab active:cursor-grabbing transition-all duration-300 ${className || ""}`}
-    >
-      {/* Static Date Indicator */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
-        <div className="bg-white text-gray-800 px-4 py-2 rounded-full text-sm sm:text-base font-semibold shadow-lg border border-gray-200 whitespace-nowrap">
-          {formatDisplayDate(selectedDate)}
+  if (!dates.length) {
+    return (
+      <div className="w-full py-8 select-none">
+        <div className="text-center mb-6 h-16 flex flex-col justify-center">
+          <p className="text-lg font-semibold tracking-tight text-gray-900">
+            No tips available
+          </p>
         </div>
       </div>
+    )
+  }
 
-      {/* Static Center Pointer */}
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-8 bg-blue-600 z-10 pointer-events-none" />
-
-      {/* Timeline Bar */}
-      <div className="absolute bottom-8 left-0 w-full h-1 bg-gray-200 rounded-full z-0" />
-
-      {/* Draggable Timeline */}
-      <motion.div
-        className="absolute top-0 left-0 h-full"
-        style={{ x }}
-        drag="x"
-        dragConstraints={dragConstraints}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        dragElastic={0.1}
-        dragMomentum={true}
-        dragTransition={{
-          power: 0.3,
-          timeConstant: 200,
-          modifyTarget: (target) => Math.round(target / tickSpacing) * tickSpacing,
-        }}
+  return (
+    <div className={`w-full py-8 select-none ${className || ""}`}>
+      <div className="text-center mb-6 h-16 flex flex-col justify-center">
+        {dates[selectedIndex] && (
+          <>
+            <p className="text-lg font-semibold tracking-tight text-gray-900">
+              {formatDisplayDate(dates[selectedIndex])}
+            </p>
+            <p className="text-sm text-gray-500">
+              {dateData[selectedIndex]?.count > 1 
+                ? `${dateData[selectedIndex].count} tips for this date`
+                : "Tip for this date"
+              }
+            </p>
+          </>
+        )}
+      </div>
+      <div
+        ref={sliderRef}
+        className="relative w-full h-16 flex items-end overflow-hidden cursor-grab active:cursor-grabbing"
       >
-        <div
-          className="relative h-full flex items-end"
-          style={{ width: `${timelineWidth}px` }}
-        >
-          {ticks.map((tick, i) => (
-            <div key={i} className="relative">
-              {/* Tick */}
-              <div
-                className={`absolute bottom-0 w-0.5 transition-all duration-200 ${
-                  tick.isHighlighted
-                    ? "h-10 bg-blue-600 shadow-lg"
-                    : "h-6 bg-gray-400"
-                }`}
-                style={{ left: `${tick.position}px` }}
-              />
-              {/* Tip indicator dot */}
-              {tick.hasTip && (
-                <div
-                  className={`absolute w-2 h-2 rounded-full bg-green-500 shadow-sm transition-all duration-200 border-2 ${
-                    tick.isHighlighted ? "border-blue-600" : "border-white"
-                  }`}
-                  style={{
-                    left: `${tick.position - 3}px`,
-                    bottom: tick.isHighlighted ? "12px" : "8px",
-                    transform: tick.isHighlighted ? "scale(1.5)" : "scale(1)",
-                  }}
-                />
-              )}
-              {/* Date label */}
-              {tick.showLabel && (
-                <div
-                  className={`absolute text-[11px] font-medium whitespace-nowrap transition-opacity duration-200 ${
-                    tick.isHighlighted
-                      ? "text-blue-700 font-bold opacity-100"
-                      : "text-gray-500 opacity-60"
-                  }`}
-                  style={{
-                    left: `${tick.position}px`,
-                    bottom: "32px",
-                    transform: "translateX(-50%)",
-                  }}
-                >
-                  {format(tick.date, "d MMM")}
+        {sliderWidth > 0 && (
+          <>
+            <motion.div
+              className="flex items-end"
+              style={{ x }}
+              drag="x"
+              onDragEnd={handleDragEnd}
+              dragConstraints={{
+                left: sliderWidth / 2 - halfSegment - totalRulerWidth,
+                right: sliderWidth / 2 - halfSegment,
+              }}
+              dragTransition={{ bounceStiffness: 400, bounceDamping: 50 }}
+            >
+              {dates.map((_, i) => (
+                <div key={i} className="flex-shrink-0 flex flex-col items-center" style={{ width: segmentWidth }}>
+                  <Tick 
+                    index={i} 
+                    x={x} 
+                    sliderWidth={sliderWidth} 
+                    segmentWidth={segmentWidth}
+                    isSelected={i === selectedIndex}
+                  />
                 </div>
-              )}
+              ))}
+            </motion.div>
+
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-5 h-5 pointer-events-none z-10">
+              <div className="w-full h-full bg-black rounded-full shadow-lg flex items-start justify-center pt-0.5">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"/>
+              </div>
             </div>
-          ))}
-        </div>
-      </motion.div>
+          </>
+        )}
+      </div>
     </div>
-  );
+  )
 }
 
 const TipCard = ({
@@ -389,7 +408,7 @@ const TipCard = ({
       )}
       style={{
         background: colorScheme.gradient,
-        padding: isActive ? "3px" : "2px",
+        padding: isActive ? "4px" : "3px",
       }}
       onClick={canAccessTip ? onClick : undefined}
     >
@@ -397,14 +416,14 @@ const TipCard = ({
         <div
           className={cn(
             "w-full h-full flex flex-col justify-between relative z-10",
-            shouldBlurContent && "blur-sm"
+            shouldBlurContent && "blur-md"
           )}
         >
           <div className="flex justify-between items-start gap-2 sm:gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
                 {isModelPortfolio ? (
-                  <div className="relative bg-gradient-to-r from-[#00B7FF] to-[#85D437] p-[2px] rounded-lg overflow-hidden">
+                  <div className="relative bg-gradient-to-r from-[#00B7FF] to-[#85D437] p-[4px] rounded-xl overflow-hidden">
                     <div className="bg-black text-xs sm:text-sm font-bold rounded-md px-2 sm:px-3 py-0.5 sm:py-1 overflow-hidden">
                       {tip.portfolioName ? (
                         <div className="overflow-hidden">
@@ -421,15 +440,15 @@ const TipCard = ({
                     </div>
                   </div>
                 ) : (
-                  <div className={`p-[2px] rounded inline-block shadow-sm whitespace-nowrap ${
+                  <div className={`p-[4px] rounded-xl inline-block shadow-sm whitespace-nowrap ${
                     tip.category === 'premium' 
                       ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' 
-                      : 'bg-gradient-to-r from-blue-400 to-blue-700'
+                      : 'bg-gradient-to-r from-[#A0A2FF] to-[#6E6E6E]'
                   }`}>
-                    <div className={`text-xs sm:text-sm font-semibold rounded px-2 sm:px-2.5 py-0.5 sm:py-1 ${
+                    <div className={`text-xs sm:text-sm font-semibold rounded-lg px-2 sm:px-2.5 py-0.5 sm:py-1 ${
                       tip.category === 'premium' 
                         ? 'bg-gray-800 text-yellow-400' 
-                        : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                        : 'bg-gradient-to-r from-[#396C87] to-[#151D5C] text-white'
                     }`}>
                       {tip.category.charAt(0).toUpperCase() +
                         tip.category.slice(1)}
@@ -443,7 +462,7 @@ const TipCard = ({
               </div>
               <p className="text-xs sm:text-sm text-gray-500">{tip.exchange}</p>
             </div>
-            <div className={`relative p-[2px] rounded-lg flex-shrink-0 ${
+            <div className={`relative p-[4px] rounded-xl flex-shrink-0 ${
               isModelPortfolio 
                 ? "bg-gradient-to-r from-[#00B7FF] to-[#85D437]" 
                 : tip.status === "closed"
@@ -452,7 +471,7 @@ const TipCard = ({
                     : "bg-[#219612]"
                   : "bg-[#219612]"
             }`}>
-              <div className={`rounded-md px-1.5 sm:px-2 md:px-2.5 py-1 sm:py-1.5 text-center min-w-[40px] sm:min-w-[44px] md:min-w-[50px] ${
+              <div className={`rounded-lg px-1.5 sm:px-2 md:px-2.5 py-1 sm:py-1.5 text-center min-w-[40px] sm:min-w-[44px] md:min-w-[50px] ${
                 isModelPortfolio 
                   ? "bg-cyan-50" 
                   : tip.status === "closed"
@@ -569,6 +588,7 @@ export default function TipsCarousel({
 }: TipsCarouselProps) {
   const [tips, setTips] = useState<TipCardData[]>([]);
   const [loading, setLoading] = useState(propLoading || false);
+  const [symbolsLoading, setSymbolsLoading] = useState(false);
   const [subscriptionAccess, setSubscriptionAccess] = useState<
     SubscriptionAccess | undefined
   >(userSubscriptionAccess);
@@ -733,49 +753,57 @@ export default function TipsCarousel({
     }
   }, [currentIndex, tips, currentTipDate]);
 
-  // Fetch stock symbols for tips that have stockId
+  // Fetch stock symbols for tips that have stockId using global cache
   const fetchStockSymbols = async (apiTips: Tip[]) => {
     const tipsWithStockId = apiTips.filter((tip) => tip.stockId);
-    if (tipsWithStockId.length === 0) return;
+    if (tipsWithStockId.length === 0) {
+      setSymbolsLoading(false);
+      return;
+    }
 
     try {
+      setSymbolsLoading(true);
       console.log(
-        `🔍 Fetching stock symbols for ${tipsWithStockId.length} tips`
+        `🔍 Fetching stock symbols for ${tipsWithStockId.length} tips using cache service`
       );
-      const stockIds = tipsWithStockId.map((tip) => {
-        // Remove .NS or other exchange suffixes if present and trim whitespace
+      
+      // Extract unique stock IDs
+      const stockIds = Array.from(new Set(tipsWithStockId.map((tip) => {
         return tip.stockId!.replace(/\.[A-Z]+$/, '').trim();
-      });
+      })));
 
-      const stockResults = await stockPriceService.getMultipleStockPricesById(
-        stockIds
+      // Use the cache service to get all symbols
+      const symbolResults = await stockSymbolCacheService.getMultipleSymbols(stockIds);
+      
+      // Convert to the format expected by the component
+      setStockSymbols(symbolResults);
+      
+      console.log(
+        `✅ Successfully fetched ${symbolResults.size} symbols using cache service`
       );
-      const newStockSymbols = new Map<string, string>();
-
-      stockResults.forEach((result, stockId) => {
-        if (result.success && result.data?.symbol) {
-          newStockSymbols.set(stockId, result.data.symbol);
-          console.log(
-            `✅ Fetched symbol for ${stockId}: ${result.data.symbol}`
-          );
-        } else {
-          console.warn(`⚠️ Failed to fetch symbol for ${stockId}`);
-        }
-      });
-
-      setStockSymbols(newStockSymbols);
     } catch (error) {
       console.error("❌ Failed to fetch stock symbols:", error);
+    } finally {
+      setSymbolsLoading(false);
     }
   };
 
   const convertTipsToCarouselFormat = (apiTips: Tip[]): TipCardData[] => {
     return apiTips.map((tip, index) => {
-      // Use fetched stock symbol if available, otherwise use stockId or fallback
+      // Use fetched stock symbol from state first
       let stockName = stockSymbols.get(tip.stockId || "");
+      
+      // If not in state, check the cache service directly
       if (!stockName && tip.stockId) {
-        stockName = tip.stockId; // Use stockId as fallback if symbol not fetched yet
+        stockName = stockSymbolCacheService.getCachedSymbol(tip.stockId) || undefined;
       }
+      
+      // Only use stockId as last resort if symbols are still loading
+      if (!stockName && tip.stockId && !symbolsLoading) {
+        stockName = tip.stockId;
+      }
+      
+      // Other fallbacks
       if (!stockName) {
         stockName = tip.title?.split(":")[0]?.split("-")[0]?.trim();
       }
@@ -943,6 +971,9 @@ export default function TipsCarousel({
 
   useEffect(() => {
     const fetchTips = async () => {
+      // Wait for cache service to initialize
+      await stockSymbolCacheService.waitForInitialization();
+      
       if (propTips) {
         let filteredTips = propTips;
 
@@ -954,6 +985,10 @@ export default function TipsCarousel({
 
         // Fetch stock symbols first, then convert tips
         await fetchStockSymbols(filteredTips);
+        
+        // Wait a bit to ensure symbols are loaded
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         const carouselTips = convertTipsToCarouselFormat(filteredTips);
         setTips(carouselTips);
         setLoading(false);
@@ -977,6 +1012,10 @@ export default function TipsCarousel({
 
         // Fetch stock symbols first, then convert tips
         await fetchStockSymbols(apiTips);
+        
+        // Wait a bit to ensure symbols are loaded
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         const carouselTips = convertTipsToCarouselFormat(apiTips);
         setTips(carouselTips);
       } catch (error) {
@@ -1016,9 +1055,9 @@ export default function TipsCarousel({
     fetchTips();
   }, [portfolioId, propTips, categoryFilter]);
 
-  // Re-convert tips when stock symbols are updated
+  // Re-convert tips when stock symbols are updated (only if not already loading)
   useEffect(() => {
-    if (propTips) {
+    if (propTips && !loading && !symbolsLoading && stockSymbols.size > 0) {
       let filteredTips = propTips;
       if (categoryFilter !== "all") {
         filteredTips = propTips.filter(
@@ -1028,7 +1067,7 @@ export default function TipsCarousel({
       const carouselTips = convertTipsToCarouselFormat(filteredTips);
       setTips(carouselTips);
     }
-  }, [stockSymbols, propTips, categoryFilter]);
+  }, [stockSymbols, propTips, categoryFilter, loading, symbolsLoading]);
 
   useEffect(() => {
     const fetchSubscriptionAccess = async () => {
@@ -1087,12 +1126,14 @@ export default function TipsCarousel({
     }
   }, [tips.length, containerWidth, dimensions.cardWidth, x]);
 
-  if (loading) {
+  if (loading || symbolsLoading) {
     return (
       <div className="relative w-full flex flex-col items-center justify-center overflow-hidden py-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading tips...</p>
+          <p className="text-gray-600">
+            {loading ? "Loading tips..." : "Loading stock symbols..."}
+          </p>
         </div>
       </div>
     );

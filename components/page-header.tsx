@@ -25,7 +25,7 @@ export function PageHeader({ title, subtitle, showBackButton = true }: PageHeade
       <h1 className="font-bold text-center lg:text-7xl md:text-7xl text-5xl">{title}</h1>
       {subtitle && (
         <div className="text-center md:mt-2 mt-0 ">
-          <span className="md:text-lg text-xs">{subtitle}</span>
+          <span className="md:text-lg text-xs font-bold">{subtitle}</span>
         </div>
       )}
     </div>

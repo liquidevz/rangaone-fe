@@ -4,7 +4,7 @@
 
 @layer base {
   h1, h2, h3, h4, h5, h6 {
-    font-family: "Times New Roman", serif;
+    font-family: var(--font-helvetica), var(--font-times-new-roman);
   }
 }
 
@@ -108,6 +108,9 @@
     --chart-5: 27 87% 67%;
 
     --radius: 0.5rem;
+    --font-times-new-roman: "Times New Roman", serif;
+    --font-helvetica: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --font-outfit: "Outfit", sans-serif;
   }
 
   .dark {

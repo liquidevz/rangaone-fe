@@ -67,9 +67,9 @@ export default function RangaOneWealth() {
         // Ensure data is an array
         const tipsArray = Array.isArray(data) ? data : [];
         
-        // Sort tips by date (newest first)
-        const sortedTips = [...tipsArray].sort((a, b) => 
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        // Sort tips by date (oldest first)
+        const sortedTips = [...tipsArray].sort((a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
         
         setAllTips(sortedTips);
@@ -209,7 +209,7 @@ export default function RangaOneWealth() {
         <div className="space-y-8">
           <PageHeader
             title="RangaOne Wealth"
-            subtitle="Expert stock recommendations and portfolio management"
+            subtitle="Expert Stock Recommendations"
           />
           <div className="space-y-8">
             <div className="text-center">
@@ -231,7 +231,7 @@ export default function RangaOneWealth() {
     <DashboardLayout userId="1">
       <PageHeader
           title="RANGAONE WEALTH"
-        subtitle="Expert Model Portfolio & Stock Recommendations"
+          subtitle="Expert Stock Recommendations"
       />
 
 
@@ -239,15 +239,15 @@ export default function RangaOneWealth() {
       {/* Open Recommendations Section */}
       <Card className="mt-12 mb-12 shadow-sm border border-gray-200">
         <CardContent className="p-6">
-          <h2 className="text-xl font-bold mb-4 text-center">Open Recommendations</h2>
+          <h2 className="text-xl font-bold mb-4 text-center font-helvetica">Open Recommendations</h2>
           <div className="flex justify-center mb-4 gap-3">
-            <div className="p-[2px] rounded inline-block shadow-sm cursor-pointer bg-gradient-to-r from-blue-400 to-blue-700" onClick={() => setMainFilter("basic")}>
-              <div className="text-sm font-semibold rounded px-3 py-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+            <div className="p-[4px] rounded-xl inline-block shadow-sm cursor-pointer bg-gradient-to-r from-[#A0A2FF] to-[#6E6E6E]" onClick={() => setMainFilter("basic")}>
+              <div className="text-xl font-bold rounded-lg px-4 py-2 bg-gradient-to-r from-[#396C87] to-[#151D5C] text-white">
                 Basic
               </div>
             </div>
-            <div className="p-[2px] rounded inline-block shadow-sm cursor-pointer bg-gradient-to-r from-yellow-400 to-yellow-500" onClick={() => setMainFilter("premium")}>
-              <div className="text-sm font-semibold rounded px-3 py-1 bg-gray-800 text-yellow-400">
+            <div className="p-[4px] rounded-xl inline-block shadow-sm cursor-pointer bg-gradient-to-r from-yellow-400 to-yellow-500" onClick={() => setMainFilter("premium")}>
+              <div className="text-xl font-outfit font-bold rounded-lg px-4 py-2 bg-gray-800 text-yellow-400">
                 Premium
               </div>
             </div>
@@ -268,13 +268,13 @@ export default function RangaOneWealth() {
         <CardContent className="p-6">
           <h2 className="text-xl font-bold mb-4 text-center">Closed Recommendations</h2>
           <div className="flex justify-center mb-4 gap-3">
-            <div className="p-[2px] rounded inline-block shadow-sm cursor-pointer bg-gradient-to-r from-blue-400 to-blue-700" onClick={() => setClosedFilter("basic")}>
-              <div className="text-sm font-semibold rounded px-3 py-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+            <div className="p-[4px] rounded-xl inline-block shadow-sm cursor-pointer bg-gradient-to-r from-[#A0A2FF] to-[#6E6E6E]" onClick={() => setClosedFilter("basic")}>
+              <div className="text-xl font-bold rounded-lg px-4 py-2 bg-gradient-to-r from-[#396C87] to-[#151D5C] text-white">
                 Basic
               </div>
             </div>
-            <div className="p-[2px] rounded inline-block shadow-sm cursor-pointer bg-gradient-to-r from-yellow-400 to-yellow-500" onClick={() => setClosedFilter("premium")}>
-              <div className="text-sm font-semibold rounded px-3 py-1 bg-gray-800 text-yellow-400">
+            <div className="p-[4px] rounded-xl inline-block shadow-sm cursor-pointer bg-gradient-to-r from-yellow-400 to-yellow-500" onClick={() => setClosedFilter("premium")}>
+              <div className="text-xl font-outfit font-bold rounded-lg px-4 py-2 bg-gray-800 text-yellow-400">
                 Premium
               </div>
             </div>

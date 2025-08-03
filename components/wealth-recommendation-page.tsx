@@ -75,7 +75,7 @@ export default function WealthRecommendationPage({
                     </div>
                     <p className="text-xs sm:text-sm text-gray-500">NSE</p>
                   </div>
-                  <div className={`relative p-[2px] rounded-lg flex-shrink-0 ${
+                  <div className={`relative p-[4px] rounded-xl flex-shrink-0 ${
                     (stockData?.status === "closed" && stockData?.exitStatus?.toLowerCase().includes("loss")) 
                       ? "bg-gradient-to-r from-red-500 to-red-600" 
                       : "bg-green-500"

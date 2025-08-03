@@ -180,7 +180,7 @@ export default function PortfolioTipDetailsPage() {
               <div className="flex justify-between items-start"> 
                 <div>
                   {/* Premium Label */}
-                   <div className="relative bg-gradient-to-r from-[#00B7FF] to-[#85D437] p-[2px] rounded-lg overflow-hidden">
+                   <div className="relative bg-gradient-to-r from-[#00B7FF] to-[#85D437] p-[4px] rounded-xl overflow-hidden">
                     <div className="bg-black text-xs sm:text-sm font-bold rounded-md px-2 sm:px-3 py-0.5 sm:py-1 overflow-hidden">
                       {tipData.portfolio && typeof tipData.portfolio === 'object' && 'name' in tipData.portfolio ? (
                         <div className="overflow-hidden">
@@ -204,7 +204,7 @@ export default function PortfolioTipDetailsPage() {
                 
                 {/* Weightage Box */}
                 <div className="flex-shrink-0">
-                  <div className="relative bg-gradient-to-r from-[#00B7FF] to-[#85D437] p-[2px] rounded-lg">
+                  <div className="relative bg-gradient-to-r from-[#00B7FF] to-[#85D437] p-[4px] rounded-xl">
                     <div className="bg-cyan-50 rounded-md px-2 py-1.5 text-center min-w-[60px]">
                       <p className="text-xs text-gray-700 mb-0 leading-tight font-medium">Weightage</p>
                       <p className="text-right text-2xl font-bold text-black leading-tight">
