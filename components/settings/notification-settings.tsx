@@ -8,6 +8,8 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { notificationApiService } from "@/services/notification-api.service"
+import { useNotifications } from "@/components/notifications/notification-context"
 
 interface NotificationSettings {
   email: {
@@ -40,44 +42,24 @@ export default function NotificationSettings() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const { toast } = useToast()
+  const { updatePreferences } = useNotifications()
 
   useEffect(() => {
     const fetchSettings = async () => {
       setLoading(true)
       try {
-        // In a real app, this would be a fetch call to your API
-        // const response = await fetch('/api/user/notification-settings')
-        // const data = await response.json()
-
-        // For demo purposes, we'll use mock data
-        setTimeout(() => {
-          setSettings({
-            email: {
-              marketUpdates: true,
-              newRecommendations: true,
-              portfolioAlerts: true,
-              priceAlerts: true,
-              accountActivity: true,
-              promotions: false,
-            },
-            push: {
-              marketUpdates: true,
-              newRecommendations: true,
-              portfolioAlerts: true,
-              priceAlerts: false,
-              accountActivity: false,
-            },
-            sms: {
-              marketUpdates: false,
-              newRecommendations: true,
-              portfolioAlerts: false,
-              priceAlerts: true,
-              accountActivity: false,
-            },
-            frequency: "daily",
-          })
-          setLoading(false)
-        }, 1000)
+        const data = await notificationApiService.getPreferences()
+        
+        // Transform API response to match our interface if needed
+        setSettings({
+          email: data.email,
+          push: data.push,
+          sms: data.sms,
+          frequency: data.frequency,
+        })
+        
+        // Also update the notification context with the preferences
+        updatePreferences(data)
       } catch (error) {
         console.error("Failed to fetch notification settings:", error)
         toast({
@@ -85,12 +67,13 @@ export default function NotificationSettings() {
           description: "Failed to load notification settings. Please try again later.",
           variant: "destructive",
         })
+      } finally {
         setLoading(false)
       }
     }
 
     fetchSettings()
-  }, [toast])
+  }, [toast, updatePreferences])
 
   const handleToggle = (category: "email" | "push" | "sms", setting: string, value: boolean) => {
     if (!settings) return
@@ -114,19 +97,15 @@ export default function NotificationSettings() {
   }
 
   const handleSave = async () => {
+    if (!settings) return
+    
     setSaving(true)
     try {
-      // In a real app, this would be a fetch call to your API
-      // await fetch('/api/user/notification-settings', {
-      //   method: 'PUT',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify(settings),
-      // })
-
-      // For demo purposes, we'll simulate a delay
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      // Update settings via API
+      await notificationApiService.updatePreferences(settings)
+      
+      // Update the notification context with new preferences
+      updatePreferences(settings)
 
       toast({
         title: "Settings Updated",

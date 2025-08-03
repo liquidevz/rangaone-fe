@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import { FiMenu, FiUser, FiLogOut, FiSettings, FiShoppingCart, FiX } from "react-icons/fi";
 import { useAuth } from "./auth/auth-context";
 import { useCart } from "./cart/cart-context";
+import { NotificationBell } from "./notifications/notification-bell";
 
 const NavLinks = [
   {
@@ -178,6 +179,13 @@ export const RoundedDrawerNav = ({
                 </span>
               )}
             </button>
+
+            {/* Notification Bell - Show for authenticated users */}
+            {isAuthenticated && (
+              <div className={`${buttonBg} ${buttonText} rounded-full`}>
+                <NotificationBell />
+              </div>
+            )}
 
             {!isLoading && (
               <>

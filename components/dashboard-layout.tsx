@@ -5,7 +5,7 @@ import type React from "react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Bell, ChevronDown, Menu, Search, X, PanelLeft } from "lucide-react";
+import { ChevronDown, Menu, Search, X, PanelLeft } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/auth-context";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Sidebar from "@/components/sidebar";
 import { UserProfile, userService } from "@/services/user.service";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 export default function DashboardLayout({
   children,
@@ -26,7 +27,6 @@ export default function DashboardLayout({
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
   const { logout } = useAuth();
 
   useEffect(() => {
@@ -199,27 +199,7 @@ export default function DashboardLayout({
               {/* Actions */}
               <div className="flex items-center gap-2">
                 {/* Notifications */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowNotifications(!showNotifications)}
-                    className="relative rounded-xl p-2 text-gray-500 hover:bg-gray-100/80 hover:text-gray-700 transition-all duration-200 ring-1 ring-gray-200/50 hover:ring-gray-300/50"
-                  >
-                    <Bell className="h-5 w-5" />
-                    <span className="absolute -top-1 -right-1 h-3 w-3 bg-gradient-to-r from-red-500 to-red-600 rounded-full border-2 border-white shadow-sm"></span>
-                  </button>
-
-                  {showNotifications && (
-                    <div className="absolute right-0 mt-2 w-80 rounded-xl border border-gray-200/80 bg-white/95 backdrop-blur-xl py-2 shadow-xl">
-                      <div className="px-4 py-2 border-b border-gray-100">
-                        <h3 className="font-semibold text-gray-900">Notifications</h3>
-                      </div>
-                      <div className="px-4 py-6 text-center text-gray-500">
-                        <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                        <p>No new notifications</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <NotificationBell />
 
                 {/* User menu */}
                 <div className="relative">

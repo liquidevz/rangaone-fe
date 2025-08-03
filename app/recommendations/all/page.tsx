@@ -130,7 +130,7 @@ export default function AllRecommendations() {
     closedCalls: false,
   })
 
-  const handleFilterChange = (filter) => {
+  const handleFilterChange = (filter: string) => {
     setFilters((prev) => ({
       ...prev,
       [filter]: !prev[filter],
@@ -320,7 +320,7 @@ export default function AllRecommendations() {
 function StockCard({ stock }) {
   const isPositive = stock.change >= 0
 
-  const getCategoryColor = (category) => {
+  const getCategoryColor = (category: any) => {
     switch (category) {
       case "Premium":
         return "bg-yellow-400 text-black font-semibold"
@@ -333,7 +333,7 @@ function StockCard({ stock }) {
     }
   }
 
-  const getCardBorderColor = (category) => {
+  const getCardBorderColor = (category: any) => {
     switch (category) {
       case "Premium":
         return "border-yellow-300"
@@ -346,7 +346,7 @@ function StockCard({ stock }) {
     }
   }
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status: any) => {
     if (!status) return null
 
     switch (status) {
