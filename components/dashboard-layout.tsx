@@ -12,7 +12,6 @@ import { useAuth } from "@/components/auth/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Sidebar from "@/components/sidebar";
-import { UserProfile, userService } from "@/services/user.service";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 
 export default function DashboardLayout({
@@ -24,10 +23,9 @@ export default function DashboardLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const { logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
 
   useEffect(() => {
     setIsMounted(true);
@@ -49,18 +47,7 @@ export default function DashboardLayout({
     }
   }, [isMounted]);
 
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        const user = await userService.getProfile();
-        setCurrentUser(user);
-      } catch (error) {
-        console.error("Failed to fetch current user:", error);
-      }
-    };
 
-    fetchCurrentUser();
-  }, []);
 
   useEffect(() => {
     if (!isMounted) return;
@@ -209,7 +196,7 @@ export default function DashboardLayout({
                   >
                     <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md">
                       <span className="text-[#FFFFF0] font-semibold text-sm">
-                        {currentUser?.username?.[0]?.toUpperCase() || "U"}
+                        {user?.username?.[0]?.toUpperCase() || "U"}
                       </span>
                     </div>
                     <ChevronDown className={cn(
@@ -221,8 +208,8 @@ export default function DashboardLayout({
                   {showUserMenu && (
                     <div className="absolute right-0 mt-2 w-56 rounded-xl border border-gray-200/80 bg-white/95 backdrop-blur-xl py-1 shadow-xl">
                       <div className="border-b border-gray-100 px-4 py-3">
-                        <div className="font-medium text-gray-900">{currentUser?.username}</div>
-                        <div className="text-sm text-gray-500">{currentUser?.email}</div>
+                        <div className="font-medium text-gray-900">{user?.username || 'User'}</div>
+                        <div className="text-sm text-gray-500">{user?.email || 'user@example.com'}</div>
                       </div>
                       <div className="py-1">
                         <Link
@@ -232,12 +219,22 @@ export default function DashboardLayout({
                         >
                           Settings
                         </Link>
-                        <button
-                          onClick={handleLogout}
-                          className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50/80 transition-colors duration-200"
-                        >
-                          Sign out
-                        </button>
+                        {isAuthenticated ? (
+                          <button
+                            onClick={handleLogout}
+                            className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50/80 transition-colors duration-200"
+                          >
+                            Sign out
+                          </button>
+                        ) : (
+                          <Link
+                            href="/login"
+                            className="flex w-full items-center px-4 py-2 text-sm text-blue-600 hover:bg-blue-50/80 transition-colors duration-200"
+                            onClick={() => setShowUserMenu(false)}
+                          >
+                            Sign in
+                          </Link>
+                        )}
                       </div>
                     </div>
                   )}
