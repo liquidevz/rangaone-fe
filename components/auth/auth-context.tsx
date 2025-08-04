@@ -10,6 +10,8 @@ interface AuthContextType {
   user: UserProfile | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  profileComplete: boolean;
+  missingFields: string[];
   login: (username: string, password: string, rememberMe?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -33,6 +35,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [profileComplete, setProfileComplete] = useState(false);
+  const [missingFields, setMissingFields] = useState<string[]>([]);
   const router = useRouter();
 
   // Set up redirect handler for axios
@@ -74,12 +78,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const userProfile = await authService.getCurrentUser();
             setUser(userProfile);
             setIsAuthenticated(true);
+            setProfileComplete(userProfile.profileComplete || false);
+            setMissingFields(userProfile.missingFields || []);
           } catch (error) {
             console.error("Failed to fetch user profile:", error);
             // If profile fetch fails, user might be invalid
             authService.clearTokens();
             setIsAuthenticated(false);
             setUser(null);
+            setProfileComplete(false);
+            setMissingFields([]);
           }
         } else {
           setIsAuthenticated(false);
@@ -113,6 +121,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Update state atomically to avoid race conditions
       setUser(userProfile);
       setIsAuthenticated(true);
+      setProfileComplete(userProfile.profileComplete || false);
+      setMissingFields(userProfile.missingFields || []);
     } catch (error: any) {
       console.error("Login failed:", error);
       
@@ -137,6 +147,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Clear state
       setUser(null);
       setIsAuthenticated(false);
+      setProfileComplete(false);
+      setMissingFields([]);
       
       // Redirect to home page
       router.replace("/");
@@ -146,6 +158,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Still clear state even if API call fails
       setUser(null);
       setIsAuthenticated(false);
+      setProfileComplete(false);
+      setMissingFields([]);
       router.replace("/");
     } finally {
       setIsLoading(false);
@@ -158,6 +172,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const userProfile = await authService.getCurrentUser();
         setUser(userProfile);
         setIsAuthenticated(true);
+        setProfileComplete(userProfile.profileComplete || false);
+        setMissingFields(userProfile.missingFields || []);
       }
     } catch (error) {
       console.error("Failed to refresh user:", error);
@@ -165,6 +181,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       authService.clearTokens();
       setUser(null);
       setIsAuthenticated(false);
+      setProfileComplete(false);
+      setMissingFields([]);
     }
   };
 
@@ -172,6 +190,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     isAuthenticated,
     isLoading,
+    profileComplete,
+    missingFields,
     login,
     logout,
     refreshUser,

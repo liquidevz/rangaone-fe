@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/components/auth/auth-context";
 import { useCart } from "@/components/cart/cart-context";
+import { useRouter } from "next/navigation";
 import { userPortfolioService, UserPortfolio } from "@/services/user-portfolio.service";
 import { CheckoutModal } from "@/components/checkout-modal";
 import { SectionHeading } from "@/components/ui/section-heading";
@@ -74,6 +75,7 @@ export default function ModelPortfolioSection() {
   const { isAuthenticated } = useAuth()
   const { addToCart } = useCart()
   const { toast } = useToast()
+  const router = useRouter()
 
   useEffect(() => {
     const loadPortfolios = async () => {
@@ -220,19 +222,13 @@ export default function ModelPortfolioSection() {
 
   const handleBuyNow = async (portfolio: UserPortfolio) => {
     try {
-      if (!isAuthenticated) {
-        toast({
-          title: "Login Required",
-          description: "Please log in to add items to your cart.",
-          variant: "destructive",
-        })
-        return
-      }
-      await addToCart(portfolio._id)
+      await addToCart(portfolio._id, 1, portfolio)
       toast({
         title: "Added to Cart",
         description: `${portfolio.name} has been added to your cart.`,
       })
+      // Redirect to cart page
+      router.push('/cart')
     } catch (error: any) {
       toast({
         title: "Error",

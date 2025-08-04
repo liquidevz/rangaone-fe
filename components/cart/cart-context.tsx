@@ -3,6 +3,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { cartService, Cart } from "@/services/cart.service";
+import { localCartService, LocalCart } from "@/services/local-cart.service";
 import { useAuth } from "@/components/auth/auth-context";
 
 interface CartContextType {
@@ -46,7 +47,14 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated, user } = useAuth();
 
-  const cartItemCount = cart?.items.reduce((total, item) => total + item.quantity, 0) || 0;
+  const cartItemCount = (() => {
+    if (!isAuthenticated) {
+      const localCount = localCartService.getLocalCartItemCount();
+      console.log("Local cart item count:", localCount);
+      return localCount;
+    }
+    return cart?.items.reduce((total, item) => total + item.quantity, 0) || 0;
+  })();
 
   const clearError = () => {
     setError(null);
@@ -54,7 +62,33 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
   const refreshCart = useCallback(async () => {
     if (!isAuthenticated) {
-      setCart(null);
+      // Load local cart for unauthenticated users
+      const localCart = localCartService.getLocalCart();
+      console.log("Local cart loaded:", localCart);
+      
+      if (localCart.items.length > 0) {
+        const displayCart: Cart = {
+          _id: "local",
+          userId: "local",
+          items: localCart.items.map(item => ({
+            _id: item.portfolioId,
+            portfolio: {
+              _id: item.portfolioId,
+              name: item.itemData.name,
+              subscriptionFee: item.itemData.subscriptionFee || [],
+              description: item.itemData.description || []
+            } as any,
+            quantity: item.quantity
+          })),
+          createdAt: localCart.lastUpdated,
+          updatedAt: localCart.lastUpdated
+        };
+        console.log("Display cart created:", displayCart);
+        setCart(displayCart);
+      } else {
+        console.log("No local cart items found");
+        setCart(null);
+      }
       return;
     }
     
@@ -75,15 +109,74 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    if (isAuthenticated && user) {
-      refreshCart();
-    } else {
-      setCart(null);
-    }
+    const syncCartOnLogin = async () => {
+      if (isAuthenticated && user) {
+        // Check if there's a local cart to sync
+        const localCart = localCartService.getLocalCart();
+        if (localCart.items.length > 0) {
+          console.log("Syncing local cart to server:", localCart);
+          try {
+            // Add each local cart item to server cart
+            for (const item of localCart.items) {
+              await cartService.addToCart({
+                portfolioId: item.portfolioId,
+                quantity: item.quantity
+              });
+            }
+            // Clear local cart after successful sync
+            localCartService.clearLocalCart();
+            console.log("Local cart synced and cleared");
+          } catch (error) {
+            console.error("Failed to sync local cart:", error);
+          }
+        }
+        await refreshCart();
+      } else {
+        // Load local cart for unauthenticated users
+        refreshCart();
+      }
+    };
+    
+    syncCartOnLogin();
   }, [isAuthenticated, user, refreshCart]);
 
-  const addToCart = async (portfolioId: string, quantity: number = 1) => {
+  const addToCart = async (portfolioId: string, quantity: number = 1, portfolioData?: any) => {
     try {
+      if (!isAuthenticated) {
+        console.log("Adding to local cart:", portfolioId, quantity, portfolioData);
+        
+        const localCart = localCartService.addPortfolioToLocalCart(
+          portfolioId,
+          quantity,
+          "monthly",
+          {
+            name: portfolioData?.name || "Portfolio",
+            subscriptionFee: portfolioData?.subscriptionFee || []
+          }
+        );
+        console.log("Local cart after add:", localCart);
+        
+        // Convert local cart to display format
+        const displayCart: Cart = {
+          _id: "local",
+          userId: "local",
+          items: localCart.items.map(item => ({
+            _id: item.portfolioId,
+            portfolio: {
+              _id: item.portfolioId,
+              name: item.itemData.name,
+              subscriptionFee: item.itemData.subscriptionFee || []
+            } as any,
+            quantity: item.quantity
+          })),
+          createdAt: localCart.lastUpdated,
+          updatedAt: localCart.lastUpdated
+        };
+        console.log("Setting display cart:", displayCart);
+        setCart(displayCart);
+        return;
+      }
+      
       const updatedCart = await cartService.addToCart({ portfolioId, quantity });
       setCart(updatedCart);
     } catch (error) {
@@ -161,6 +254,28 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
   const removeFromCart = async (portfolioId: string) => {
     try {
+      if (!isAuthenticated) {
+        // Use local cart for unauthenticated users
+        const localCart = localCartService.removeFromLocalCart(portfolioId);
+        const displayCart: Cart = {
+          _id: "local",
+          userId: "local",
+          items: localCart.items.map(item => ({
+            _id: item.portfolioId,
+            portfolio: {
+              _id: item.portfolioId,
+              name: item.itemData.name,
+              subscriptionFee: item.itemData.subscriptionFee || []
+            } as any,
+            quantity: item.quantity
+          })),
+          createdAt: localCart.lastUpdated,
+          updatedAt: localCart.lastUpdated
+        };
+        setCart(displayCart.items.length > 0 ? displayCart : null);
+        return;
+      }
+      
       // Optimistically update the UI
       if (cart) {
         const optimisticCart = { ...cart };

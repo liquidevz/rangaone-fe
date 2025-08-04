@@ -254,7 +254,7 @@ export default function AllRecommendationsPage() {
   const [subscriptionAccess, setSubscriptionAccess] = useState<SubscriptionAccess | undefined>();
   const [stockSymbols, setStockSymbols] = useState<Map<string, string>>(new Map());
   const [currentPage, setCurrentPage] = useState(1);
-  const tipsPerPage = 9;
+  const tipsPerPage = 999;
   const [filters, setFilters] = useState({
     category: 'all',
     status: 'Active',
@@ -611,38 +611,28 @@ export default function AllRecommendationsPage() {
           
           {/* Live/Closed Calls Checkboxes */}
           <div className="flex items-center justify-center lg:ml-8 gap-4 lg:gap-6">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <div className={`w-5 h-5 rounded border-2 border-gray-400 flex items-center justify-center ${
-                filters.status === 'Active' ? 'bg-black' : 'bg-white'
-              }`}>
-                {filters.status === 'Active' && (
-                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                )}
-              </div>
-              <span 
-                className="font-bold text-base lg:text-lg text-black"
-                onClick={() => handleFilterChange('status', filters.status === 'Active' ? 'all' : 'Active')}
-              >
+            <label className="flex items-center gap-3 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={filters.status === 'Active'}
+                onChange={() => handleFilterChange('status', filters.status === 'Active' ? 'all' : 'Active')}
+                className="w-5 h-5 border-2 border-gray-400 rounded-[6px] accent-[#101e5a] focus:ring-0 focus:outline-none"
+                style={{ boxShadow: 'none' }}
+              />
+              <span className={`font-bold text-base lg:text-lg ${filters.status === 'Active' ? 'text-black' : 'text-gray-400'}`}>
                 Live Calls
               </span>
             </label>
             
-            <label className="flex items-center gap-3 cursor-pointer">
-              <div className={`w-5 h-5 rounded border-2 border-gray-400 flex items-center justify-center ${
-                filters.status === 'Closed' ? 'bg-black' : 'bg-white'
-              }`}>
-                {filters.status === 'Closed' && (
-                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                )}
-              </div>
-              <span 
-                className="font-bold text-base lg:text-lg text-gray-400"
-                onClick={() => handleFilterChange('status', filters.status === 'Closed' ? 'all' : 'Closed')}
-              >
+            <label className="flex items-center gap-3 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={filters.status === 'Closed'}
+                onChange={() => handleFilterChange('status', filters.status === 'Closed' ? 'all' : 'Closed')}
+                className="w-5 h-5 border-2 border-gray-400 rounded-[6px] accent-[#101e5a] focus:ring-0 focus:outline-none"
+                style={{ boxShadow: 'none' }}
+              />
+              <span className={`font-bold text-base lg:text-lg ${filters.status === 'Closed' ? 'text-black' : 'text-gray-400'}`}>
                 Closed Calls
               </span>
             </label>
@@ -799,16 +789,145 @@ export default function AllRecommendationsPage() {
       {/* Tips Grid */}
       {filteredTips.length > 0 ? (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:p-0 p-5">
+          {/* Mobile/Tablet Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:hidden gap-6 md:p-0 p-5 group">
             {currentTips.map(tip => {
               const cardData = convertTipToCardData(tip);
               return (
-                <div key={tip._id} className="h-48">
+                <div key={tip._id} className="h-48 sm:h-52 md:h-56 transition-all duration-300 group-hover:opacity-50 hover:!opacity-100 hover:scale-105 hover:z-10 relative">
                   <TipCard
                     tip={cardData}
                     onClick={() => handleTipClick(tip._id)}
                     subscriptionAccess={subscriptionAccess}
                   />
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop List View */}
+          <div className="hidden xl:block space-y-2">
+            {currentTips.map((tip) => {
+              const cardData = convertTipToCardData(tip);
+              const hasAccess = () => {
+                if (!subscriptionAccess) return false;
+                if (subscriptionAccess.hasPremium) return true;
+                if (cardData.category === 'premium') return false;
+                if (cardData.category === 'basic') return subscriptionAccess.hasBasic;
+                if (cardData.portfolioId) return subscriptionAccess.portfolioAccess.includes(cardData.portfolioId);
+                return true;
+              };
+              const canAccessTip = hasAccess();
+              const shouldBlurContent = !canAccessTip;
+
+              return (
+                <div
+                  key={tip._id}
+                  className="relative w-full h-full rounded-xl transition-all duration-300 cursor-pointer flex-shrink-0 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1"
+                  style={{
+                    background: cardData.category === 'premium' 
+                      ? 'linear-gradient(90deg, #FFD700 30%, #3333330A 90%)'
+                      : 'linear-gradient(90deg, #595CFFCC 30%, #3333330A 90%)',
+                    padding: '2px',
+                  }}
+                  onClick={canAccessTip ? () => handleTipClick(tip._id) : undefined}
+                >
+                  <div className="w-full h-full bg-white rounded-[10px] py-2 px-8">
+                  <div className={cn('flex items-center justify-between', shouldBlurContent && 'blur-sm')}>
+                    {/* Left: Premium + Stock Name */}
+                    <div className="flex items-center gap-3">
+                      <div className={`p-[3px] rounded-xl inline-block shadow-sm whitespace-nowrap ${
+                        cardData.category === 'premium' 
+                          ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' 
+                          : 'bg-gradient-to-r from-[#A0A2FF] to-[#6E6E6E]'
+                      }`}>
+                        <div className={`text-xs font-semibold rounded-lg py-1 w-16 text-center ${
+                          cardData.category === 'premium' 
+                            ? 'bg-gray-800 text-yellow-400' 
+                            : 'bg-gradient-to-r from-[#396C87] to-[#151D5C] text-white'
+                        }`}>
+                          {cardData.category.charAt(0).toUpperCase() + cardData.category.slice(1)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold text-black">{cardData.stockName}</div>
+                        <div className="text-xs text-gray-500">{cardData.exchange}</div>
+                      </div>
+                    </div>
+
+                    {/* Right: Action + Date + Target */}
+                    <div className="flex items-center gap-6">
+                      <div className="text-center w-20">
+                        <div className="text-[10px] text-gray-600">Action</div>
+                        <div className="text-lg font-bold text-black uppercase -mt-1">
+                          {cardData.status === 'closed' ? cardData.exitStatus : cardData.action}
+                        </div>
+                      </div>
+                      <div className="text-[10px] font-bold text-gray-600 w-28 text-center whitespace-nowrap">
+                        {new Date(cardData.date).toLocaleDateString('en-GB')} | {new Date(cardData.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                      </div>
+                      <div className={`relative p-[2px] rounded-lg flex-shrink-0 w-20 ${
+                        cardData.status === 'closed'
+                          ? (cardData.exitStatus?.toLowerCase().includes('loss') || (cardData.exitStatusPercentage && cardData.exitStatusPercentage < 0))
+                            ? 'bg-gradient-to-r from-[#627281] to-[#A6AFB6]' 
+                            : 'bg-[#219612]'
+                          : 'bg-[#219612]'
+                      }`}>
+                        <div className={`rounded-md px-2 py-1 text-center h-full ${
+                          cardData.status === 'closed'
+                            ? (cardData.exitStatus?.toLowerCase().includes('loss') || (cardData.exitStatusPercentage && cardData.exitStatusPercentage < 0))
+                              ? 'bg-gradient-to-tr from-[#A6AFB6] to-[#627281]' 
+                              : 'bg-gradient-to-r from-green-50 to-green-100'
+                            : 'bg-gradient-to-r from-green-50 to-green-100'
+                        }`}>
+                          <p className={`text-[10px] mb-0 leading-tight font-bold ${
+                            cardData.status === 'closed'
+                              ? (cardData.exitStatus?.toLowerCase().includes('loss') || (cardData.exitStatusPercentage && cardData.exitStatusPercentage < 0))
+                                ? 'text-white' 
+                                : 'text-black'
+                              : 'text-black'
+                          }`}>
+                            {cardData.status === 'closed' ? cardData.exitStatus : 'Target'}
+                          </p>
+                          <p className={`text-center text-lg font-bold leading-tight ${
+                            cardData.status === 'closed'
+                              ? (cardData.exitStatus?.toLowerCase().includes('loss') || (cardData.exitStatusPercentage && cardData.exitStatusPercentage < 0))
+                                ? 'text-white' 
+                                : 'text-black'
+                              : 'text-black'
+                          }`}>
+                            {cardData.status === 'closed' ? `${cardData.exitStatusPercentage}%` : `${cardData.targetPercentage}%`}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                  {/* Subscription Overlay */}
+                  {shouldBlurContent && (
+                    <div className="absolute inset-0 bg-white bg-opacity-95 rounded-xl flex items-center justify-center z-20">
+                      <div className="text-center">
+                        <p className="text-sm text-gray-600 mb-3">
+                          {cardData.category === 'premium' ? 'Premium subscription required' : 'Basic subscription required'}
+                        </p>
+                        <button
+                          className={cn(
+                            'px-4 py-2 rounded-lg text-sm font-medium text-white transition-all',
+                            cardData.category === 'premium'
+                              ? 'bg-yellow-500 hover:bg-yellow-600'
+                              : 'bg-blue-500 hover:bg-blue-600'
+                          )}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.href = cardData.category === 'premium' ? '/premium-subscription' : '/basic-subscription';
+                          }}
+                        >
+                          {cardData.category === 'premium' ? 'Get Premium' : 'Get Basic'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}

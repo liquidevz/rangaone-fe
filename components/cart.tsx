@@ -23,7 +23,7 @@ import { userService } from "@/services/user.service"
 import { motion, AnimatePresence } from "framer-motion"
 import { PageHeader } from "@/components/page-header";
 import { ProfileCompletionModal } from "@/components/profile-completion-modal";
-import { AuthPromptModal } from "@/components/auth-prompt-modal";
+import CartAuthForm from "@/components/cart-auth-form";
 
 export default function CartPage() {
   const [loading, setLoading] = useState(true)
@@ -35,7 +35,8 @@ export default function CartPage() {
   const [updatingQuantity, setUpdatingQuantity] = useState<string | null>(null)
   const [activatedPortfolioIds, setActivatedPortfolioIds] = useState<string[]>([])
   const [showProfileModal, setShowProfileModal] = useState(false)
-  const [showAuthPrompt, setShowAuthPrompt] = useState(false)
+
+  const [showAuthForm, setShowAuthForm] = useState(false)
 
   const { isAuthenticated } = useAuth()
   const router = useRouter()
@@ -72,6 +73,11 @@ export default function CartPage() {
             console.error("Failed to load subscribed portfolios:", portfolioError)
             // Don't block cart loading for this error
           }
+          // Hide auth form if user becomes authenticated
+          setShowAuthForm(false)
+        } else {
+          // For unauthenticated users, still load the cart from local storage
+          await refreshCart()
         }
       } catch (error) {
         console.error("Failed to initialize cart:", error)
@@ -242,32 +248,16 @@ export default function CartPage() {
   }
 
   const checkProfileCompletionAfterPayment = async () => {
-    try {
-      console.log("Checking profile completion after payment...");
-      const userProfile = await userService.getProfile();
-      console.log("User profile after payment:", userProfile);
-      
-      if (!userProfile.profileComplete || userProfile.missingFields?.length > 0) {
-        console.log("Profile incomplete, showing modal after payment...");
-        setShowProfileModal(true);
-        return;
-      } else {
-        console.log("Profile is complete, redirecting to dashboard...");
-        router.push('/dashboard');
-      }
-    } catch (error) {
-      console.error("Profile check failed after payment:", error);
-      // If profile check fails, still redirect to dashboard
-      router.push('/dashboard');
-    }
+    // Always redirect to thanks page first
+    router.push('/thanks');
   }
 
   const handleAuthSuccess = () => {
-    setShowAuthPrompt(false);
+    setShowAuthForm(false);
     // After successful auth, proceed with checkout
     toast({
       title: "Authentication Successful",
-      description: "You can now complete your purchase.",
+      description: "Proceeding to checkout...",
     });
     // Automatically proceed with checkout after auth
     setTimeout(() => {
@@ -291,8 +281,8 @@ export default function CartPage() {
 
   const handleDirectCheckout = async () => {
     if (!isAuthenticated) {
-      // Show auth prompt modal instead of redirecting
-      setShowAuthPrompt(true);
+      // Show auth form instead of modal
+      setShowAuthForm(true);
       return;
     }
 
@@ -526,6 +516,8 @@ export default function CartPage() {
     )
   }
 
+
+
   return (
     <>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -614,8 +606,34 @@ export default function CartPage() {
           ) : (
             // Enhanced Cart with Items
             <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
-              {/* Left Side - Cart Items */}
+              {/* Left Side - Cart Items or Auth Form */}
               <div className="lg:col-span-2 space-y-6">
+                {!isAuthenticated && showAuthForm ? (
+                  // Show Auth Form
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 p-6"
+                  >
+                    <div className="mb-6">
+                      <button 
+                        onClick={() => setShowAuthForm(false)}
+                        className="flex items-center text-blue-600 hover:text-blue-700 transition-colors group mb-4"
+                      >
+                        <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+                        <span className="text-sm font-medium">Back to Cart Items</span>
+                      </button>
+                      <h2 className="text-2xl font-bold text-gray-900 mb-2">Sign In to Continue</h2>
+                      <p className="text-gray-600">Please sign in or create an account to complete your purchase</p>
+                    </div>
+                    <CartAuthForm 
+                      onAuthSuccess={handleAuthSuccess}
+                      cartTotal={total}
+                      cartItemCount={cartItemCount}
+                    />
+                  </motion.div>
+                ) : (
+                  <>
                 {/* Modern Subscription Type Toggle */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -898,6 +916,8 @@ export default function CartPage() {
                     })}
                   </AnimatePresence>
                 </div>
+                  </>
+                )}
               </div>
 
               {/* Enhanced Right Side - Order Summary */}
@@ -1089,6 +1109,7 @@ export default function CartPage() {
                          syncing ? "Syncing..." :
                          processingCheckout ? "Processing..." :
                          error ? "Error - Please Refresh" :
+                         !isAuthenticated ? "Sign In to Checkout" :
                          "Proceed to Checkout"}
                       </Button>
                       
@@ -1106,7 +1127,7 @@ export default function CartPage() {
                       
                       {!isAuthenticated && (
                         <p className="text-xs text-gray-500 text-center">
-                          You'll be prompted to sign in or create an account during checkout
+                          Sign in or create an account to complete your purchase
                         </p>
                       )}
                       
@@ -1148,13 +1169,7 @@ export default function CartPage() {
         }}
       />
 
-      <AuthPromptModal
-        isOpen={showAuthPrompt}
-        onClose={() => setShowAuthPrompt(false)}
-        cartItemCount={cartItemCount}
-        cartTotal={total}
-        onSuccessfulAuth={handleAuthSuccess}
-      />
+
     </>
   )
 }
