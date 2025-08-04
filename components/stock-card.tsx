@@ -72,9 +72,9 @@ export function StockCard({ stock, onClick, isSelected = false }: StockCardProps
 
     switch (status) {
       case "Target Reduced":
-        return <Badge className="bg-gray-200 text-gray-800 absolute bottom-3 left-3">Target Reduced</Badge>
+        return <Badge className="bg-gray-200 text-gray-800 absolute bottom-2 left-2">Target Reduced</Badge>
       case "Target Upgraded":
-        return <Badge className="bg-green-100 text-green-800 absolute bottom-3 left-3">Target Upgraded</Badge>
+        return <Badge className="bg-green-100 text-green-800 absolute bottom-2 left-2">Target Upgraded</Badge>
       default:
         return null
     }
@@ -89,18 +89,18 @@ export function StockCard({ stock, onClick, isSelected = false }: StockCardProps
       )}
       onClick={onClick}
     >
-      <div className="p-4 bg-white">
-        <div className="mb-2">
-          <span className={cn("px-4 py-1 rounded-full text-sm", getCategoryColor(stock.category))}>
+      <div className="p-3 bg-white">
+        <div className="mb-1.5">
+          <span className={cn("px-3 py-0.5 rounded-full text-sm", getCategoryColor(stock.category))}>
             {stock.category}
           </span>
         </div>
 
-        <h3 className="font-bold text-xl text-gray-900 truncate mb-1">{stock.name}</h3>
+        <h3 className="font-bold text-lg text-gray-900 truncate mb-0.5">{stock.name}</h3>
 
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-1.5 mb-2">
           <span className="text-sm font-medium text-gray-500">{stock.exchange}</span>
-          <div className={cn("flex items-center px-3 py-1 rounded-full text-sm", getHorizonColor(stock.timeHorizon))}>
+          <div className={cn("flex items-center px-2 py-0.5 rounded-full text-xs", getHorizonColor(stock.timeHorizon))}>
             <Clock className="h-3 w-3 mr-1" />
             <span>Horizon - {stock.timeHorizon}</span>
           </div>
@@ -108,7 +108,7 @@ export function StockCard({ stock, onClick, isSelected = false }: StockCardProps
 
         <div className="flex justify-between items-end">
           <div>
-            <div className="text-2xl font-bold text-gray-900">₹{stock.price.toFixed(2)}</div>
+            <div className="text-xl font-bold text-gray-900">₹{stock.price.toFixed(2)}</div>
             <div className={cn("flex items-center text-sm", isPositive ? "text-green-600" : "text-red-600")}>
               {isPositive ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
               <span>
@@ -118,12 +118,12 @@ export function StockCard({ stock, onClick, isSelected = false }: StockCardProps
           </div>
 
           <div className={cn(
-            "border rounded-lg p-2 text-center shadow-sm",
+            "border rounded-lg p-1.5 text-center shadow-sm",
             stock.closed 
               ? "bg-green-100 border-green-300" 
               : "bg-white border-green-200"
           )}>
-            <div className="text-xs text-gray-600 mb-1">
+            <div className="text-xs text-gray-600 mb-0.5">
               {stock.closed ? "Return" : "Target"}
             </div>
             <div className="flex items-center justify-center text-green-600">

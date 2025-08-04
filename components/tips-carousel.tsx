@@ -286,8 +286,8 @@ export function DateTimelineSlider({
 
   if (!dates.length) {
     return (
-      <div className="w-full py-8 select-none">
-        <div className="text-center mb-6 h-16 flex flex-col justify-center">
+      <div className="w-full py-6 select-none">
+        <div className="text-center h-14 flex flex-col justify-center">
           <p className="text-lg font-semibold tracking-tight text-gray-900">
             No tips available
           </p>
@@ -297,8 +297,8 @@ export function DateTimelineSlider({
   }
 
   return (
-    <div className={`w-full py-8 select-none ${className || ""}`}>
-      <div className="text-center mb-6 h-16 flex flex-col justify-center">
+    <div className={`w-full py-6 select-none ${className || ""}`}>
+      <div className="text-center h-14 flex flex-col justify-center">
         {dates[selectedIndex] && (
           <>
             <p className="text-lg font-semibold tracking-tight text-gray-900">
@@ -315,7 +315,7 @@ export function DateTimelineSlider({
       </div>
       <div
         ref={sliderRef}
-        className="relative w-full h-16 flex items-end overflow-hidden cursor-grab active:cursor-grabbing"
+        className="relative w-full h-14 flex items-end overflow-hidden cursor-grab active:cursor-grabbing"
       >
         {sliderWidth > 0 && (
           <>
@@ -412,7 +412,7 @@ const TipCard = ({
       }}
       onClick={canAccessTip ? onClick : undefined}
     >
-      <div className="w-full h-full bg-white rounded-[10px] p-2 sm:p-3 md:p-4 lg:p-5 flex flex-col justify-between relative overflow-hidden">
+      <div className="w-full h-full bg-white rounded-[10px] p-3 sm:p-3.5 md:p-4 lg:p-4.5 flex flex-col justify-between relative overflow-hidden">
         <div
           className={cn(
             "w-full h-full flex flex-col justify-between relative z-10",
@@ -457,10 +457,10 @@ const TipCard = ({
                 )}
               </div>
 
-              <div className="text-[20px] sm:text-base md:text-lg lg:text-xl font-bold text-black mt-0.5 truncate">
+              <div className="text-lg sm:text-base md:text-lg lg:text-xl font-bold text-black truncate">
                 {tip.stockName}
               </div>
-              <p className="text-xs sm:text-sm text-gray-500">{tip.exchange}</p>
+              <p className="text-xs text-gray-500">{tip.exchange}</p>
             </div>
             <div className={`relative p-[4px] rounded-xl flex-shrink-0 ${
               isModelPortfolio 
@@ -505,27 +505,27 @@ const TipCard = ({
               </div>
             </div>
           </div>
-          <div className="flex justify-between items-end mt-1.5 sm:mt-2 md:mt-3 gap-2 sm:gap-3">
+          <div className="flex justify-between items-end mt-2 sm:mt-2.5 md:mt-3 gap-2 sm:gap-2.5">
             <div className="min-w-0 flex-1">
-              <p className="text-[13px] sm:text-[15px] md:text-[15px] text-black-500 mb-0.5 sm:mb-1 leading-tight font-medium">
+              <p className="text-sm text-black-500 mb-0.5 sm:mb-1 leading-tight font-medium">
                 Buy Range
               </p>
-              <div className="text-[15px] sm:text-sm md:text-xl font-bold text-black truncate">
+              <div className="text-base sm:text-sm md:text-xl font-bold text-black truncate">
                 {tip.buyRange}
               </div>
             </div>
             <div className="flex-shrink-0">
-              <p className="text-[13px] sm:text-xs md:text-sm text-black mb-0.5 sm:mb-1 leading-tight font-medium text-right">
+              <p className="text-xs text-black mb-0.5 leading-tight font-medium text-right">
                 Action
               </p>
-              <div className="px-2 sm:px-2.5 md:px-3 py-1 sm:py-1.5 rounded text-xs sm:text-sm md:text-base font-medium bg-gray-700 text-[#FFFFF0] inline-block whitespace-nowrap">
+              <div className="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded text-xs sm:text-sm font-medium bg-gray-700 text-[#FFFFF0] inline-block whitespace-nowrap">
                 {tip.action}
               </div>
             </div>
           </div>
           {tip.message && (
-            <div className="mt-1.5 sm:mt-2 p-1.5 sm:p-2 md:p-2.5 bg-gray-100 rounded">
-              <div className="text-[10px] sm:text-xs md:text-sm text-gray-600 leading-tight line-clamp-2">
+            <div className="mt-1.5 sm:mt-2 p-1.5 sm:p-2 bg-gray-100 rounded">
+              <div className="text-xs sm:text-sm text-gray-600 leading-tight line-clamp-2">
                 {tip.message}
               </div>
             </div>
@@ -535,15 +535,15 @@ const TipCard = ({
 
       {shouldBlurContent && (
         <div className="absolute inset-0 bg-black bg-opacity-10 rounded-[10px] flex items-center justify-center z-20">
-          <div className="bg-white rounded-lg p-3 sm:p-4 text-center shadow-lg max-w-[160px] sm:max-w-[180px] md:max-w-[200px]">
-            <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">
+          <div className="bg-white rounded-lg p-2 sm:p-3 text-center shadow-lg max-w-[140px] sm:max-w-[160px]">
+            <p className="text-xs text-gray-600 mb-1.5 sm:mb-2">
               {tip.category === "premium"
                 ? "Premium subscription required"
                 : "Basic subscription required"}
             </p>
             <button
               className={cn(
-                "px-3 sm:px-4 py-1 sm:py-1.5 rounded text-xs sm:text-sm font-medium text-[#FFFFF0] transition-all",
+                "px-2 sm:px-3 py-1 rounded text-xs font-medium text-[#FFFFF0] transition-all",
                 tip.category === "premium"
                   ? "bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700"
                   : "bg-gradient-to-r from-[#18657B] to-[#131859] hover:from-blue-600 hover:to-blue-700"
@@ -1161,9 +1161,9 @@ export default function TipsCarousel({
 
   if (loading) {
     return (
-      <div className="relative w-full flex flex-col items-center justify-center overflow-hidden py-8">
+      <div className="relative w-full flex flex-col items-center justify-center overflow-hidden py-6">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
           <p className="text-gray-600">Loading tips...</p>
         </div>
       </div>
@@ -1172,9 +1172,9 @@ export default function TipsCarousel({
 
   if (tips.length === 0) {
     return (
-      <div className="relative w-full flex flex-col items-center justify-center overflow-hidden py-8">
+      <div className="relative w-full flex flex-col items-center justify-center overflow-hidden py-6">
         <div className="text-center">
-          <div className="text-gray-400 mb-4 text-4xl">📊</div>
+          <div className="text-gray-400 mb-3 text-3xl">📊</div>
           <p className="text-gray-600">
             No tips available for the selected category.
           </p>
@@ -1186,18 +1186,18 @@ export default function TipsCarousel({
   const tipDates = tips.map((tip) => new Date(tip.date));
 
   return (
-    <div className="relative w-full flex flex-col items-center justify-center py-4">
+    <div className="relative w-full flex flex-col items-center justify-center">
       {/* Carousel Container */}
       <div
         className="relative w-full overflow-hidden"
-        style={{ padding: `20px ${dimensions.containerPadding}px` }}
+        style={{ padding: `16px ${dimensions.containerPadding}px` }}
       >
         <div
           ref={containerRef}
           className="relative mx-auto flex items-center justify-center"
           style={{
             width: `${containerWidth}px`,
-            height: `${dimensions.cardHeight + 20}px`,
+            height: `${dimensions.cardHeight + 10}px`,
           }}
         >
           <motion.div
@@ -1225,7 +1225,7 @@ export default function TipsCarousel({
                     marginRight: index === tips.length - 1 ? 0 : dimensions.gap,
                   }}
                   animate={{
-                    y: isActive ? -4 : 0,
+                    y: isActive ? -2 : 0,
                   }}
                   transition={{ type: "spring", stiffness: 300, damping: 25 }}
                 >
@@ -1240,7 +1240,55 @@ export default function TipsCarousel({
               );
             })}
           </motion.div>
+          
         </div>
+     {/* Date Timeline Slider */}
+      {tips.length > 1 && (
+        <div className="w-full max-w-2xl mx-auto px-2">
+          <DateTimelineSlider
+            dateRange={dateRange}
+            selectedDate={currentTipDate}
+            onDateChange={(date) => {
+              console.log(
+                "📅 Timeline Date Selected:",
+                format(date, "dd MMM yyyy")
+              );
+
+              // Find the tip with the closest date to the selected date
+              let closestTipIndex = 0;
+              let minDiff = Infinity;
+
+              tips.forEach((tip, index) => {
+                const tipDate = new Date(tip.date);
+                const diff = Math.abs(tipDate.getTime() - date.getTime());
+
+                if (diff < minDiff) {
+                  minDiff = diff;
+                  closestTipIndex = index;
+                }
+              });
+
+              // Only navigate if we found a significantly close tip (within 1 day)
+              const closestTipDate = new Date(tips[closestTipIndex].date);
+              const dayDiff = Math.abs(differenceInDays(date, closestTipDate));
+
+              console.log("🎯 Timeline Navigation:", {
+                selectedDate: format(date, "dd MMM yyyy"),
+                closestTipDate: format(closestTipDate, "dd MMM yyyy"),
+                closestTipIndex,
+                dayDiff,
+                willNavigate: dayDiff <= 1,
+              });
+
+              if (dayDiff <= 1) {
+                goToTip(closestTipIndex);
+              }
+            }}
+            className=""
+            datesWithTips={tipDates}
+          />
+        </div>
+      )}
 
         {/* Navigation Arrows */}
         {containerWidth > 640 && tips.length > 1 && (
@@ -1297,54 +1345,6 @@ export default function TipsCarousel({
           </>
         )}
       </div>
-
-      {/* Date Timeline Slider */}
-      {tips.length > 1 && (
-        <div className="mt-4 w-full max-w-2xl mx-auto px-4">
-          <DateTimelineSlider
-            dateRange={dateRange}
-            selectedDate={currentTipDate}
-            onDateChange={(date) => {
-              console.log(
-                "📅 Timeline Date Selected:",
-                format(date, "dd MMM yyyy")
-              );
-
-              // Find the tip with the closest date to the selected date
-              let closestTipIndex = 0;
-              let minDiff = Infinity;
-
-              tips.forEach((tip, index) => {
-                const tipDate = new Date(tip.date);
-                const diff = Math.abs(tipDate.getTime() - date.getTime());
-
-                if (diff < minDiff) {
-                  minDiff = diff;
-                  closestTipIndex = index;
-                }
-              });
-
-              // Only navigate if we found a significantly close tip (within 1 day)
-              const closestTipDate = new Date(tips[closestTipIndex].date);
-              const dayDiff = Math.abs(differenceInDays(date, closestTipDate));
-
-              console.log("🎯 Timeline Navigation:", {
-                selectedDate: format(date, "dd MMM yyyy"),
-                closestTipDate: format(closestTipDate, "dd MMM yyyy"),
-                closestTipIndex,
-                dayDiff,
-                willNavigate: dayDiff <= 1,
-              });
-
-              if (dayDiff <= 1) {
-                goToTip(closestTipIndex);
-              }
-            }}
-            className=""
-            datesWithTips={tipDates}
-          />
-        </div>
-      )}
     </div>
   );
 }

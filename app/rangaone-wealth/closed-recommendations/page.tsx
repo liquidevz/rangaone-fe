@@ -128,10 +128,10 @@ export default function ClosedRecommendations() {
 
   return (
     <DashboardLayout userId="1">
-      <div className="flex flex-col w-full gap-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col w-full gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
-            <div className="flex gap-2 mb-4">
+            <div className="flex gap-2 mb-3">
               <Button asChild variant="ghost">
                 <Link href="/rangaone-wealth" className="flex items-center">
                   <ArrowLeft className="mr-2 h-4 w-4" />
@@ -150,8 +150,8 @@ export default function ClosedRecommendations() {
               </Button>
             </div>
             <h1 className="text-2xl font-bold">Closed Recommendations</h1>
-            <div className="w-20 h-1 bg-primary rounded-full mt-2"></div>
-            <p className="text-gray-600 mt-2">View all completed stock recommendations</p>
+            <div className="w-20 h-1 bg-primary rounded-full mt-1.5"></div>
+            <p className="text-gray-600 mt-1.5">View all completed stock recommendations</p>
           </div>
           <div className="flex gap-2">
             <Button
@@ -189,9 +189,9 @@ export default function ClosedRecommendations() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {filteredStocks.map((stock) => (
                 <StockCard
                   key={stock.symbol}
@@ -206,53 +206,53 @@ export default function ClosedRecommendations() {
           <div className="md:col-span-1">
             {selectedStock && (
               <Card className="overflow-hidden border-2 border-green-300 shadow-lg hover:shadow-xl transition-shadow duration-300">
-                <CardHeader className="bg-green-700 text-[#FFFFF0] p-4">
-                  <CardTitle className="text-xl text-center">Performance Details</CardTitle>
+                <CardHeader className="bg-green-700 text-[#FFFFF0] p-3">
+                  <CardTitle className="text-lg text-center">Performance Details</CardTitle>
                 </CardHeader>
-                <CardContent className="p-4 bg-gradient-to-b from-white to-gray-50">
-                  <div className="grid grid-cols-2 gap-y-4">
+                <CardContent className="p-3 bg-gradient-to-b from-white to-gray-50">
+                  <div className="grid grid-cols-2 gap-y-3">
                     <div className="flex flex-col">
-                      <div className="flex items-center mb-1">
+                      <div className="flex items-center mb-0.5">
                         <p className="text-gray-600 text-sm font-medium">Buy Price</p>
                       </div>
                       <p className="text-gray-900 font-bold">₹{selectedStock.buyPrice}</p>
                     </div>
                     <div className="flex flex-col">
-                      <div className="flex items-center mb-1">
+                      <div className="flex items-center mb-0.5">
                         <p className="text-gray-600 text-sm font-medium">Sell Price</p>
                       </div>
                       <p className="text-gray-900 font-bold">₹{selectedStock.sellPrice}</p>
                     </div>
                     <div className="flex flex-col">
-                      <div className="flex items-center mb-1">
+                      <div className="flex items-center mb-0.5">
                         <p className="text-gray-600 text-sm font-medium">Return</p>
                       </div>
                       <p className="text-green-600 font-bold">{selectedStock.returnPercentage}%</p>
                     </div>
                     <div className="flex flex-col">
-                      <div className="flex items-center mb-1">
+                      <div className="flex items-center mb-0.5">
                         <p className="text-gray-600 text-sm font-medium">Closed Date</p>
                       </div>
                       <p className="text-gray-900 font-bold">{selectedStock.closedDate}</p>
                     </div>
                     <div className="flex flex-col">
-                      <div className="flex items-center mb-1">
+                      <div className="flex items-center mb-0.5">
                         <p className="text-gray-600 text-sm font-medium">Holding Period</p>
                       </div>
                       <p className="text-gray-900 font-bold">{selectedStock.holdingPeriod}</p>
                     </div>
                     <div className="flex flex-col">
-                      <div className="flex items-center mb-1">
+                      <div className="flex items-center mb-0.5">
                         <p className="text-gray-600 text-sm font-medium">Target</p>
                       </div>
                       <p className="text-gray-900 font-bold">{selectedStock.target}%</p>
                     </div>
                   </div>
 
-                  <div className="mt-6 pt-6 border-t border-gray-200">
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <div className="flex items-center justify-center mb-2">
-                        <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                      <div className="flex items-center justify-center mb-1.5">
+                        <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
                         <h3 className="font-semibold text-green-800">Target Achieved</h3>
                       </div>
                       <p className="text-sm text-gray-700 text-center">

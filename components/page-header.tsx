@@ -13,7 +13,7 @@ export function PageHeader({ title, subtitle, showBackButton = true }: PageHeade
   const router = useRouter();
 
   return (
-    <div className="bg-[#131859] text-[#FFFFF0] py-4 px-8 rounded-lg shadow-md mb-6 relative">
+    <div className="bg-[#131859] text-[#FFFFF0] py-4 px-8 rounded-lg shadow-md mb-4 relative">
       {showBackButton && (
         <button
           onClick={() => router.back()}

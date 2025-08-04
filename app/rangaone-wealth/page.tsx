@@ -262,7 +262,7 @@ export default function RangaOneWealth() {
 
 
       {/* Open Recommendations Section */}
-      <Card className="mt-12 mb-12 shadow-sm border border-gray-200">
+      <Card className="mt-1 mb-1 shadow-sm border border-gray-200">
         <CardContent className="p-6">
           <h2 className="text-xl font-bold mb-4 text-center font-helvetica">Open Recommendations</h2>
           <div className="flex justify-center mb-4 gap-3">
@@ -297,7 +297,7 @@ export default function RangaOneWealth() {
           />
           
           {/* View All Recommendations Button */}
-          <div className="flex justify-center -top-10">
+          <div className="flex justify-center">
             <Button
               onClick={() => router.push('/rangaone-wealth/all-recommendations')}
               className="bg-gradient-to-r from-[#1e3a8a] to-[#3b82f6] hover:from-[#1d4ed8] hover:to-[#2563eb] text-white font-bold text-lg px-12 rounded-3xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] border-0"
@@ -313,7 +313,7 @@ export default function RangaOneWealth() {
       </Card>
 
       {/* Closed Recommendations Section */}
-      <Card className="mt-12 mb-12 shadow-sm border border-gray-200">
+      <Card className="mt-1 mb-12 shadow-sm border border-gray-200">
         <CardContent className="p-6">
           <h2 className="text-xl font-bold mb-4 text-center">Closed Recommendations</h2>
           <div className="flex justify-center mb-4 gap-3">
