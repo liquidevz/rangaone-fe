@@ -8,10 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Eye, EyeOff, Mail, Lock, User, ArrowRight, ArrowLeft, CheckCircle, AlertCircle, Shield } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, ArrowRight, ArrowLeft, CheckCircle, AlertCircle, Shield, Phone, Calendar, FileText } from "lucide-react";
 import { useAuth } from "@/components/auth/auth-context";
 import { authService } from "@/services/auth.service";
 import { emailCheckService } from "@/services/email-check.service";
+import { userService } from "@/services/user.service";
 import { useToast } from "@/components/ui/use-toast";
 
 interface CartAuthFormProps {
@@ -24,7 +25,7 @@ interface CartAuthFormProps {
 const CartAuthForm: React.FC<CartAuthFormProps> = ({ onAuthSuccess, onPaymentTrigger, cartTotal, cartItemCount }) => {
   const { isAuthenticated } = useAuth();
   const [currentStep, setCurrentStep] = useState(isAuthenticated ? 1 : 0);
-  const [isSignupMode, setIsSignupMode] = useState(false);
+  const [isSignupMode, setIsSignupMode] = useState(true);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -35,6 +36,15 @@ const CartAuthForm: React.FC<CartAuthFormProps> = ({ onAuthSuccess, onPaymentTri
     confirmPassword: "",
     rememberMe: false
   });
+  const [profileData, setProfileData] = useState({
+    fullName: "",
+    phone: "",
+    dateofBirth: "",
+    pandetails: "",
+    address: "",
+    adharcard: ""
+  });
+  const [missingFields, setMissingFields] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const { login } = useAuth();
@@ -45,7 +55,7 @@ const CartAuthForm: React.FC<CartAuthFormProps> = ({ onAuthSuccess, onPaymentTri
     console.log('State changed - isSignupMode:', isSignupMode, 'email:', formData.email);
   }, [isSignupMode, formData.email]);
 
-  const steps = ["Authentication", "Digio Verification", "Payment", "Missing Fields"];
+  const steps = ["Authentication", "Digio Verification", "Payment", "Complete Profile"];
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -53,6 +63,8 @@ const CartAuthForm: React.FC<CartAuthFormProps> = ({ onAuthSuccess, onPaymentTri
       setErrors(prev => ({ ...prev, [field]: "" }));
     }
   };
+
+
 
   const validateStep = () => {
     const newErrors: Record<string, string> = {};
@@ -124,6 +136,14 @@ const CartAuthForm: React.FC<CartAuthFormProps> = ({ onAuthSuccess, onPaymentTri
             await login(formData.username, formData.password, formData.rememberMe);
           } catch (loginError: any) {
             const isEmail = /\S+@\S+\.\S+/.test(formData.username);
+            const errorMessage = loginError.message || loginError.toString();
+            
+            console.log('Login error details:', {
+              isEmail,
+              errorMessage,
+              loginError,
+              response: loginError.response
+            });
             
             // If it's an email and login fails, switch to signup mode
             if (isEmail) {
@@ -131,23 +151,34 @@ const CartAuthForm: React.FC<CartAuthFormProps> = ({ onAuthSuccess, onPaymentTri
               setFormData({ 
                 username: "", 
                 email: email, 
-                password: "", 
-                confirmPassword: "", 
+                password: formData.password, 
+                confirmPassword: formData.password, 
                 rememberMe: false 
               });
               setIsSignupMode(true);
               setErrors({});
               setLoading(false);
-              
-              toast({
-                title: "Account not found",
-                description: "We'll help you create a new account with this email.",
-              });
               return;
             } else {
               throw loginError;
             }
           }
+        }
+        // Load profile and check for missing fields
+        try {
+          const profile = await userService.getProfile();
+          const missing = profile.missingFields || [];
+          setMissingFields(missing);
+          setProfileData({
+            fullName: profile.fullName || "",
+            phone: profile.phone || "",
+            dateofBirth: profile.dateofBirth || "",
+            pandetails: profile.pandetails || "",
+            address: profile.address || "",
+            adharcard: profile.adharcard || ""
+          });
+        } catch (error) {
+          console.error('Failed to load profile:', error);
         }
         // Move to Digio verification after successful auth
         setCurrentStep(1);
@@ -160,14 +191,45 @@ const CartAuthForm: React.FC<CartAuthFormProps> = ({ onAuthSuccess, onPaymentTri
       // Digio Verification - proceed to payment
       setCurrentStep(2);
     } else if (currentStep === 2) {
-      // Payment - close modal and trigger payment
-      onAuthSuccess();
-      setTimeout(() => {
-        onPaymentTrigger();
-      }, 100);
+      // Payment - check if profile is complete
+      if (missingFields.length > 0) {
+        setCurrentStep(3); // Go to profile completion
+      } else {
+        // Profile complete, close modal and trigger payment
+        onAuthSuccess();
+        setTimeout(() => {
+          onPaymentTrigger();
+        }, 100);
+      }
     } else if (currentStep === 3) {
-      // Missing Fields - complete
-      onAuthSuccess();
+      // Complete Profile - validate and save
+      const missingFieldsToFill = missingFields.filter(field => {
+        const value = profileData[field as keyof typeof profileData];
+        return !value || value.trim() === '';
+      });
+
+      if (missingFieldsToFill.length > 0) {
+        setErrors({ general: `Please fill in all required fields: ${missingFieldsToFill.join(', ')}` });
+        return;
+      }
+
+      try {
+        setLoading(true);
+        await userService.updateProfile(profileData);
+        toast({
+          title: "Profile Updated",
+          description: "Your profile has been completed successfully"
+        });
+        // Profile complete, close modal and trigger payment
+        onAuthSuccess();
+        setTimeout(() => {
+          onPaymentTrigger();
+        }, 100);
+      } catch (error: any) {
+        setErrors({ general: error.message || "Failed to update profile" });
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -211,6 +273,16 @@ const CartAuthForm: React.FC<CartAuthFormProps> = ({ onAuthSuccess, onPaymentTri
         if (isSignupMode) {
           return (
             <div className="space-y-4">
+              <div className="flex justify-center mb-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={toggleAuthMode}
+                  className="text-sm"
+                >
+                  Login if existing user
+                </Button>
+              </div>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
                 <p className="text-sm text-blue-800">
                   <span className="font-medium">Creating account for:</span> {formData.email}
@@ -238,9 +310,10 @@ const CartAuthForm: React.FC<CartAuthFormProps> = ({ onAuthSuccess, onPaymentTri
                   <Input
                     id="email"
                     type="email"
+                    placeholder="Enter your email"
                     value={formData.email}
-                    className="pl-10 bg-gray-50"
-                    readOnly
+                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    className="pl-10"
                   />
                 </div>
               </div>
@@ -369,42 +442,131 @@ const CartAuthForm: React.FC<CartAuthFormProps> = ({ onAuthSuccess, onPaymentTri
             </div>
           </div>
         );
-      case 3: // Missing Fields
-        return (
-          <div className="text-center space-y-4">
-            <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto">
-              <User className="w-8 h-8 text-purple-600" />
-            </div>
-            <h3 className="text-lg font-semibold">Complete Your Profile</h3>
-            <p className="text-gray-600">Please fill in the missing information to complete your profile</p>
-          </div>
-        );
-      case 2: // Payment
-        return (
-          <div className="text-center space-y-4">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-              <CheckCircle className="w-8 h-8 text-green-600" />
-            </div>
-            <h3 className="text-lg font-semibold">Processing Payment</h3>
-            <p className="text-gray-600">Completing your purchase...</p>
-            <div className="bg-gray-50 p-4 rounded-lg mt-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">{cartItemCount} item(s) in cart</span>
-                <span className="font-semibold">₹{cartTotal.toLocaleString()}</span>
-              </div>
-            </div>
-          </div>
-        );
       case 3: // Complete Profile
-        return (
-          <div className="text-center space-y-4">
-            <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto">
-              <User className="w-8 h-8 text-purple-600" />
+        if (missingFields.length === 0) {
+          return (
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+              </div>
+              <h3 className="text-lg font-semibold">Profile Complete!</h3>
+              <p className="text-gray-600">All required fields have been filled</p>
             </div>
-            <h3 className="text-lg font-semibold">Complete Your Profile</h3>
-            <p className="text-gray-600">Please fill in the missing information to complete your profile</p>
+          );
+        }
+        
+        return (
+          <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <p className="text-sm text-blue-800">
+                <span className="font-medium">Complete your profile to continue</span>
+              </p>
+            </div>
+            {missingFields.map((field) => {
+              switch (field) {
+                case "fullName":
+                  return (
+                    <div key={field}>
+                      <Label htmlFor="fullName" className="flex items-center gap-2 text-sm font-medium">
+                        <User className="w-4 h-4" />
+                        Full Name *
+                      </Label>
+                      <Input
+                        id="fullName"
+                        value={profileData.fullName}
+                        onChange={(e) => setProfileData(prev => ({ ...prev, fullName: e.target.value }))}
+                        placeholder="Enter your full name"
+                        className="mt-1"
+                      />
+                    </div>
+                  );
+                case "phone":
+                  return (
+                    <div key={field}>
+                      <Label htmlFor="phone" className="flex items-center gap-2 text-sm font-medium">
+                        <Phone className="w-4 h-4" />
+                        Phone Number *
+                      </Label>
+                      <Input
+                        id="phone"
+                        value={profileData.phone}
+                        onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
+                        placeholder="+1234567890"
+                        className="mt-1"
+                      />
+                    </div>
+                  );
+                case "dateofBirth":
+                  return (
+                    <div key={field}>
+                      <Label htmlFor="dateofBirth" className="flex items-center gap-2 text-sm font-medium">
+                        <Calendar className="w-4 h-4" />
+                        Date of Birth *
+                      </Label>
+                      <Input
+                        id="dateofBirth"
+                        type="date"
+                        value={profileData.dateofBirth}
+                        onChange={(e) => setProfileData(prev => ({ ...prev, dateofBirth: e.target.value }))}
+                        className="mt-1"
+                      />
+                    </div>
+                  );
+                case "pandetails":
+                  return (
+                    <div key={field}>
+                      <Label htmlFor="pandetails" className="flex items-center gap-2 text-sm font-medium">
+                        <FileText className="w-4 h-4" />
+                        PAN Details *
+                      </Label>
+                      <Input
+                        id="pandetails"
+                        value={profileData.pandetails}
+                        onChange={(e) => setProfileData(prev => ({ ...prev, pandetails: e.target.value }))}
+                        placeholder="AAAAA9999A"
+                        className="mt-1"
+                      />
+                    </div>
+                  );
+                case "address":
+                  return (
+                    <div key={field}>
+                      <Label htmlFor="address" className="flex items-center gap-2 text-sm font-medium">
+                        <FileText className="w-4 h-4" />
+                        Address *
+                      </Label>
+                      <Input
+                        id="address"
+                        value={profileData.address}
+                        onChange={(e) => setProfileData(prev => ({ ...prev, address: e.target.value }))}
+                        placeholder="Enter your address"
+                        className="mt-1"
+                      />
+                    </div>
+                  );
+                case "adharcard":
+                  return (
+                    <div key={field}>
+                      <Label htmlFor="adharcard" className="flex items-center gap-2 text-sm font-medium">
+                        <FileText className="w-4 h-4" />
+                        Aadhaar Card Number *
+                      </Label>
+                      <Input
+                        id="adharcard"
+                        value={profileData.adharcard}
+                        onChange={(e) => setProfileData(prev => ({ ...prev, adharcard: e.target.value }))}
+                        placeholder="XXXX-XXXX-XXXX"
+                        className="mt-1"
+                      />
+                    </div>
+                  );
+                default:
+                  return null;
+              }
+            })}
           </div>
         );
+
       default:
         return null;
     }
@@ -524,8 +686,8 @@ const CartAuthForm: React.FC<CartAuthFormProps> = ({ onAuthSuccess, onPaymentTri
                 <>
                   {currentStep === 0 && (isSignupMode ? "Create Account" : "Sign In")}
                   {currentStep === 1 && "Verify"}
-                  {currentStep === 2 && "Pay Now"}
-                  {currentStep === 3 && "Complete Profile"}
+                  {currentStep === 2 && (missingFields.length > 0 ? "Continue" : "Pay Now")}
+                  {currentStep === 3 && "Complete & Pay"}
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
@@ -535,15 +697,15 @@ const CartAuthForm: React.FC<CartAuthFormProps> = ({ onAuthSuccess, onPaymentTri
           {/* Toggle Auth Mode */}
           {/* Toggle Auth Mode */}
           <div className="text-center pt-4 border-t">
-            {currentStep === 0 && (
+            {currentStep === 0 && !isSignupMode && (
               <p className="text-sm text-gray-600">
-                {!isSignupMode ? "Don't have an account?" : "Already have an account?"}
+                Don't have an account?
                 <button
                   onClick={toggleAuthMode}
                   className="ml-1 text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
                   disabled={loading}
                 >
-                  {!isSignupMode ? "Sign up" : "Sign in"}
+                  Sign up
                 </button>
               </p>
             )}

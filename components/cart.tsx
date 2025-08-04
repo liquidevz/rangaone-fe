@@ -249,18 +249,6 @@ export default function CartPage() {
 
   const handleAuthSuccess = async () => {
     setShowAuthForm(false);
-    
-    // Refresh cart to sync with authenticated user
-    try {
-      await refreshCart();
-    } catch (error) {
-      console.error('Failed to refresh cart after auth:', error);
-    }
-    
-    toast({
-      title: "Welcome!",
-      description: "You're now signed in.",
-    });
   };
 
   const handlePaymentTrigger = async () => {
