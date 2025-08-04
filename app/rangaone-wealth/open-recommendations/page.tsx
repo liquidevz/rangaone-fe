@@ -3,9 +3,10 @@
 import { useState } from "react"
 import DashboardLayout from "@/components/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { FileText, TrendingUp, ArrowUp, ArrowDown, Clock } from "lucide-react"
+import { FileText, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { StockCard } from "@/components/stock-card"
+import Link from "next/link"
 
 // Mock data for open recommendations
 const openRecommendations = [
@@ -130,6 +131,24 @@ export default function OpenRecommendations() {
       <div className="flex flex-col w-full gap-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
+            <div className="flex gap-2 mb-4">
+              <Button asChild variant="ghost">
+                <Link href="/rangaone-wealth" className="flex items-center">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to Dashboard
+                </Link>
+              </Button>
+              <Button asChild className="bg-indigo-900 hover:bg-indigo-800">
+                <Link href="/rangaone-wealth/all-recommendations">
+                  All Recommendations
+                </Link>
+              </Button>
+              <Button asChild className="bg-red-700 hover:bg-red-800">
+                <Link href="/rangaone-wealth/closed-recommendations">
+                  Closed Only
+                </Link>
+              </Button>
+            </div>
             <h1 className="text-2xl font-bold">Open Recommendations</h1>
             <div className="w-20 h-1 bg-primary rounded-full mt-2"></div>
             <p className="text-gray-600 mt-2">View all active stock recommendations</p>
@@ -259,96 +278,4 @@ export default function OpenRecommendations() {
   )
 }
 
-function StockCard({ stock, onClick, isSelected = false }) {
-  const isPositive = stock.change >= 0
 
-  const getCategoryColor = (category) => {
-    switch (category) {
-      case "Premium":
-        return "bg-yellow-400 text-black font-semibold"
-      case "Basic":
-        return "bg-blue-500 text-[#FFFFF0] font-semibold"
-      case "Social Media":
-        return "bg-pink-500 text-[#FFFFF0] font-semibold"
-      default:
-        return "bg-gray-500 text-[#FFFFF0] font-semibold"
-    }
-  }
-
-  const getHorizonColor = (horizon) => {
-    switch (horizon) {
-      case "Short Term":
-        return "bg-blue-100 text-blue-800"
-      case "Long Term":
-        return "bg-amber-100 text-amber-800"
-      case "Medium Term":
-        return "bg-purple-100 text-purple-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
-  }
-
-  const getCardBorderColor = (category) => {
-    switch (category) {
-      case "Premium":
-        return "border-yellow-300"
-      case "Basic":
-        return "border-blue-300"
-      case "Social Media":
-        return "border-pink-300"
-      default:
-        return "border-gray-200"
-    }
-  }
-
-  return (
-    <div
-      className={cn(
-        "rounded-lg overflow-hidden transition-all duration-300 hover:shadow-lg cursor-pointer w-full",
-        isSelected && "ring-2 ring-primary ring-offset-2",
-      )}
-      onClick={onClick}
-    >
-      <div className={cn("border-2 rounded-lg overflow-hidden h-full", getCardBorderColor(stock.category))}>
-        <div className="p-4 bg-white flex flex-col h-full">
-          <div className="mb-3">
-            <span className={cn("px-3 py-1 rounded-full text-sm inline-block", getCategoryColor(stock.category))}>
-              {stock.category}
-            </span>
-          </div>
-
-          <h3 className="font-bold text-lg text-gray-900 mb-2 truncate">{stock.name}</h3>
-
-          <div className="flex flex-wrap items-center gap-2 mb-4">
-            <span className="text-sm font-medium text-gray-500">{stock.exchange}</span>
-            <div className={cn("flex items-center px-3 py-1 rounded-full text-sm", getHorizonColor(stock.timeHorizon))}>
-              <Clock className="h-3 w-3 mr-1" />
-              {stock.timeHorizon}
-            </div>
-          </div>
-
-          <div className="mt-auto flex justify-between items-end">
-            <div>
-              <div className="text-2xl font-bold text-gray-900">₹{stock.price.toFixed(2)}</div>
-              <div className={cn("flex items-center text-sm", isPositive ? "text-green-600" : "text-red-600")}>
-                {isPositive ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
-                <span>
-                  ₹{Math.abs(stock.change).toFixed(2)} ({Math.abs(stock.changePercent).toFixed(2)}%)
-                </span>
-              </div>
-            </div>
-
-            <div className="border border-green-200 rounded-lg p-2 text-center">
-              <div className="text-xs text-gray-600 mb-1">Target</div>
-              <div className="flex items-center justify-center text-green-600">
-                <TrendingUp className="h-3 w-3 mr-1" />
-                <span className="font-bold">{stock.target}%</span>
-              </div>
-              <div className="text-xs text-gray-500">upto</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}

@@ -3,9 +3,10 @@
 import { useState } from "react"
 import DashboardLayout from "@/components/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CheckCircle, ArrowUp, ArrowDown, Clock } from "lucide-react"
+import { CheckCircle, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { StockCard } from "@/components/stock-card"
+import Link from "next/link"
 
 // Mock data for closed recommendations
 const closedRecommendations = [
@@ -130,6 +131,24 @@ export default function ClosedRecommendations() {
       <div className="flex flex-col w-full gap-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
+            <div className="flex gap-2 mb-4">
+              <Button asChild variant="ghost">
+                <Link href="/rangaone-wealth" className="flex items-center">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to Dashboard
+                </Link>
+              </Button>
+              <Button asChild className="bg-indigo-900 hover:bg-indigo-800">
+                <Link href="/rangaone-wealth/all-recommendations">
+                  All Recommendations
+                </Link>
+              </Button>
+              <Button asChild className="bg-green-700 hover:bg-green-800">
+                <Link href="/rangaone-wealth/open-recommendations">
+                  Open Only
+                </Link>
+              </Button>
+            </div>
             <h1 className="text-2xl font-bold">Closed Recommendations</h1>
             <div className="w-20 h-1 bg-primary rounded-full mt-2"></div>
             <p className="text-gray-600 mt-2">View all completed stock recommendations</p>
@@ -251,70 +270,4 @@ export default function ClosedRecommendations() {
   )
 }
 
-function StockCard({ stock, onClick, isSelected = false }) {
-  const isPositive = stock.change >= 0
 
-  const getHorizonColor = (horizon) => {
-    switch (horizon) {
-      case "Short Term":
-        return "bg-blue-100 text-blue-800"
-      case "Long Term":
-        return "bg-amber-100 text-amber-800"
-      case "Medium Term":
-        return "bg-purple-100 text-purple-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
-  }
-
-  return (
-    <div
-      className={cn(
-        "rounded-lg overflow-hidden transition-all duration-300 hover:shadow-lg cursor-pointer w-full",
-        isSelected && "ring-2 ring-primary ring-offset-2",
-      )}
-      onClick={onClick}
-    >
-      <div className="border-2 border-green-300 rounded-lg overflow-hidden h-full">
-        <div className="p-4 bg-white flex flex-col h-full">
-          <div className="mb-3">
-            <span className="px-3 py-1 rounded-full text-sm inline-block bg-green-500 text-[#FFFFF0] font-semibold">
-              Closed
-            </span>
-          </div>
-
-          <h3 className="font-bold text-lg text-gray-900 mb-2 truncate">{stock.name}</h3>
-
-          <div className="flex flex-wrap items-center gap-2 mb-4">
-            <span className="text-sm font-medium text-gray-500">{stock.exchange}</span>
-            <div className={cn("flex items-center px-3 py-1 rounded-full text-sm", getHorizonColor(stock.timeHorizon))}>
-              <Clock className="h-3 w-3 mr-1" />
-              {stock.timeHorizon}
-            </div>
-          </div>
-
-          <div className="mt-auto flex justify-between items-end">
-            <div>
-              <div className="text-2xl font-bold text-gray-900">₹{stock.price.toFixed(2)}</div>
-              <div className={cn("flex items-center text-sm", isPositive ? "text-green-600" : "text-red-600")}>
-                {isPositive ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
-                <span>
-                  ₹{Math.abs(stock.change).toFixed(2)} ({Math.abs(stock.changePercent).toFixed(2)}%)
-                </span>
-              </div>
-            </div>
-
-            <div className="bg-green-100 border border-green-300 rounded-lg p-2 text-center">
-              <div className="text-xs text-gray-600 mb-1">Return</div>
-              <div className="flex items-center justify-center text-green-600">
-                <CheckCircle className="h-3 w-3 mr-1" />
-                <span className="font-bold">{stock.returnPercentage}%</span>
-              </div>
-              <div className="text-xs text-gray-500">achieved</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}

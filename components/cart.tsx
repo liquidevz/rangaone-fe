@@ -23,6 +23,7 @@ import { userService } from "@/services/user.service"
 import { motion, AnimatePresence } from "framer-motion"
 import { PageHeader } from "@/components/page-header";
 import { ProfileCompletionModal } from "@/components/profile-completion-modal";
+import { AuthPromptModal } from "@/components/auth-prompt-modal";
 
 export default function CartPage() {
   const [loading, setLoading] = useState(true)
@@ -34,6 +35,7 @@ export default function CartPage() {
   const [updatingQuantity, setUpdatingQuantity] = useState<string | null>(null)
   const [activatedPortfolioIds, setActivatedPortfolioIds] = useState<string[]>([])
   const [showProfileModal, setShowProfileModal] = useState(false)
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false)
 
   const { isAuthenticated } = useAuth()
   const router = useRouter()
@@ -239,6 +241,40 @@ export default function CartPage() {
     })
   }
 
+  const checkProfileCompletionAfterPayment = async () => {
+    try {
+      console.log("Checking profile completion after payment...");
+      const userProfile = await userService.getProfile();
+      console.log("User profile after payment:", userProfile);
+      
+      if (!userProfile.profileComplete || userProfile.missingFields?.length > 0) {
+        console.log("Profile incomplete, showing modal after payment...");
+        setShowProfileModal(true);
+        return;
+      } else {
+        console.log("Profile is complete, redirecting to dashboard...");
+        router.push('/dashboard');
+      }
+    } catch (error) {
+      console.error("Profile check failed after payment:", error);
+      // If profile check fails, still redirect to dashboard
+      router.push('/dashboard');
+    }
+  }
+
+  const handleAuthSuccess = () => {
+    setShowAuthPrompt(false);
+    // After successful auth, proceed with checkout
+    toast({
+      title: "Authentication Successful",
+      description: "You can now complete your purchase.",
+    });
+    // Automatically proceed with checkout after auth
+    setTimeout(() => {
+      handleDirectCheckout();
+    }, 1000);
+  }
+
   const getCheckoutDescription = (descriptions: any[]) => {
     if (!descriptions || !Array.isArray(descriptions)) {
       return null
@@ -255,38 +291,8 @@ export default function CartPage() {
 
   const handleDirectCheckout = async () => {
     if (!isAuthenticated) {
-      toast({
-        title: "Authentication Required",
-        description: "Please login to complete your purchase",
-        variant: "destructive",
-      });
-      router.push("/login");
-      return;
-    }
-
-    // Check profile completion before checkout
-    try {
-      console.log("Checking profile completion...");
-      const userProfile = await userService.getProfile();
-      console.log("User profile:", userProfile);
-      console.log("Profile complete:", userProfile.profileComplete);
-      console.log("Missing fields:", userProfile.missingFields);
-      
-      // For testing - force show modal if profile is complete
-      if (!userProfile.profileComplete || userProfile.missingFields?.length > 0) {
-        console.log("Profile incomplete, showing modal...");
-        console.log("Setting showProfileModal to true");
-        setShowProfileModal(true);
-        console.log("Modal state should now be true");
-        return;
-      } else {
-        console.log("Profile is complete, proceeding with checkout...");
-      }
-    } catch (error) {
-      console.error("Profile check failed:", error);
-      // For testing - show modal even if API fails
-      console.log("API failed, but showing modal for testing...");
-      setShowProfileModal(true);
+      // Show auth prompt modal instead of redirecting
+      setShowAuthPrompt(true);
       return;
     }
 
@@ -379,6 +385,9 @@ export default function CartPage() {
               if (verificationResponse.success || verificationResponse.message.includes("not authenticated yet")) {
                 const isNotAuthenticated = verificationResponse.message.includes("not authenticated yet");
                 
+                // Check profile completion after successful payment
+                await checkProfileCompletionAfterPayment();
+                
                 toast({
                   title: `${subscriptionType === "yearly" ? "Yearly" : "Quarterly"} ${isNotAuthenticated ? "eMandate Created" : "Subscription Activated"}`,
                   description: isNotAuthenticated 
@@ -387,7 +396,6 @@ export default function CartPage() {
                 });
                 // Clear cart after successful payment
                 await refreshCart();
-                router.push('/dashboard');
               } else {
                 throw new Error(verificationResponse.message || "eMandate verification failed");
               }
@@ -400,13 +408,15 @@ export default function CartPage() {
               });
               
               if (verificationResponse.success) {
+                // Check profile completion after successful payment
+                await checkProfileCompletionAfterPayment();
+                
                 toast({
                   title: "Payment Successful",
                   description: "Your subscription has been activated",
                 });
                 // Clear cart after successful payment
                 await refreshCart();
-                router.push('/dashboard');
               } else {
                 throw new Error(verificationResponse.message || "Payment verification failed");
               }
@@ -1072,15 +1082,14 @@ export default function CartPage() {
                       <Button
                         className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 sm:py-4 text-sm sm:text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={handleDirectCheckout}
-                        disabled={updatingQuantity !== null || syncing || !!error || processingCheckout || showProfileModal}
+                        disabled={updatingQuantity !== null || syncing || !!error || processingCheckout}
                       >
                         <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3" />
                         {updatingQuantity ? "Updating..." : 
                          syncing ? "Syncing..." :
                          processingCheckout ? "Processing..." :
-                         showProfileModal ? "Complete Profile First" :
                          error ? "Error - Please Refresh" :
-                         isAuthenticated ? "Proceed to Checkout" : "Sign In & Checkout"}
+                         "Proceed to Checkout"}
                       </Button>
                       
                       {/* Test button for debugging */}
@@ -1097,7 +1106,7 @@ export default function CartPage() {
                       
                       {!isAuthenticated && (
                         <p className="text-xs text-gray-500 text-center">
-                          You'll be prompted to sign in or create an account
+                          You'll be prompted to sign in or create an account during checkout
                         </p>
                       )}
                       
@@ -1134,9 +1143,17 @@ export default function CartPage() {
         onOpenChange={setShowProfileModal}
         onProfileComplete={() => {
           setShowProfileModal(false);
-          // Retry checkout after profile completion
-          handleDirectCheckout();
+          // Redirect to dashboard after profile completion
+          router.push('/dashboard');
         }}
+      />
+
+      <AuthPromptModal
+        isOpen={showAuthPrompt}
+        onClose={() => setShowAuthPrompt(false)}
+        cartItemCount={cartItemCount}
+        cartTotal={total}
+        onSuccessfulAuth={handleAuthSuccess}
       />
     </>
   )

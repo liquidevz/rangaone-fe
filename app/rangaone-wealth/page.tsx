@@ -295,6 +295,20 @@ export default function RangaOneWealth() {
             sliderSize="large"
             userSubscriptionAccess={subscriptionAccess} // Pass subscription access
           />
+          
+          {/* View All Recommendations Button */}
+          <div className="flex justify-center -top-10">
+            <Button
+              onClick={() => router.push('/rangaone-wealth/all-recommendations')}
+              className="bg-gradient-to-r from-[#1e3a8a] to-[#3b82f6] hover:from-[#1d4ed8] hover:to-[#2563eb] text-white font-bold text-lg px-12 rounded-3xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] border-0"
+              style={{
+                background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)',
+                boxShadow: '0 8px 25px rgba(30, 58, 138, 0.3)',
+              }}
+            >
+              View All Recommendations
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -331,6 +345,20 @@ export default function RangaOneWealth() {
             categoryFilter={closedFilter as 'basic' | 'premium'}
             userSubscriptionAccess={subscriptionAccess} // Pass subscription access
           />
+          
+          {/* View All Recommendations Button */}
+          <div className="flex justify-center">
+            <Button
+              onClick={() => router.push('/rangaone-wealth/all-recommendations')}
+              className="bg-gradient-to-r from-[#1e3a8a] to-[#3b82f6] hover:from-[#1d4ed8] hover:to-[#2563eb] text-white font-bold text-lg px-12 rounded-3xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] border-0"
+              style={{
+                background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)',
+                boxShadow: '0 8px 25px rgba(30, 58, 138, 0.3)',
+              }}
+            >
+              View All Recommendations
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </DashboardLayout>

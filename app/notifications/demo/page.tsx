@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import DashboardLayout from '@/components/dashboard-layout';
 import { useNotifications } from '@/components/notifications/notification-context';
+import { firebaseNotificationService } from '@/services/firebase-notification.service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { NotificationData } from '@/services/notification.service';
+import { FirebaseNotificationSettings } from '@/components/notifications/firebase-notification-settings';
 import { 
   TrendingUp, 
   DollarSign, 
@@ -15,7 +17,8 @@ import {
   CheckCircle,
   Wifi,
   WifiOff,
-  TestTube
+  TestTube,
+  Smartphone
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
@@ -82,6 +85,13 @@ export default function NotificationDemoPage() {
     setLoading(null);
   };
 
+  const handleSimulateFirebase = async (type: NotificationData['type']) => {
+    setLoading(`firebase_${type}`);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    firebaseNotificationService.simulateFirebaseNotification(type);
+    setLoading(null);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-8">
@@ -120,6 +130,15 @@ export default function NotificationDemoPage() {
           </CardHeader>
         </Card>
 
+        {/* Firebase Push Notification Settings */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <Smartphone className="h-5 w-5" />
+            Firebase Push Notifications
+          </h2>
+          <FirebaseNotificationSettings />
+        </div>
+
         {/* Demo Notifications */}
         <div>
           <h2 className="text-xl font-semibold mb-4">Test Notifications</h2>
@@ -135,14 +154,22 @@ export default function NotificationDemoPage() {
                     {demo.description}
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-2">
                   <Button
                     onClick={() => handleSimulate(demo.type)}
                     disabled={loading === demo.type}
                     className="w-full"
                     variant="outline"
                   >
-                    {loading === demo.type ? 'Sending...' : 'Send Test Notification'}
+                    {loading === demo.type ? 'Sending...' : 'Send Toast Notification'}
+                  </Button>
+                  <Button
+                    onClick={() => handleSimulateFirebase(demo.type)}
+                    disabled={loading === `firebase_${demo.type}`}
+                    className="w-full"
+                    variant="default"
+                  >
+                    {loading === `firebase_${demo.type}` ? 'Sending...' : 'Send Firebase Notification'}
                   </Button>
                 </CardContent>
               </Card>
@@ -159,11 +186,15 @@ export default function NotificationDemoPage() {
             <ul className="space-y-2 text-blue-800">
               <li className="flex items-start gap-2">
                 <span className="text-blue-600 mt-1">•</span>
-                <span>Click any "Send Test Notification" button to simulate a notification</span>
+                <span>Click "Send Toast Notification" to test in-app notifications</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-blue-600 mt-1">•</span>
-                <span>The notification will appear as a toast in the bottom-right corner</span>
+                <span>Click "Send Firebase Notification" to test push notifications</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-600 mt-1">•</span>
+                <span>Enable push notifications to receive alerts even when the app is closed</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-blue-600 mt-1">•</span>

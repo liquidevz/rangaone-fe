@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { FiMenu, FiUser, FiLogOut, FiSettings, FiShoppingCart, FiX } from "react-icons/fi";
+import { FiMenu, FiUser, FiLogOut, FiSettings, FiShoppingCart, FiX, FiChevronDown } from "react-icons/fi";
 import { useAuth } from "./auth/auth-context";
 import { useCart } from "./cart/cart-context";
 import { NotificationBell } from "./notifications/notification-bell";
@@ -191,14 +191,21 @@ export const RoundedDrawerNav = ({
               <>
                 {isAuthenticated && user ? (
                   /* Authenticated User Menu */
-                  <div className="relative hidden md:block">
-                    <button
-                      onClick={() => setUserMenuOpen(!userMenuOpen)}
-                      className={`${buttonBg} ${buttonText} px-4 py-2 rounded-full font-medium transition-all flex items-center gap-2 hover:scale-105`}
-                    >
-                      <FiUser className="w-4 h-4" />
-                      <span>Hi, {user.username}</span>
-                    </button>
+                                     <div className="relative hidden md:block">
+                     <div className={`${buttonBg} ${buttonText} px-4 py-2 rounded-full font-medium transition-all flex items-center gap-2 hover:scale-105`}>
+                       <button
+                         onClick={handleDashboard}
+                         className="flex-1 text-left"
+                       >
+                         Dashboard
+                       </button>
+                       <button
+                         onClick={() => setUserMenuOpen(!userMenuOpen)}
+                         className="flex items-center justify-center"
+                       >
+                         <FiChevronDown className={`w-4 h-4 transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`} />
+                       </button>
+                     </div>
 
                     {/* User Dropdown Menu */}
                     <AnimatePresence>
