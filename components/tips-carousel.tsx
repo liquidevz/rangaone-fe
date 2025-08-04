@@ -1297,7 +1297,7 @@ export default function TipsCarousel({
               onClick={goToPrevious}
               disabled={currentIndex === 0}
               className={cn(
-                "absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center transition-all duration-200 z-10",
+                "absolute left-2 top-1/3 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center transition-all duration-200 z-10",
                 currentIndex === 0
                   ? "opacity-50 cursor-not-allowed"
                   : "hover:bg-gray-50 hover:shadow-xl"
@@ -1322,7 +1322,7 @@ export default function TipsCarousel({
               onClick={goToNext}
               disabled={currentIndex === tips.length - 1}
               className={cn(
-                "absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center transition-all duration-200 z-10",
+                "absolute right-2 top-1/3 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center transition-all duration-200 z-10",
                 currentIndex === tips.length - 1
                   ? "opacity-50 cursor-not-allowed"
                   : "hover:bg-gray-50 hover:shadow-xl"
