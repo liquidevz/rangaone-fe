@@ -61,8 +61,8 @@ export default function CartPage() {
   useEffect(() => {
     const initializeCart = async () => {
       try {
+        await refreshCart()
         if (isAuthenticated) {
-          await refreshCart()
           // Fetch subscribed portfolios for the user (but don't auto-remove items)
           try {
             const portfolios = await userPortfolioService.getSubscribedPortfolios()
@@ -73,11 +73,6 @@ export default function CartPage() {
             console.error("Failed to load subscribed portfolios:", portfolioError)
             // Don't block cart loading for this error
           }
-          // Hide auth form if user becomes authenticated
-          setShowAuthForm(false)
-        } else {
-          // For unauthenticated users, still load the cart from local storage
-          await refreshCart()
         }
       } catch (error) {
         console.error("Failed to initialize cart:", error)
@@ -252,18 +247,193 @@ export default function CartPage() {
     router.push('/thanks');
   }
 
-  const handleAuthSuccess = () => {
+  const handleAuthSuccess = async () => {
     setShowAuthForm(false);
-    // After successful auth, proceed with checkout
+    
+    // Refresh cart to sync with authenticated user
+    try {
+      await refreshCart();
+    } catch (error) {
+      console.error('Failed to refresh cart after auth:', error);
+    }
+    
     toast({
-      title: "Authentication Successful",
-      description: "Proceeding to checkout...",
+      title: "Welcome!",
+      description: "You're now signed in.",
     });
-    // Automatically proceed with checkout after auth
-    setTimeout(() => {
-      handleDirectCheckout();
-    }, 1000);
-  }
+  };
+
+  const handlePaymentTrigger = async () => {
+    // Check for already-purchased items before checkout
+    const alreadyPurchasedItems = filteredItems.filter(item => 
+      activatedPortfolioIds.includes(item.portfolio._id)
+    )
+    
+    if (alreadyPurchasedItems.length > 0) {
+      toast({
+        title: "Cannot Checkout",
+        description: "Please remove already-purchased items from your cart before proceeding.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setProcessingCheckout(true);
+    clearError();
+
+    try {
+      console.log("Starting direct checkout for subscription type:", subscriptionType);
+      
+      let orderResponse;
+      
+      // Use eMandate for yearly and quarterly subscriptions
+      if (subscriptionType === "yearly" || subscriptionType === "quarterly") {
+        console.log(`Creating cart eMandate for ${subscriptionType} subscription`);
+        console.log("Cart items:", cart?.items);
+        console.log("First cart item:", cart?.items?.[0]);
+        
+        // Check if cart has items
+        if (!cart?.items || cart.items.length === 0) {
+          throw new Error("Cart is empty. Please add items before checkout.");
+        }
+        
+        // Prepare cart data for eMandate API with subscription type and pricing
+        const cartData = {
+          productType: "Portfolio", // Can be any product type
+          productId: cart.items[0].portfolio._id, // Use first item's product ID
+          planType: subscriptionType, // Add subscription type (yearly/quarterly)
+          subscriptionType: "premium", // Add subscription category
+          amount: total, // Add total amount to ensure correct pricing
+          totalAmount: total, // Alternative field name
+          // Add individual item pricing for the API to use correct pricing
+          items: cart.items.map(item => ({
+            portfolioId: item.portfolio._id,
+            quantity: item.quantity,
+            price: subscriptionType === "yearly" 
+              ? item.portfolio.subscriptionFee.find(fee => fee.type === "yearly")?.price || 0
+              : item.portfolio.subscriptionFee.find(fee => fee.type === "quarterly")?.price || 0
+          }))
+        };
+        
+        console.log("eMandate payload:", cartData);
+        console.log("Total amount being sent:", total);
+        console.log("Subscription type:", subscriptionType);
+        orderResponse = await paymentService.cartCheckoutEmandate(cartData);
+        console.log("Cart eMandate created:", orderResponse);
+      } else {
+        // Use regular checkout for monthly subscriptions
+        orderResponse = await paymentService.cartCheckout({
+          planType: subscriptionType,
+          subscriptionType: "premium",
+        });
+        console.log("Cart checkout created:", orderResponse);
+      }
+
+      // Initialize payment with Razorpay
+      await paymentService.openCheckout(
+        orderResponse,
+        {
+          name: "User", // You might want to get this from auth context
+          email: "user@example.com", // You might want to get this from auth context
+        },
+        async (response: any) => {
+          console.log("Payment success response:", response);
+          
+          // Handle payment verification
+          try {
+            const isEmandate = (subscriptionType === "yearly" || subscriptionType === "quarterly") && 'subscriptionId' in orderResponse;
+            
+            if (isEmandate) {
+              console.log("Processing eMandate verification");
+              const verificationResponse = await paymentService.verifyEmandate(
+                (orderResponse as any).subscriptionId,
+                response
+              );
+              
+              if (verificationResponse.success || verificationResponse.message.includes("not authenticated yet")) {
+                const isNotAuthenticated = verificationResponse.message.includes("not authenticated yet");
+                
+                // Check profile completion after successful payment
+                await checkProfileCompletionAfterPayment();
+                
+                toast({
+                  title: `${subscriptionType === "yearly" ? "Yearly" : "Quarterly"} ${isNotAuthenticated ? "eMandate Created" : "Subscription Activated"}`,
+                  description: isNotAuthenticated 
+                    ? `Your ${subscriptionType} subscription has been created. Please complete the eMandate authentication to activate it.`
+                    : `Your ${subscriptionType} subscription with eMandate has been activated successfully`,
+                });
+                // Clear cart after successful payment
+                await refreshCart();
+              } else {
+                throw new Error(verificationResponse.message || "eMandate verification failed");
+              }
+            } else {
+              // Regular payment verification
+              const verificationResponse = await paymentService.verifyPayment({
+                orderId: response.razorpay_order_id,
+                paymentId: response.razorpay_payment_id,
+                signature: response.razorpay_signature
+              });
+              
+              if (verificationResponse.success) {
+                // Check profile completion after successful payment
+                await checkProfileCompletionAfterPayment();
+                
+                toast({
+                  title: "Payment Successful",
+                  description: "Your subscription has been activated",
+                });
+                // Clear cart after successful payment
+                await refreshCart();
+              } else {
+                throw new Error(verificationResponse.message || "Payment verification failed");
+              }
+            }
+          } catch (error: any) {
+            console.error("Payment verification failed:", error);
+            toast({
+              title: "Payment Verification Failed",
+              description: error.message || "Please contact support if payment was deducted",
+              variant: "destructive",
+            });
+          }
+        },
+        (error: any) => {
+          console.error("Payment failed:", error);
+          toast({
+            title: "Payment Failed",
+            description: error.message || "Payment was cancelled or failed",
+            variant: "destructive",
+          });
+        }
+      );
+    } catch (error: any) {
+      console.error("Checkout failed:", error);
+      console.error("Error details:", {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
+      
+      let errorMessage = "Failed to initiate checkout";
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast({
+        title: "Checkout Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingCheckout(false);
+    }
+  };
 
   const getCheckoutDescription = (descriptions: any[]) => {
     if (!descriptions || !Array.isArray(descriptions)) {
@@ -280,9 +450,13 @@ export default function CartPage() {
   }
 
   const handleDirectCheckout = async () => {
+    // Always show auth form modal (step 1 for unauthenticated, step 2 for authenticated)
+    setShowAuthForm(true);
+    if (isAuthenticated) {
+      return;
+    }
+
     if (!isAuthenticated) {
-      // Show auth form instead of modal
-      setShowAuthForm(true);
       return;
     }
 
@@ -606,34 +780,8 @@ export default function CartPage() {
           ) : (
             // Enhanced Cart with Items
             <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
-              {/* Left Side - Cart Items or Auth Form */}
+              {/* Left Side - Cart Items */}
               <div className="lg:col-span-2 space-y-6">
-                {!isAuthenticated && showAuthForm ? (
-                  // Show Auth Form
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 p-6"
-                  >
-                    <div className="mb-6">
-                      <button 
-                        onClick={() => setShowAuthForm(false)}
-                        className="flex items-center text-blue-600 hover:text-blue-700 transition-colors group mb-4"
-                      >
-                        <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-                        <span className="text-sm font-medium">Back to Cart Items</span>
-                      </button>
-                      <h2 className="text-2xl font-bold text-gray-900 mb-2">Sign In to Continue</h2>
-                      <p className="text-gray-600">Please sign in or create an account to complete your purchase</p>
-                    </div>
-                    <CartAuthForm 
-                      onAuthSuccess={handleAuthSuccess}
-                      cartTotal={total}
-                      cartItemCount={cartItemCount}
-                    />
-                  </motion.div>
-                ) : (
-                  <>
                 {/* Modern Subscription Type Toggle */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -916,8 +1064,7 @@ export default function CartPage() {
                     })}
                   </AnimatePresence>
                 </div>
-                  </>
-                )}
+
               </div>
 
               {/* Enhanced Right Side - Order Summary */}
@@ -1105,9 +1252,9 @@ export default function CartPage() {
                         disabled={updatingQuantity !== null || syncing || !!error || processingCheckout}
                       >
                         <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3" />
-                        {updatingQuantity ? "Updating..." : 
-                         syncing ? "Syncing..." :
-                         processingCheckout ? "Processing..." :
+                        {updatingQuantity ? "Updating Cart..." : 
+                         syncing ? "Syncing Cart..." :
+                         processingCheckout ? "Processing Payment..." :
                          error ? "Error - Please Refresh" :
                          !isAuthenticated ? "Sign In to Checkout" :
                          "Proceed to Checkout"}
@@ -1126,9 +1273,15 @@ export default function CartPage() {
                       </Button>
                       
                       {!isAuthenticated && (
-                        <p className="text-xs text-gray-500 text-center">
-                          Sign in or create an account to complete your purchase
-                        </p>
+                        <div className="text-center">
+                          <p className="text-xs text-gray-500 mb-2">
+                            Sign in or create an account to complete your purchase
+                          </p>
+                          <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
+                            <Shield className="w-3 h-3" />
+                            <span>Secure checkout with 256-bit SSL encryption</span>
+                          </div>
+                        </div>
                       )}
                       
                       {showProfileModal && (
@@ -1143,11 +1296,15 @@ export default function CartPage() {
                       <div className="flex items-center justify-center gap-4 pt-3 border-t border-gray-100">
                         <div className="flex items-center gap-1 text-xs text-gray-500">
                           <Shield className="w-3 h-3" />
-                          <span>Secure</span>
+                          <span>Secure Payment</span>
                         </div>
                         <div className="flex items-center gap-1 text-xs text-gray-500">
                           <Heart className="w-3 h-3" />
-                          <span>Trusted</span>
+                          <span>Trusted Platform</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                          <RefreshCw className="w-3 h-3" />
+                          <span>Auto-Sync</span>
                         </div>
                       </div>
                     </CardContent>
@@ -1158,6 +1315,40 @@ export default function CartPage() {
           )}
         </div>
       </div>
+
+      {/* Auth Modal */}
+      {showAuthForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+          >
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Complete Your Purchase</h2>
+                <button 
+                  onClick={() => setShowAuthForm(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
+                <p className="text-sm text-blue-800">
+                  <span className="font-medium">Cart Total:</span> ₹{total.toLocaleString('en-IN')} ({cartItemCount} item{cartItemCount !== 1 ? 's' : ''})
+                </p>
+              </div>
+              <CartAuthForm 
+                onAuthSuccess={handleAuthSuccess}
+                onPaymentTrigger={handlePaymentTrigger}
+                cartTotal={total}
+                cartItemCount={cartItemCount}
+              />
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       <ProfileCompletionModal 
         open={showProfileModal}

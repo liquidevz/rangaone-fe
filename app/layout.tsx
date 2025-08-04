@@ -17,6 +17,7 @@ export const metadata = {
   images: [{ url: "../public/imgs/9.png" }],
   icons: {
     icon: '/favicon.ico',
+    maskIcon: '/favicon.ico',
   },
 };
 
