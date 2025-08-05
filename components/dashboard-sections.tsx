@@ -203,7 +203,21 @@ export function ExpertRecommendationsSection() {
         if (activeTab === "RangaOneWealth") {
           // Fetch general investment tips from /api/user/tips
           const generalTips = await tipsService.getAll()
-          setRangaOneWealthTips(generalTips)
+          
+          // Separate basic and premium tips
+          const basicTips = generalTips.filter(tip => tip.category === 'basic')
+          const premiumTips = generalTips.filter(tip => tip.category === 'premium')
+          
+          // Alternate between basic and premium tips
+          const alternatingTips = []
+          const maxLength = Math.max(basicTips.length, premiumTips.length)
+          
+          for (let i = 0; i < maxLength; i++) {
+            if (i < basicTips.length) alternatingTips.push(basicTips[i])
+            if (i < premiumTips.length) alternatingTips.push(premiumTips[i])
+          }
+          
+          setRangaOneWealthTips(alternatingTips)
         } else if (activeTab === "modelPortfolio") {
           // Fetch portfolio-specific tips from /api/user/tips-with-portfolio
           const portfolioTips = await tipsService.getPortfolioTips()
@@ -265,7 +279,7 @@ export function ExpertRecommendationsSection() {
           ))
         ) : (
           modelPortfolioTips.slice(0, 4).map((tip) => (
-            <ModelPortfolioTipCard key={tip._id} tip={tip} />
+            <ModelPortfolioTipCard key={tip._id} tip={tip} subscriptionAccess={subscriptionAccess} />
           ))
         )}
       </div>
@@ -508,7 +522,25 @@ function GeneralTipCard({ tip, subscriptionAccess }: { tip: Tip; subscriptionAcc
   }
   
   const category = tip.category || "basic"
-  const isLocked = category === "premium" && !subscriptionAccess?.hasPremium
+  
+  // Check access based on subscription
+  const hasAccess = () => {
+    if (!subscriptionAccess) {
+      return false;
+    }
+    if (subscriptionAccess.hasPremium) {
+      return true;
+    }
+    if (category === "premium") {
+      return false;
+    } else if (category === "basic") {
+      return subscriptionAccess.hasBasic;
+    }
+    return true;
+  };
+  
+  const canAccessTip = hasAccess();
+  const shouldBlurContent = !canAccessTip;
   
   const getTipColorScheme = (category: "basic" | "premium") => {
     if (category === "premium") {
@@ -533,7 +565,7 @@ function GeneralTipCard({ tip, subscriptionAccess }: { tip: Tip; subscriptionAcc
   };
   
   const handleTipClick = () => {
-    if (!isLocked) {
+    if (canAccessTip) {
       router.push(`/rangaone-wealth/recommendation/${tip._id}`)
     }
   }
@@ -544,64 +576,97 @@ function GeneralTipCard({ tip, subscriptionAccess }: { tip: Tip; subscriptionAcc
         {tip.title}
       </h3>
       <div 
-        className={`p-[3px] rounded-lg mx-auto max-w-[18rem] md:max-w-[24rem] ${!isLocked ? 'cursor-pointer' : ''}`}
+        className={`relative p-[3px] rounded-lg mx-auto max-w-[18rem] md:max-w-[24rem] ${canAccessTip ? 'cursor-pointer' : ''}`}
         style={{ 
           background: colorScheme.gradient,
           boxShadow: '0 0 9px rgba(0, 0, 0, 0.3)'
         }}
         onClick={handleTipClick}
       >
-        <div className="bg-white rounded-lg p-3">
-          <div className="flex justify-between items-start mb-3"> 
-            <div>
-              <div className={`p-[2px] rounded inline-block mb-1.5 ${
-                category === 'premium' 
-                  ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' 
-                  : 'bg-gradient-to-r from-[#A0A2FF] to-[#6E6E6E]'
-              }`}>
-                <div className={`text-xs font-semibold rounded px-2 py-0.5 ${
+        <div className="bg-white rounded-lg p-3 relative overflow-hidden">
+          <div className={cn(
+            "w-full h-full flex flex-col justify-between relative z-10",
+            shouldBlurContent && "blur-md"
+          )}>
+            <div className="flex justify-between items-start mb-3"> 
+              <div>
+                <div className={`p-[2px] rounded inline-block mb-1.5 ${
                   category === 'premium' 
-                    ? 'bg-gray-800 text-yellow-400' 
-                    : 'bg-gradient-to-r from-[#396C87] to-[#151D5C] text-white'
+                    ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' 
+                    : 'bg-gradient-to-r from-[#A0A2FF] to-[#6E6E6E]'
                 }`}>
-                  {category === 'premium' ? 'Premium' : 'Basic'}
-                  {isLocked && <Lock className="inline h-3 w-3 ml-1" />}
+                  <div className={`text-xs font-semibold rounded px-2 py-0.5 ${
+                    category === 'premium' 
+                      ? 'bg-gray-800 text-yellow-400' 
+                      : 'bg-gradient-to-r from-[#396C87] to-[#151D5C] text-white'
+                  }`}>
+                    {category === 'premium' ? 'Premium' : 'Basic'}
+                  </div>
+                </div>
+                <h3 className="text-lg font-bold" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>
+                  {stockSymbol}
+                </h3>
+                <p className="text-sm font-light text-gray-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>NSE</p>
+              </div>
+              
+              <div className="bg-[#219612] p-[3px] rounded-xl">
+                <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg text-center min-w-[70px] py-0.5 px-1">
+                  <p className="text-xs text-black font-bold text-center mb-0" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Target</p>
+                  <p className="text-2xl font-bold text-black -mt-1 mb-0" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{formatPercentage(tip.targetPercentage)}</p>
+                  <p className="text-xs text-black font-bold text-right px-1 -mt-1" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Upto</p>
                 </div>
               </div>
-              <h3 className="text-lg font-bold" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>
-                {stockSymbol}
-              </h3>
-              <p className="text-sm font-light text-gray-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>NSE</p>
             </div>
             
-            <div className="bg-[#219612] p-[3px] rounded-xl">
-              <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg text-center min-w-[70px] py-0.5 px-1">
-                <p className="text-xs text-black font-bold text-center mb-0" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Target</p>
-                <p className="text-2xl font-bold text-black -mt-1 mb-0" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{formatPercentage(tip.targetPercentage)}</p>
-                <p className="text-xs text-black font-bold text-right px-1 -mt-1" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Upto</p>
+            {tip.analysistConfidence && (
+              <div className="relative">
+                <div className="flex justify-between items-center mb-1">
+                  <p className="text-xs text-gray-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Analyst Confidence</p>
+                  <p className="text-xs mt-0.5" style={{ color: colorScheme.textColor, fontFamily: 'Helvetica, Arial, sans-serif' }}>
+                    {tip.analysistConfidence >= 8 ? 'Very High' : 
+                     tip.analysistConfidence >= 6 ? 'High' : 
+                     tip.analysistConfidence >= 4 ? 'Medium' : 
+                     tip.analysistConfidence >= 2 ? 'Low' : 'Very Low'}
+                  </p>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="h-2 rounded-full" 
+                    style={{ 
+                      width: `${(tip.analysistConfidence || 0) * 10}%`,
+                      backgroundColor: colorScheme.textColor 
+                    }}
+                  ></div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
           
-          {tip.analysistConfidence && (
-            <div className="relative">
-              <div className="flex justify-between items-center mb-1">
-                <p className="text-xs text-gray-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Analyst Confidence</p>
-                <p className="text-xs mt-0.5" style={{ color: colorScheme.textColor, fontFamily: 'Helvetica, Arial, sans-serif' }}>
-                  {tip.analysistConfidence >= 8 ? 'Very High' : 
-                   tip.analysistConfidence >= 6 ? 'High' : 
-                   tip.analysistConfidence >= 4 ? 'Medium' : 
-                   tip.analysistConfidence >= 2 ? 'Low' : 'Very Low'}
+          {shouldBlurContent && (
+            <div className="absolute inset-0 bg-black bg-opacity-10 rounded-lg flex items-center justify-center z-20">
+              <div className="bg-white rounded-lg p-2 sm:p-3 text-center shadow-lg max-w-[140px] sm:max-w-[160px]">
+                <p className="text-xs text-gray-600 mb-1.5 sm:mb-2">
+                  {category === "premium"
+                    ? "Premium subscription required"
+                    : "Basic subscription required"}
                 </p>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="h-2 rounded-full" 
-                  style={{ 
-                    width: `${(tip.analysistConfidence || 0) * 10}%`,
-                    backgroundColor: colorScheme.textColor 
+                <button
+                  className={cn(
+                    "px-2 sm:px-3 py-1 rounded text-xs font-medium text-[#FFFFF0] transition-all",
+                    category === "premium"
+                      ? "bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700"
+                      : "bg-gradient-to-r from-[#18657B] to-[#131859] hover:from-blue-600 hover:to-blue-700"
+                  )}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.location.href =
+                      category === "premium"
+                        ? "/premium-subscription"
+                        : "/basic-subscription";
                   }}
-                ></div>
+                >
+                  {category === "premium" ? "Get Premium" : "Get Basic"}
+                </button>
               </div>
             </div>
           )}
@@ -612,7 +677,7 @@ function GeneralTipCard({ tip, subscriptionAccess }: { tip: Tip; subscriptionAcc
 }
 
 // Model Portfolio Tip Card Component - Using full Box 1 styling
-function ModelPortfolioTipCard({ tip }: { tip: Tip }) {
+function ModelPortfolioTipCard({ tip, subscriptionAccess }: { tip: Tip; subscriptionAccess: SubscriptionAccess | null }) {
   const router = useRouter()
   
   // Use same stock symbol extraction logic as tips carousel
@@ -639,6 +704,23 @@ function ModelPortfolioTipCard({ tip }: { tip: Tip }) {
     stockSymbol = "STOCK";
   }
   
+  // Check access for model portfolio tips
+  const hasAccess = () => {
+    if (!subscriptionAccess) {
+      return false;
+    }
+    
+    const portfolioId = typeof tip.portfolio === 'string' ? tip.portfolio : tip.portfolio?._id;
+    if (portfolioId) {
+      return subscriptionAccess.portfolioAccess.includes(portfolioId);
+    }
+    
+    return subscriptionAccess.hasPremium;
+  };
+  
+  const canAccessTip = hasAccess();
+  const shouldBlurContent = !canAccessTip;
+  
   const colorScheme = {
     gradient: "linear-gradient(90deg, #00B7FF 0%, #85D437 100%)",
     textColor: "#047857",
@@ -651,11 +733,13 @@ function ModelPortfolioTipCard({ tip }: { tip: Tip }) {
   };
   
   const handleTipClick = () => {
-    const portfolioId = typeof tip.portfolio === 'string' ? tip.portfolio : tip.portfolio?._id
-    if (portfolioId) {
-      router.push(`/model-portfolios/${portfolioId}/tips/${tip._id}`)
-    } else {
-      router.push(`/rangaone-wealth/recommendation/${tip._id}`)
+    if (canAccessTip) {
+      const portfolioId = typeof tip.portfolio === 'string' ? tip.portfolio : tip.portfolio?._id
+      if (portfolioId) {
+        router.push(`/model-portfolios/${portfolioId}/tips/${tip._id}`)
+      } else {
+        router.push(`/rangaone-wealth/recommendation/${tip._id}`)
+      }
     }
   }
   
@@ -665,57 +749,84 @@ function ModelPortfolioTipCard({ tip }: { tip: Tip }) {
         {tip.title}
       </h3>
       <div 
-        className="p-[3px] rounded-lg cursor-pointer mx-auto max-w-[18rem] md:max-w-[24rem]"
+        className={`relative p-[3px] rounded-lg mx-auto max-w-[18rem] md:max-w-[24rem] ${canAccessTip ? 'cursor-pointer' : ''}`}
         style={{ 
           background: colorScheme.gradient,
           boxShadow: '0 0 9px rgba(0, 0, 0, 0.3)'
         }}
         onClick={handleTipClick}
       >
-        <div className="bg-white rounded-lg p-3">
-          <div className="flex justify-between items-start mb-3"> 
-            <div>
-              <div className="relative bg-gradient-to-r from-[#00B7FF] to-[#85D437] p-[2px] rounded overflow-hidden mb-1.5">
-                <div className="bg-black text-xs font-bold rounded px-2 py-0.5 overflow-hidden">
-                  <div className="bg-gradient-to-r from-[#00B7FF] to-[#85D437] font-bold bg-clip-text text-transparent">
-                    Model Portfolio
+        <div className="bg-white rounded-lg p-3 relative overflow-hidden">
+          <div className={cn(
+            "w-full h-full flex flex-col justify-between relative z-10",
+            shouldBlurContent && "blur-md"
+          )}>
+            <div className="flex justify-between items-start mb-3"> 
+              <div>
+                <div className="relative bg-gradient-to-r from-[#00B7FF] to-[#85D437] p-[2px] rounded overflow-hidden mb-1.5">
+                  <div className="bg-black text-xs font-bold rounded px-2 py-0.5 overflow-hidden">
+                    <div className="bg-gradient-to-r from-[#00B7FF] to-[#85D437] font-bold bg-clip-text text-transparent">
+                      Model Portfolio
+                    </div>
                   </div>
                 </div>
+                <h3 className="text-lg font-bold" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>
+                  {stockSymbol}
+                </h3>
+                <p className="text-sm font-light text-gray-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>NSE</p>
               </div>
-              <h3 className="text-lg font-bold" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>
-                {stockSymbol}
-              </h3>
-              <p className="text-sm font-light text-gray-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>NSE</p>
+              
+              <div className="bg-gradient-to-r from-[#00B7FF] to-[#85D437] p-[3px] rounded-xl">
+                <div className="bg-cyan-50 rounded-lg text-center min-w-[70px] py-0.5 px-1">
+                  <p className="text-xs text-gray-700 font-bold text-center mb-0" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Target</p>
+                  <p className="text-2xl font-bold text-black -mt-1 mb-0" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{formatPercentage(tip.targetPercentage)}</p>
+                  <p className="text-xs text-black font-bold text-right px-1 -mt-1" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Upto</p>
+                </div>
+              </div>
             </div>
             
-            <div className="bg-gradient-to-r from-[#00B7FF] to-[#85D437] p-[3px] rounded-xl">
-              <div className="bg-cyan-50 rounded-lg text-center min-w-[70px] py-0.5 px-1">
-                <p className="text-xs text-gray-700 font-bold text-center mb-0" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Target</p>
-                <p className="text-2xl font-bold text-black -mt-1 mb-0" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{formatPercentage(tip.targetPercentage)}</p>
-                <p className="text-xs text-black font-bold text-right px-1 -mt-1" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Upto</p>
+            {tip.analysistConfidence && (
+              <div className="relative">
+                <div className="flex justify-between items-center mb-1">
+                  <p className="text-xs text-gray-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Analyst Confidence</p>
+                  <p className="text-xs mt-0.5" style={{ color: colorScheme.textColor, fontFamily: 'Helvetica, Arial, sans-serif' }}>
+                    {tip.analysistConfidence >= 8 ? 'Very High' : 
+                     tip.analysistConfidence >= 6 ? 'High' : 
+                     tip.analysistConfidence >= 4 ? 'Medium' : 
+                     tip.analysistConfidence >= 2 ? 'Low' : 'Very Low'}
+                  </p>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="h-2 rounded-full" 
+                    style={{ 
+                      width: `${(tip.analysistConfidence || 0) * 10}%`,
+                      backgroundColor: colorScheme.textColor 
+                    }}
+                  ></div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
           
-          {tip.analysistConfidence && (
-            <div className="relative">
-              <div className="flex justify-between items-center mb-1">
-                <p className="text-xs text-gray-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Analyst Confidence</p>
-                <p className="text-xs mt-0.5" style={{ color: colorScheme.textColor, fontFamily: 'Helvetica, Arial, sans-serif' }}>
-                  {tip.analysistConfidence >= 8 ? 'Very High' : 
-                   tip.analysistConfidence >= 6 ? 'High' : 
-                   tip.analysistConfidence >= 4 ? 'Medium' : 
-                   tip.analysistConfidence >= 2 ? 'Low' : 'Very Low'}
+          {shouldBlurContent && (
+            <div className="absolute inset-0 bg-black bg-opacity-10 rounded-lg flex items-center justify-center z-20">
+              <div className="bg-white rounded-lg p-2 sm:p-3 text-center shadow-lg max-w-[140px] sm:max-w-[160px]">
+                <p className="text-xs text-gray-600 mb-1.5 sm:mb-2">
+                  Portfolio access required
                 </p>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="h-2 rounded-full" 
-                  style={{ 
-                    width: `${(tip.analysistConfidence || 0) * 10}%`,
-                    backgroundColor: colorScheme.textColor 
+                <button
+                  className={cn(
+                    "px-2 sm:px-3 py-1 rounded text-xs font-medium text-[#FFFFF0] transition-all",
+                    "bg-gradient-to-r from-[#00B7FF] to-[#85D437] hover:from-blue-600 hover:to-green-600"
+                  )}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.location.href = "/premium-subscription";
                   }}
-                ></div>
+                >
+                  Get Access
+                </button>
               </div>
             </div>
           )}
