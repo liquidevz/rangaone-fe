@@ -142,13 +142,20 @@ export default function Sidebar({ isOpen, onClose, isCollapsed = false, onToggle
           <div className="flex items-center justify-between px-4 h-full">
             <div className={cn(
               "flex items-center transition-all duration-300",
-              isCollapsed ? "lg:justify-center" : "space-x-3",
-              !isCollapsed && "lg:w-full"
+              isCollapsed ? "lg:justify-center lg:w-full" : "gap-2"
             )}>
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg ring-2 ring-blue-100">
-                <img src="/logo.png" alt="RangaOne Finance Logo" className="h-6 w-auto" />
-              </div>
-              {/* Remove text branding, logo only */}
+              <img 
+                src="/landing-page/rlogodark.png" 
+                alt="RangaOne Logo" 
+                className="h-10 w-auto" 
+              />
+              {!isCollapsed && (
+                <img 
+                  src="/landing-page/namelogodark.png" 
+                  alt="RangaOne Name" 
+                  className="h-10 w-auto" 
+                />
+              )}
             </div>
 
             {/* Desktop collapse toggle
@@ -226,7 +233,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed = false, onToggle
                       "transition-all duration-200 group relative overflow-hidden",
                       isActive(item.href)
                         ? [
-                            "bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium",
+                            "bg-[#131859] text-white font-medium",
                             "shadow-lg shadow-blue-500/30 transform translate-y-0",
                             "ring-2 ring-blue-200/50",
                             "before:absolute before:inset-0 before:bg-gradient-to-r before:from-white/0 before:to-white/10"

@@ -12,9 +12,13 @@ export default function Dashboard() {
       <div className="flex flex-col w-full gap-4">
         <MarketIndicesSection />
         <Banner />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <ExpertRecommendationsSection />
-          <ModelPortfolioSection />
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          <div className="lg:col-span-2">
+            <ExpertRecommendationsSection />
+          </div>
+          <div className="lg:col-span-3">
+            <ModelPortfolioSection />
+          </div>
         </div>
       </div>
     </DashboardLayout>
