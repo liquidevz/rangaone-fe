@@ -11,7 +11,17 @@ import { Input } from "@/components/ui/input"
 import { tipsService } from "@/services/tip.service"
 import { portfolioService } from "@/services/portfolio.service"
 import { useAuth } from "@/components/auth/auth-context"
-import debounce from "lodash/debounce"
+// Custom debounce function to avoid lodash dependency
+const debounce = <T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): ((...args: Parameters<T>) => void) => {
+  let timeout: NodeJS.Timeout
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeout)
+    timeout = setTimeout(() => func(...args), wait)
+  }
+}
 import Fuse from "fuse.js"
 import { cn } from "@/lib/utils"
 
