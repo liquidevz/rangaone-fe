@@ -24,6 +24,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import { PageHeader } from "@/components/page-header";
 import { ProfileCompletionModal } from "@/components/profile-completion-modal";
 import CartAuthForm from "@/components/cart-auth-form";
+import { DigioVerificationModal } from "@/components/digio-verification-modal";
+import { PaymentAgreementData } from "@/services/digio.service";
 
 export default function CartPage() {
   const [loading, setLoading] = useState(true)
@@ -35,8 +37,9 @@ export default function CartPage() {
   const [updatingQuantity, setUpdatingQuantity] = useState<string | null>(null)
   const [activatedPortfolioIds, setActivatedPortfolioIds] = useState<string[]>([])
   const [showProfileModal, setShowProfileModal] = useState(false)
-
   const [showAuthForm, setShowAuthForm] = useState(false)
+  const [showDigioVerification, setShowDigioVerification] = useState(false)
+  const [agreementData, setAgreementData] = useState<PaymentAgreementData | null>(null)
 
   const { isAuthenticated } = useAuth()
   const router = useRouter()
@@ -249,6 +252,29 @@ export default function CartPage() {
 
   const handleAuthSuccess = async () => {
     setShowAuthForm(false);
+    // After successful auth, show Digio verification
+    showDigioVerificationModal();
+  };
+
+  const showDigioVerificationModal = () => {
+    // Prepare agreement data
+    const agreement: PaymentAgreementData = {
+      customerName: "User", // Get from auth context
+      customerEmail: "user@example.com", // Get from auth context
+      amount: total,
+      subscriptionType,
+      portfolioNames: filteredItems.map(item => item.portfolio.name),
+      agreementDate: new Date().toLocaleDateString('en-IN')
+    };
+    
+    setAgreementData(agreement);
+    setShowDigioVerification(true);
+  };
+
+  const handleDigioVerificationComplete = () => {
+    setShowDigioVerification(false);
+    // Proceed with payment after verification
+    handlePaymentTrigger();
   };
 
   const handlePaymentTrigger = async () => {
@@ -438,15 +464,15 @@ export default function CartPage() {
   }
 
   const handleDirectCheckout = async () => {
-    // Always show auth form modal (step 1 for unauthenticated, step 2 for authenticated)
-    setShowAuthForm(true);
-    if (isAuthenticated) {
-      return;
-    }
-
     if (!isAuthenticated) {
+      // Show auth form for unauthenticated users
+      setShowAuthForm(true);
       return;
     }
+    
+    // For authenticated users, go directly to Digio verification
+    showDigioVerificationModal();
+    return;
 
     // Check for already-purchased items before checkout
     const alreadyPurchasedItems = filteredItems.filter(item => 
@@ -1244,8 +1270,8 @@ export default function CartPage() {
                          syncing ? "Syncing Cart..." :
                          processingCheckout ? "Processing Payment..." :
                          error ? "Error - Please Refresh" :
-                         !isAuthenticated ? "Sign In to Checkout" :
-                         "Proceed to Checkout"}
+                         !isAuthenticated ? "Sign In & Verify" :
+                         "Verify & Checkout"}
                       </Button>
                       
                       {/* Test button for debugging */}
@@ -1347,6 +1373,16 @@ export default function CartPage() {
           router.push('/dashboard');
         }}
       />
+
+      {/* Digio Verification Modal */}
+      {agreementData && (
+        <DigioVerificationModal
+          isOpen={showDigioVerification}
+          onClose={() => setShowDigioVerification(false)}
+          onVerificationComplete={handleDigioVerificationComplete}
+          agreementData={agreementData}
+        />
+      )}
 
 
     </>

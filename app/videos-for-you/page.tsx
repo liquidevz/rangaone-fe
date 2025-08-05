@@ -1,242 +1,353 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import DashboardLayout from "@/components/dashboard-layout"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Play, Calendar, Clock, User } from "lucide-react"
+import { Play, Calendar, Clock, User, Loader2, Folder } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { portfolioService } from "@/services/portfolio.service"
+import { Portfolio } from "@/lib/types"
+import { PageHeader } from "@/components/page-header"
 
-// Mock data for videos
-const videos = [
-  {
-    id: "1",
-    title: "Understanding Market Trends: A Beginner's Guide",
-    thumbnail: "/placeholder.svg?key=x8258",
-    youtubeId: "dQw4w9WgXcQ",
-    category: "Education",
-    duration: "15:24",
-    publishedDate: "May 15, 2023",
-    author: "RangaOne Finwala",
-    description:
-      "Learn the basics of market trends and how to identify them in this comprehensive guide for beginners.",
-    views: "12K",
-  },
-  {
-    id: "2",
-    title: "Top 5 Stocks to Watch This Quarter",
-    thumbnail: "/stock-picks-thumbnail.png",
-    youtubeId: "dQw4w9WgXcQ",
-    category: "Stock Picks",
-    duration: "22:10",
-    publishedDate: "June 2, 2023",
-    author: "RangaOne Finwala",
-    description:
-      "Our expert analysts share their top 5 stock picks for this quarter with detailed analysis and projections.",
-    views: "8.5K",
-  },
-  {
-    id: "3",
-    title: "Technical Analysis Masterclass",
-    thumbnail: "/technical-analysis-thumbnail.png",
-    youtubeId: "dQw4w9WgXcQ",
-    category: "Education",
-    duration: "45:30",
-    publishedDate: "April 28, 2023",
-    author: "RangaOne Finwala",
-    description: "Master the art of technical analysis with this comprehensive guide to chart patterns and indicators.",
-    views: "15K",
-  },
-  {
-    id: "4",
-    title: "Monthly Market Outlook - July 2023",
-    thumbnail: "/market-outlook-thumbnail.png",
-    youtubeId: "dQw4w9WgXcQ",
-    category: "Market Updates",
-    duration: "18:45",
-    publishedDate: "July 1, 2023",
-    author: "RangaOne Finwala",
-    description: "Get our expert analysis on market trends and opportunities for the month of July 2023.",
-    views: "7.2K",
-  },
-  {
-    id: "5",
-    title: "Fundamental Analysis: How to Value Stocks",
-    thumbnail: "/fundamental-analysis-thumbnail.png",
-    youtubeId: "dQw4w9WgXcQ",
-    category: "Education",
-    duration: "32:15",
-    publishedDate: "May 5, 2023",
-    author: "RangaOne Finwala",
-    description: "Learn how to perform fundamental analysis to determine the intrinsic value of stocks.",
-    views: "10.8K",
-  },
-  {
-    id: "6",
-    title: "Investing for Retirement: Building a Secure Future",
-    thumbnail: "/placeholder.svg?height=180&width=320&query=retirement investing video thumbnail",
-    youtubeId: "dQw4w9WgXcQ",
-    category: "Education",
-    duration: "27:50",
-    publishedDate: "June 15, 2023",
-    author: "RangaOne Finwala",
-    description: "Strategies for building a retirement portfolio that provides security and growth for your future.",
-    views: "9.3K",
-  },
-  {
-    id: "7",
-    title: "Weekly Market Recap - Week 26, 2023",
-    thumbnail: "/placeholder.svg?height=180&width=320&query=market recap video thumbnail",
-    youtubeId: "dQw4w9WgXcQ",
-    category: "Market Updates",
-    duration: "12:30",
-    publishedDate: "June 30, 2023",
-    author: "RangaOne Finwala",
-    description: "A recap of the major market movements and news from the past week.",
-    views: "6.5K",
-  },
-  {
-    id: "8",
-    title: "Dividend Investing Strategies for Passive Income",
-    thumbnail: "/placeholder.svg?height=180&width=320&query=dividend investing video thumbnail",
-    youtubeId: "dQw4w9WgXcQ",
-    category: "Education",
-    duration: "24:18",
-    publishedDate: "May 22, 2023",
-    author: "RangaOne Finwala",
-    description: "Learn how to build a dividend portfolio that generates consistent passive income.",
-    views: "11.2K",
-  },
-]
+interface VideoData {
+  id: string
+  title: string
+  youtubeId: string
+  portfolioName: string
+  portfolioCategory: string
+  createdAt: string
+  thumbnail?: string
+  portfolioId: string
+  description?: string
+}
+
+interface PortfolioGroup {
+  portfolioId: string
+  portfolioName: string
+  portfolioCategory: string
+  description?: string
+  videos: VideoData[]
+}
 
 export default function VideosForYou() {
   const [activeTab, setActiveTab] = useState("all")
-  const [selectedVideo, setSelectedVideo] = useState(videos[0])
+  const [portfolioGroups, setPortfolioGroups] = useState<PortfolioGroup[]>([])
+  const [selectedVideo, setSelectedVideo] = useState<VideoData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const filteredVideos = videos.filter((video) => {
+  // Extract YouTube video ID from URL
+  const extractYouTubeId = (url: string): string => {
+    const regex = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/
+    const match = url.match(regex)
+    return match ? match[1] : ""
+  }
+
+  // Fetch portfolios and group videos
+  useEffect(() => {
+    const fetchVideos = async () => {
+      try {
+        setLoading(true)
+        const portfolios = await portfolioService.getAll()
+        
+        const groups: PortfolioGroup[] = []
+        
+        portfolios.forEach((portfolio: Portfolio) => {
+          if (portfolio.youTubeLinks && portfolio.youTubeLinks.length > 0) {
+            const videos: VideoData[] = []
+            
+            portfolio.youTubeLinks.forEach((videoLink, index) => {
+              const youtubeId = extractYouTubeId(videoLink.link)
+              if (youtubeId) {
+                videos.push({
+                  id: `${portfolio._id}-${index}`,
+                  title: (portfolio.youTubeLinks?.length || 0) === 1 ? portfolio.name : `${portfolio.name} - Part ${index + 1}`,
+                  youtubeId,
+                  portfolioName: portfolio.name,
+                  portfolioCategory: portfolio.PortfolioCategory || "General",
+                  createdAt: videoLink.createdAt,
+                  thumbnail: `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`,
+                  portfolioId: portfolio._id,
+                  description: typeof portfolio.description === 'string' 
+                    ? portfolio.description 
+                    : Array.isArray(portfolio.description) 
+                      ? (portfolio.description as { key: string; value: string }[]).find(d => d.key === 'general')?.value || ''
+                      : ''
+                })
+              }
+            })
+            
+            if (videos.length > 0) {
+              groups.push({
+                portfolioId: portfolio._id,
+                portfolioName: portfolio.name,
+                portfolioCategory: portfolio.PortfolioCategory || "General",
+                description: typeof portfolio.description === 'string' 
+                  ? portfolio.description 
+                  : Array.isArray(portfolio.description) 
+                    ? (portfolio.description as { key: string; value: string }[]).find(d => d.key === 'general')?.value || ''
+                    : '',
+                videos: videos.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+              })
+            }
+          }
+        })
+        
+        // Sort groups by category (Premium first) then by name
+        groups.sort((a, b) => {
+          if (a.portfolioCategory !== b.portfolioCategory) {
+            return a.portfolioCategory.toLowerCase() === "premium" ? -1 : 1
+          }
+          return a.portfolioName.localeCompare(b.portfolioName)
+        })
+        
+        setPortfolioGroups(groups)
+        if (groups.length > 0 && groups[0].videos.length > 0) {
+          setSelectedVideo(groups[0].videos[0])
+        }
+      } catch (err) {
+        setError("Failed to load videos")
+        console.error("Error fetching videos:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchVideos()
+  }, [])
+
+  const filteredGroups = portfolioGroups.filter((group) => {
     if (activeTab === "all") return true
-    return video.category.toLowerCase() === activeTab.toLowerCase()
+    return group.portfolioCategory.toLowerCase() === activeTab.toLowerCase()
   })
 
-  const categories = ["all", ...new Set(videos.map((video) => video.category.toLowerCase()))]
+  const categories = ["all", ...Array.from(new Set(portfolioGroups.map((group) => group.portfolioCategory.toLowerCase())))]
+  const totalVideos = portfolioGroups.reduce((sum, group) => sum + group.videos.length, 0)
 
   return (
     <DashboardLayout>
       <div className="flex flex-col w-full gap-6">
-        <div className="bg-indigo-900 text-[#FFFFF0] py-6 px-8 rounded-lg shadow-md mb-6">
-          <h1 className="text-3xl font-bold text-center">Videos For You</h1>
-          <p className="text-center mt-2">Educational content and market insights</p>
-        </div>
+        <PageHeader 
+          title="Videos For You" 
+          subtitle="Educational content and market insights from our portfolios"
+          showBackButton={false}
+        />
 
-        {/* Featured Video */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
-          <div className="aspect-video w-full bg-black">
-            <iframe
-              width="100%"
-              height="100%"
-              src={`https://www.youtube.com/embed/${selectedVideo.youtubeId}`}
-              title={selectedVideo.title}
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="w-full h-full"
-            ></iframe>
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-[#131859]" />
+            <span className="ml-2 text-gray-600">Loading videos...</span>
           </div>
-          <div className="p-6">
-            <h2 className="text-2xl font-bold mb-2">{selectedVideo.title}</h2>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-4">
-              <span className="flex items-center">
-                <User className="h-4 w-4 mr-1" />
-                {selectedVideo.author}
-              </span>
-              <span className="flex items-center">
-                <Calendar className="h-4 w-4 mr-1" />
-                {selectedVideo.publishedDate}
-              </span>
-              <span className="flex items-center">
-                <Clock className="h-4 w-4 mr-1" />
-                {selectedVideo.duration}
-              </span>
-              <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs font-medium">
-                {selectedVideo.category}
-              </span>
-            </div>
-            <p className="text-gray-700">{selectedVideo.description}</p>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <p className="text-red-600">{error}</p>
           </div>
-        </div>
+        )}
 
-        {/* Video Library */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-4 border-b border-gray-200">
-            <h2 className="text-xl font-semibold">Video Library</h2>
+        {/* No Videos State */}
+        {!loading && !error && portfolioGroups.length === 0 && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+            <p className="text-gray-600">No videos available at the moment.</p>
           </div>
+        )}
 
-          <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className="px-4 pt-4">
-              <TabsList className="w-full flex flex-wrap justify-start bg-gray-100 p-1 h-auto gap-1">
-                {categories.map((category) => (
-                  <TabsTrigger
-                    key={category}
-                    value={category}
-                    className={cn(
-                      "py-2 px-4 rounded-md data-[state=active]:shadow-none capitalize",
-                      activeTab === category
-                        ? "data-[state=active]:bg-indigo-900 data-[state=active]:text-[#FFFFF0]"
-                        : "data-[state=inactive]:bg-transparent",
-                    )}
-                  >
-                    {category}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </div>
-
-            <TabsContent value={activeTab} className="p-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredVideos.map((video) => (
-                  <VideoCard
-                    key={video.id}
-                    video={video}
-                    onClick={() => setSelectedVideo(video)}
-                    isSelected={selectedVideo.id === video.id}
-                  />
-                ))}
+        {/* Featured Video Player */}
+        {selectedVideo && (
+          <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-lg border border-gray-200 overflow-hidden mb-8">
+            <div className="aspect-video w-full bg-black relative group">
+              <iframe
+                width="100%"
+                height="100%"
+                src={`https://www.youtube.com/embed/${selectedVideo.youtubeId}?rel=0&modestbranding=1&showinfo=0`}
+                title={selectedVideo.title}
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                className="w-full h-full rounded-t-xl"
+              ></iframe>
+              <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm font-medium">
+                Now Playing
               </div>
-            </TabsContent>
-          </Tabs>
-        </div>
+            </div>
+            <div className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">{selectedVideo.title}</h2>
+                  {selectedVideo.description && (
+                    <p className="text-gray-600 mb-3 line-clamp-2">{selectedVideo.description}</p>
+                  )}
+                </div>
+                <span className={cn(
+                  "px-3 py-1 rounded-full text-xs font-semibold ml-4 flex-shrink-0",
+                  selectedVideo.portfolioCategory.toLowerCase() === "premium" 
+                    ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
+                    : "bg-[#131859] text-white"
+                )}>
+                  {selectedVideo.portfolioCategory}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
+                <span className="flex items-center bg-gray-100 px-3 py-1 rounded-full">
+                  <User className="h-4 w-4 mr-2" />
+                  {selectedVideo.portfolioName}
+                </span>
+                <span className="flex items-center bg-gray-100 px-3 py-1 rounded-full">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  {new Date(selectedVideo.createdAt).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                  })}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Portfolio Video Library */}
+        {portfolioGroups.length > 0 && (
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+            <div className="bg-[#131859] p-6 text-white">
+              <h2 className="text-2xl font-bold mb-2">Portfolio Video Library</h2>
+              <p className="text-blue-100">{totalVideos} educational videos from {portfolioGroups.length} portfolios</p>
+            </div>
+
+            <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <div className="px-6 pt-6">
+                <TabsList className="w-full flex flex-wrap justify-start bg-gray-50 p-2 h-auto gap-2 rounded-lg">
+                  {categories.map((category) => {
+                    const count = category === "all" 
+                      ? totalVideos 
+                      : portfolioGroups
+                          .filter(group => group.portfolioCategory.toLowerCase() === category.toLowerCase())
+                          .reduce((sum, group) => sum + group.videos.length, 0);
+                    return (
+                      <TabsTrigger
+                        key={category}
+                        value={category}
+                        className={cn(
+                          "py-3 px-4 rounded-lg font-medium transition-all duration-200 capitalize",
+                          activeTab === category
+                            ? "bg-[#131859] text-white shadow-md"
+                            : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200",
+                        )}
+                      >
+                        {category} <span className="ml-1 text-xs opacity-75">({count})</span>
+                      </TabsTrigger>
+                    );
+                  })}
+                </TabsList>
+              </div>
+
+              <TabsContent value={activeTab} className="p-6 space-y-8">
+                {filteredGroups.map((group) => (
+                  <div key={group.portfolioId} className="">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className={cn(
+                        "p-2 rounded-lg",
+                        group.portfolioCategory.toLowerCase() === "premium"
+                          ? "bg-gradient-to-r from-purple-500 to-pink-500"
+                          : "bg-[#131859]"
+                      )}>
+                        <Folder className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900">{group.portfolioName}</h3>
+                        <p className="text-sm text-gray-600">{group.videos.length} video{group.videos.length > 1 ? 's' : ''} • {group.portfolioCategory}</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {group.videos.map((video, index) => (
+                        <VideoCard
+                          key={video.id}
+                          video={video}
+                          onClick={() => setSelectedVideo(video)}
+                          isSelected={selectedVideo?.id === video.id}
+                          index={index}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {filteredGroups.length === 0 && (
+                  <div className="text-center py-12">
+                    <div className="text-gray-400 mb-4">
+                      <Play className="h-16 w-16 mx-auto" />
+                    </div>
+                    <p className="text-gray-500 text-lg">No portfolios found in this category.</p>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   )
 }
 
-function VideoCard({ video, onClick, isSelected }) {
+function VideoCard({ video, onClick, isSelected, index }: { 
+  video: VideoData; 
+  onClick: () => void; 
+  isSelected: boolean;
+  index: number;
+}) {
   return (
     <Card
       className={cn(
-        "overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-md",
-        isSelected && "ring-2 ring-indigo-500",
+        "group overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-white border-2",
+        isSelected 
+          ? "ring-4 ring-indigo-500/50 border-indigo-500 shadow-xl" 
+          : "border-gray-200 hover:border-indigo-300",
       )}
       onClick={onClick}
+      style={{ animationDelay: `${index * 50}ms` }}
     >
       <CardContent className="p-0">
-        <div className="relative">
-          <img src={video.thumbnail || "/placeholder.svg"} alt={video.title} className="w-full h-48 object-cover" />
-          <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300">
-            <div className="bg-indigo-900 bg-opacity-80 rounded-full p-3">
-              <Play className="h-8 w-8 text-[#FFFFF0]" />
+        <div className="relative overflow-hidden">
+          <img 
+            src={video.thumbnail || "/placeholder.svg"} 
+            alt={video.title} 
+            className="w-full h-44 object-cover transition-transform duration-300 group-hover:scale-105" 
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.src = "/placeholder.svg";
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+            <div className="bg-white/90 backdrop-blur-sm rounded-full p-4 transform scale-75 group-hover:scale-100 transition-transform duration-300">
+              <Play className="h-6 w-6 text-indigo-600 fill-current" />
             </div>
           </div>
-          <div className="absolute bottom-2 right-2 bg-black bg-opacity-70 text-[#FFFFF0] text-xs px-2 py-1 rounded">
-            {video.duration}
+          {isSelected && (
+            <div className="absolute top-3 right-3 bg-[#131859] text-white px-2 py-1 rounded-full text-xs font-semibold">
+              Playing
+            </div>
+          )}
+          <div className={cn(
+            "absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-semibold",
+            video.portfolioCategory.toLowerCase() === "premium"
+              ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
+              : "bg-[#131859] text-white"
+          )}>
+            {video.portfolioCategory}
           </div>
         </div>
         <div className="p-4">
-          <h3 className="font-bold text-lg mb-2 line-clamp-2">{video.title}</h3>
-          <div className="flex justify-between items-center text-sm text-gray-600">
-            <span>{video.publishedDate}</span>
-            <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs font-medium">
-              {video.category}
+          <h3 className="font-bold text-base mb-2 line-clamp-2 text-gray-900 group-hover:text-[#131859] transition-colors">
+            {video.title}
+          </h3>
+          <p className="text-sm text-gray-600 mb-3 font-medium">{video.portfolioName}</p>
+          <div className="flex justify-between items-center text-xs text-gray-500">
+            <span className="flex items-center">
+              <Calendar className="h-3 w-3 mr-1" />
+              {new Date(video.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             </span>
           </div>
         </div>
