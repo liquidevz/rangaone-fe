@@ -12,7 +12,7 @@ import { useAuth } from "@/components/auth/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Sidebar from "@/components/sidebar";
-import { NotificationBell } from "@/components/notifications/notification-bell";
+
 import { GlobalSearch } from "@/components/global-search";
 
 export default function DashboardLayout({
@@ -175,14 +175,16 @@ export default function DashboardLayout({
               </div>
 
               {/* Search */}
-              <div className="flex flex-1 items-center gap-4">
+              <div className="hidden md:flex flex-1 items-center gap-4">
                 <GlobalSearch />
               </div>
+              
+              {/* Mobile spacer */}
+              <div className="flex-1 md:hidden"></div>
 
               {/* Actions */}
               <div className="flex items-center gap-2">
-                {/* Notifications */}
-                <NotificationBell />
+
 
                 {/* User menu */}
                 <div className="relative">

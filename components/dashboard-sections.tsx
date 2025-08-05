@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Lock, TrendingUp, Crown, Star, ArrowDown, ArrowUp } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Lock, TrendingUp, Crown, Star, ArrowDown, ArrowUp, Search } from "lucide-react"
 import { GlobalSearch } from "@/components/global-search"
 import { cn } from "@/lib/utils"
 import { tipsService, Tip } from "@/services/tip.service"
@@ -17,8 +18,29 @@ import { useRouter } from "next/navigation"
 import { MethodologyModal } from "@/components/methodology-modal"
 import { authService } from "@/services/auth.service"
 
+// Mobile Global Search Component
+function MobileGlobalSearch() {
+  return (
+    <div className="relative flex-1 max-w-full">
+      <GlobalSearch />
+    </div>
+  )
+}
+
 // Market Indices Component
 export function MarketIndicesSection() {
+  const [isExpanded, setIsExpanded] = useState(true)
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (window.innerWidth < 768) {
+        setIsExpanded(false)
+      }
+    }, 10000)
+    
+    return () => clearTimeout(timer)
+  }, [])
+  
   const [indices, setIndices] = useState([
     {
       name: "Sensex",
@@ -47,8 +69,21 @@ export function MarketIndicesSection() {
   ])
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
-      <h2 className="text-xl font-semibold text-gray-900 mb-4">Market Indices</h2>
+    <div className="bg-white border border-gray-200 rounded-lg mb-4 overflow-hidden">
+      <div 
+        className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <h2 className="text-xl font-semibold text-gray-900">Market Indices</h2>
+        <ArrowDown className={`h-5 w-5 text-gray-500 transition-transform duration-300 ${
+          isExpanded ? 'rotate-180' : ''
+        }`} />
+      </div>
+      
+      <div className={`transition-all duration-500 ease-in-out ${
+        isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+      } overflow-hidden`}>
+        <div className="px-4 pb-4">
       <div className="hidden md:grid md:grid-cols-3 gap-4">
         {indices.map((index) => (
           <div 
@@ -84,21 +119,19 @@ export function MarketIndicesSection() {
         ))}
       </div>
       
-      {/* Mobile swipeable version */}
-      <div className="md:hidden overflow-x-auto scrollbar-hide -mx-4 px-4">
-        <div className="flex gap-4 pb-3" style={{ width: 'max-content' }}>
+      {/* Mobile slider version */}
+      <div className="md:hidden overflow-x-scroll scrollbar-hide snap-x snap-mandatory">
+        <div className="flex pb-3" style={{ paddingLeft: 'calc(50vw - 125px)', paddingRight: 'calc(50vw - 125px)' }}>
           {indices.map((index, i) => (
             <div 
               key={index.name} 
-              className={`bg-white rounded-xl p-5 flex-shrink-0 min-w-[280px] transition-all duration-300 ${
-                i === 0 ? 'ml-0' : ''
-              } ${i === indices.length - 1 ? 'mr-4' : ''}`}
+              className="bg-white rounded-xl p-3 flex-shrink-0 w-[250px] snap-center snap-always transition-all duration-300 mr-4 last:mr-0"
               style={{ 
-                boxShadow: '0 8px 25px rgba(0, 0, 0, 0.12)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.12)',
                 background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)'
               }}
             >
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide">
                     {index.name}
@@ -108,20 +141,20 @@ export function MarketIndicesSection() {
                   }`}></div>
                 </div>
                 
-                <div className="text-3xl font-bold text-gray-900 leading-none">
+                <div className="text-2xl font-bold text-gray-900 leading-none">
                   {index.value}
                 </div>
                 
                 <div className="flex items-center justify-between">
-                  <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-semibold ${
+                  <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-sm font-semibold ${
                     index.isNegative 
                       ? 'bg-red-100 text-red-700' 
                       : 'bg-green-100 text-green-700'
                   }`}>
                     {index.isNegative ? (
-                      <ArrowDown className="h-3.5 w-3.5" />
+                      <ArrowDown className="h-3 w-3" />
                     ) : (
-                      <ArrowUp className="h-3.5 w-3.5" />
+                      <ArrowUp className="h-3 w-3" />
                     )}
                     <span>{index.change}</span>
                   </div>
@@ -136,14 +169,10 @@ export function MarketIndicesSection() {
           ))}
         </div>
       </div>
-      
-      {/* Mobile search bar */}
-      <div className="md:hidden mt-4">
-        <div className="relative">
-          <GlobalSearch />
-        </div>
-      </div>
     </div>
+    </div>
+    </div>
+    
   )
 }
 
@@ -234,7 +263,13 @@ export function ExpertRecommendationsSection() {
   }, [activeTab, subscriptionAccess])
 
   return (
+
+    
     <div className="bg-white border border-gray-200 rounded-lg p-4">
+            {/* Mobile search bar - outside drawer */}
+            <div className="md:hidden mt-4 px-4 pb-4">
+        <MobileGlobalSearch />
+      </div>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-gray-900">Expert Recommendations</h2>
         <Link href="/rangaone-wealth">

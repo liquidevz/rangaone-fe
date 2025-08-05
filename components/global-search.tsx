@@ -55,16 +55,7 @@ export function GlobalSearch() {
   const searchRef = useRef<HTMLDivElement>(null)
   const { isAuthenticated } = useAuth()
 
-  // --- Fetch and cache stocks (simulate with static for now) ---
-  const [stockList, setStockList] = useState<SearchResult[]>([])
-  useEffect(() => {
-    // TODO: Replace with real API or cache
-    setStockList([
-      { id: "RELIANCE", title: "Reliance Industries", type: "stock", url: "/stocks/RELIANCE", description: "NSE: RELIANCE" },
-      { id: "TCS", title: "Tata Consultancy Services", type: "stock", url: "/stocks/TCS", description: "NSE: TCS" },
-      // ... more ...
-    ])
-  }, [])
+
 
   useEffect(() => {
     const saved = localStorage.getItem('recent-searches')
@@ -92,9 +83,8 @@ export function GlobalSearch() {
     ])
 
     // Fuzzy search setup
-    const fuseTips = new Fuse(tips, { keys: ["title", "stockId"], threshold: 0.4 })
+    const fuseTips = new Fuse(tips, { keys: ["title", "stockId", "symbol"], threshold: 0.4 })
     const fusePortfolios = new Fuse(portfolios, { keys: ["name", "description"], threshold: 0.4 })
-    const fuseStocks = new Fuse(stockList, { keys: ["title", "id"], threshold: 0.3 })
     const fusePages = new Fuse(STATIC_PAGES, { keys: ["title", "description"], threshold: 0.3 })
 
     // Results
@@ -116,10 +106,7 @@ export function GlobalSearch() {
       description: res.item.description || `Investment portfolio`,
       highlight: res.matches?.[0]?.value
     }))
-    const stockResults = fuseStocks.search(searchQuery).slice(0, 3).map((res: any) => ({
-      ...res.item,
-      highlight: res.matches?.[0]?.value
-    }))
+
     const pageResults = fusePages.search(searchQuery).slice(0, 2).map((res: any) => ({
       ...res.item,
       highlight: res.matches?.[0]?.value
@@ -129,7 +116,6 @@ export function GlobalSearch() {
     return {
       Tips: tipResults ?? [],
       Portfolios: portfolioResults ?? [],
-      Stocks: stockResults ?? [],
       Pages: pageResults ?? [],
     }
   }
@@ -147,7 +133,7 @@ export function GlobalSearch() {
       setActiveIndex(0)
       setLoading(false)
     }, 250),
-    [isAuthenticated, stockList]
+    [isAuthenticated]
   )
 
   const handleInputChange = (value: string) => {
@@ -221,7 +207,7 @@ export function GlobalSearch() {
 
   // --- Highlight match utility ---
   const highlightMatch = (text: string, query: string) => {
-    if (!query) return text
+    if (!query || !text || typeof text !== 'string') return text
     const idx = text.toLowerCase().indexOf(query.toLowerCase())
     if (idx === -1) return text
     return (
@@ -258,7 +244,7 @@ export function GlobalSearch() {
   }
 
   return (
-    <div ref={searchRef} className="relative flex-1 max-w-md hidden md:block">
+    <div ref={searchRef} className="relative flex-1 max-w-md">
       <div className="relative group">
         <div className="absolute left-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
           <Search className="h-4 w-4 text-gray-400 group-focus-within:text-blue-500 transition-colors duration-200" />
@@ -267,21 +253,21 @@ export function GlobalSearch() {
             <span>K</span>
           </div>
         </div>
-        <Input
-          type="search"
+        <input
+          type="text"
           placeholder="Search stocks, portfolios & reports..."
           value={query}
           onChange={(e) => handleInputChange(e.target.value)}
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
           className={cn(
-            "w-full bg-white/90 backdrop-blur-sm border-gray-200/80 shadow-sm",
-            "pl-10 lg:pl-16 pr-10 py-2.5 rounded-xl",
+            "w-full bg-white/90 backdrop-blur-sm border-gray-200/80 shadow-sm border rounded-xl",
+            "pl-10 lg:pl-16 pr-10 py-2.5",
             "focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:border-blue-400",
             "focus-visible:shadow-lg focus-visible:bg-white",
             "transition-all duration-300 ease-out",
             "hover:shadow-md hover:border-gray-300/80",
-            "placeholder:text-gray-400"
+            "placeholder:text-gray-400 outline-none"
           )}
           aria-label="Global search"
         />

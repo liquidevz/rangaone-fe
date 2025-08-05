@@ -6,7 +6,7 @@ import { CartProvider } from "@/components/cart/cart-context";
 import AuthGuard from "@/components/auth/auth-guard";
 import ProfileCompletionGuard from "@/components/auth/profile-completion-guard";
 import { Toaster } from "@/components/ui/toaster";
-import { NotificationProvider } from "@/components/notifications/notification-context";
+
 
 
 const inter = Inter({ subsets: ["latin"] });
@@ -30,7 +30,6 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <AuthProvider>
-          <NotificationProvider>
             <CartProvider>
               <AuthGuard>
                 <ProfileCompletionGuard>
@@ -44,7 +43,6 @@ export default function RootLayout({
                 </ProfileCompletionGuard>
               </AuthGuard>
             </CartProvider>
-          </NotificationProvider>
         </AuthProvider>
       </body>
     </html>
