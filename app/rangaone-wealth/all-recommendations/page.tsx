@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/dashboard-layout';
-import { PageHeader } from '@/components/page-header';
+import { InnerPageHeader } from '@/components/inner-page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -565,7 +565,7 @@ export default function AllRecommendationsPage() {
     return (
       <DashboardLayout userId="1">
         <div className="space-y-8">
-          <PageHeader
+          <InnerPageHeader
             title="All Recommendations"
             subtitle="Complete list of investment tips"
           />
@@ -581,7 +581,7 @@ export default function AllRecommendationsPage() {
 
   return (
     <DashboardLayout userId="1">
-      <PageHeader
+      <InnerPageHeader
         title="All Recommendations"
         subtitle="Complete list of investment tips"
       />
@@ -611,28 +611,36 @@ export default function AllRecommendationsPage() {
           
           {/* Live/Closed Calls Checkboxes */}
           <div className="flex items-center justify-center lg:ml-8 gap-4 lg:gap-6">
-            <label className="flex items-center gap-3 cursor-pointer select-none">
+            <label className="flex items-center gap-3 cursor-pointer select-none transition-all duration-200 hover:scale-105">
               <input
                 type="checkbox"
                 checked={filters.status === 'Active'}
                 onChange={() => handleFilterChange('status', filters.status === 'Active' ? 'all' : 'Active')}
-                className="w-5 h-5 border-2 border-gray-400 rounded-[6px] accent-[#101e5a] focus:ring-0 focus:outline-none"
+                className="w-5 h-5 border-2 border-gray-400 rounded-[6px] accent-[#101e5a] focus:ring-0 focus:outline-none transition-all duration-200 hover:border-[#101e5a]"
                 style={{ boxShadow: 'none' }}
               />
-              <span className={`font-bold text-base lg:text-lg ${filters.status === 'Active' ? 'text-black' : 'text-gray-400'}`}>
+              <span className={`font-bold text-base lg:text-lg transition-colors duration-200 ${
+                filters.status === 'Active' 
+                  ? 'text-[#101e5a]' 
+                  : 'text-gray-400 hover:text-gray-600'
+              }`}>
                 Live Calls
               </span>
             </label>
             
-            <label className="flex items-center gap-3 cursor-pointer select-none">
+            <label className="flex items-center gap-3 cursor-pointer select-none transition-all duration-200 hover:scale-105">
               <input
                 type="checkbox"
                 checked={filters.status === 'Closed'}
                 onChange={() => handleFilterChange('status', filters.status === 'Closed' ? 'all' : 'Closed')}
-                className="w-5 h-5 border-2 border-gray-400 rounded-[6px] accent-[#101e5a] focus:ring-0 focus:outline-none"
+                className="w-5 h-5 border-2 border-gray-400 rounded-[6px] accent-[#101e5a] focus:ring-0 focus:outline-none transition-all duration-200 hover:border-[#101e5a]"
                 style={{ boxShadow: 'none' }}
               />
-              <span className={`font-bold text-base lg:text-lg ${filters.status === 'Closed' ? 'text-black' : 'text-gray-400'}`}>
+              <span className={`font-bold text-base lg:text-lg transition-colors duration-200 ${
+                filters.status === 'Closed' 
+                  ? 'text-[#101e5a]' 
+                  : 'text-gray-400 hover:text-gray-600'
+              }`}>
                 Closed Calls
               </span>
             </label>
@@ -646,8 +654,11 @@ export default function AllRecommendationsPage() {
             <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
               <PopoverTrigger asChild>
                 <button
-                  className={`rounded-[12px] lg:rounded-[16px] border-2 border-gray-400 bg-white text-gray-600 font-bold text-base lg:text-lg px-4 lg:px-7 py-1 lg:py-1.5 transition-colors
-                    ${filters.startDate || filters.endDate ? 'bg-[#f5f5f5] text-[#101e5a] border-[#101e5a]' : ''}`}
+                  className={`rounded-[12px] lg:rounded-[16px] border-2 font-bold text-base lg:text-lg px-4 lg:px-7 py-1 lg:py-1.5 transition-all duration-200 hover:scale-105 hover:shadow-md
+                    ${filters.startDate || filters.endDate 
+                      ? 'bg-[#101e5a] text-white border-[#101e5a] shadow-md' 
+                      : 'bg-white text-gray-600 border-gray-400 hover:bg-gray-50 hover:border-gray-500'
+                    }`}
                 >
                   Date
                 </button>
@@ -727,15 +738,21 @@ export default function AllRecommendationsPage() {
               </PopoverContent>
           </Popover>
             <button
-              className={`rounded-[12px] lg:rounded-[16px] border-2 border-gray-400 bg-white text-gray-600 font-bold text-base lg:text-lg px-4 lg:px-7 py-1 lg:py-1.5 transition-colors
-                ${filters.category === 'premium' ? 'bg-[#f5f5f5] text-[#101e5a] border-[#101e5a]' : ''}`}
+              className={`rounded-[12px] lg:rounded-[16px] border-2 font-bold text-base lg:text-lg px-4 lg:px-7 py-1 lg:py-1.5 transition-all duration-200 hover:scale-105 hover:shadow-md
+                ${filters.category === 'premium' 
+                  ? 'bg-[#101e5a] text-white border-[#101e5a] shadow-md' 
+                  : 'bg-white text-gray-600 border-gray-400 hover:bg-gray-50 hover:border-gray-500'
+                }`}
               onClick={() => handleFilterChange('category', filters.category === 'premium' ? 'all' : 'premium')}
             >
               Premium
             </button>
             <button
-              className={`rounded-[12px] lg:rounded-[16px] border-2 border-gray-400 bg-white text-gray-600 font-bold text-base lg:text-lg px-4 lg:px-7 py-1 lg:py-1.5 transition-colors
-                ${filters.category === 'basic' ? 'bg-[#f5f5f5] text-[#101e5a] border-[#101e5a]' : ''}`}
+              className={`rounded-[12px] lg:rounded-[16px] border-2 font-bold text-base lg:text-lg px-4 lg:px-7 py-1 lg:py-1.5 transition-all duration-200 hover:scale-105 hover:shadow-md
+                ${filters.category === 'basic' 
+                  ? 'bg-[#101e5a] text-white border-[#101e5a] shadow-md' 
+                  : 'bg-white text-gray-600 border-gray-400 hover:bg-gray-50 hover:border-gray-500'
+                }`}
               onClick={() => handleFilterChange('category', filters.category === 'basic' ? 'all' : 'basic')}
             >
               Basic
@@ -746,27 +763,36 @@ export default function AllRecommendationsPage() {
         {/* Tabs */}
         <div className="flex w-full border-b-2 border-gray-300 mt-2">
           <button
-            className={`flex-1 text-center font-bold text-sm sm:text-lg lg:text-2xl py-2 lg:py-3 cursor-pointer transition-colors
-              ${filters.horizon === 'Long Term' ? 'text-[#101e5a] border-b-4 border-[#101e5a] bg-white' : 'text-gray-400 border-b-4 border-transparent'}`}
+            className={`flex-1 text-center font-bold text-sm sm:text-lg lg:text-2xl py-2 lg:py-3 cursor-pointer transition-all duration-200 hover:bg-gray-50
+              ${filters.horizon === 'Long Term' 
+                ? 'text-[#101e5a] border-b-4 border-[#101e5a] bg-white shadow-sm' 
+                : 'text-gray-400 border-b-4 border-transparent hover:text-gray-600'
+              }`}
             onClick={() => handleFilterChange('horizon', 'Long Term')}
           >
-            <span className="hidden sm:inline">Long Term ({horizonCounts['Long Term'].toString().padStart(2, '0')})</span>
-            <span className="sm:hidden">Long ({horizonCounts['Long Term'].toString().padStart(2, '0')})</span>
+            <span className="hidden sm:inline">Long Term</span>
+            <span className="sm:hidden">Long</span>
           </button>
           <button
-            className={`flex-1 text-center font-bold text-sm sm:text-lg lg:text-2xl py-2 lg:py-3 cursor-pointer transition-colors
-              ${filters.horizon === 'Short Term' ? 'text-[#101e5a] border-b-4 border-[#101e5a] bg-white' : 'text-gray-400 border-b-4 border-transparent'}`}
+            className={`flex-1 text-center font-bold text-sm sm:text-lg lg:text-2xl py-2 lg:py-3 cursor-pointer transition-all duration-200 hover:bg-gray-50
+              ${filters.horizon === 'Short Term' 
+                ? 'text-[#101e5a] border-b-4 border-[#101e5a] bg-white shadow-sm' 
+                : 'text-gray-400 border-b-4 border-transparent hover:text-gray-600'
+              }`}
             onClick={() => handleFilterChange('horizon', 'Short Term')}
           >
-            <span className="hidden sm:inline">Short Term ({horizonCounts['Short Term'].toString().padStart(2, '0')})</span>
-            <span className="sm:hidden">Short ({horizonCounts['Short Term'].toString().padStart(2, '0')})</span>
+            <span className="hidden sm:inline">Short Term</span>
+            <span className="sm:hidden">Short</span>
           </button>
           <button
-            className={`flex-1 text-center font-bold text-sm sm:text-lg lg:text-2xl py-2 lg:py-3 cursor-pointer transition-colors
-              ${filters.horizon === 'Swing' ? 'text-[#101e5a] border-b-4 border-[#101e5a] bg-white' : 'text-gray-400 border-b-4 border-transparent'}`}
+            className={`flex-1 text-center font-bold text-sm sm:text-lg lg:text-2xl py-2 lg:py-3 cursor-pointer transition-all duration-200 hover:bg-gray-50
+              ${filters.horizon === 'Swing' 
+                ? 'text-[#101e5a] border-b-4 border-[#101e5a] bg-white shadow-sm' 
+                : 'text-gray-400 border-b-4 border-transparent hover:text-gray-600'
+              }`}
             onClick={() => handleFilterChange('horizon', 'Swing')}
           >
-            Swing ({horizonCounts['Swing'].toString().padStart(2, '0')})
+            Swing
           </button>
         </div>
       </div>
