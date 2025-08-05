@@ -159,19 +159,37 @@ export default function DashboardLayout({
                 <span className="hidden sm:inline">Back to Home</span>
               </Link>
 
+              {/* Logo beside Back to Home button - Mobile only */}
+              <div className="flex items-center px-7 ml-3 lg:hidden">
+                <img 
+                  src="/landing-page/namelogodark.png" 
+                  alt="RangaOne Name" 
+                  className="h-8 w-auto" 
+                />
+              </div>
+
               {/* Mobile menu button */}
               
 
               {/* Desktop sidebar toggle */}
              
 
-              {/* Logo for when sidebar is collapsed or on mobile */}
+              {/* Logo for when sidebar is collapsed - Desktop only */}
               <div className={cn(
-                "flex items-center gap-2 transition-all duration-300",
-                "lg:opacity-0 lg:pointer-events-none",
-                (sidebarCollapsed || !sidebarOpen) && "lg:opacity-100 lg:pointer-events-auto"
+                "hidden lg:flex items-center gap-2 transition-all duration-300",
+                "opacity-0 pointer-events-none",
+                sidebarCollapsed && "opacity-100 pointer-events-auto"
               )}>
-                <img src="/logo.png" alt="RangaOne Finance Logo" className="h-8 w-auto" />
+                <img 
+                  src="/landing-page/rlogo.png" 
+                  alt="RangaOne Logo" 
+                  className="h-8 w-auto" 
+                />
+                <img 
+                  src="/landing-page/namelogo.png" 
+                  alt="RangaOne Name" 
+                  className="h-8 w-auto" 
+                />
               </div>
 
               {/* Search */}

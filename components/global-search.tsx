@@ -116,6 +116,7 @@ export function GlobalSearch() {
     return {
       Tips: tipResults ?? [],
       Portfolios: portfolioResults ?? [],
+      Stocks: [], // Always return empty array for Stocks
       Pages: pageResults ?? [],
     }
   }
@@ -261,7 +262,7 @@ export function GlobalSearch() {
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
           className={cn(
-            "w-full bg-white/90 backdrop-blur-sm border-gray-200/80 shadow-sm border rounded-xl",
+            "w-full bg-gray-100 backdrop-blur-sm border-gray-200/80 shadow-sm border rounded-xl",
             "pl-10 lg:pl-16 pr-10 py-2.5",
             "focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:border-blue-400",
             "focus-visible:shadow-lg focus-visible:bg-white",

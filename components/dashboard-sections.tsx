@@ -17,6 +17,7 @@ import { useAuth } from "@/components/auth/auth-context"
 import { useRouter } from "next/navigation"
 import { MethodologyModal } from "@/components/methodology-modal"
 import { authService } from "@/services/auth.service"
+import axiosApi from "@/lib/axios"
 
 // Mobile Global Search Component
 function MobileGlobalSearch() {
@@ -36,7 +37,7 @@ export function MarketIndicesSection() {
       if (window.innerWidth < 768) {
         setIsExpanded(false)
       }
-    }, 10000)
+    }, 5000)
     
     return () => clearTimeout(timer)
   }, [])
@@ -183,7 +184,15 @@ export function ExpertRecommendationsSection() {
   const [modelPortfolioTips, setModelPortfolioTips] = useState<Tip[]>([])
   const [subscriptionAccess, setSubscriptionAccess] = useState<SubscriptionAccess | null>(null)
   const [loading, setLoading] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const { isAuthenticated } = useAuth()
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   useEffect(() => {
     const fetchSubscriptionAccess = async () => {
@@ -233,9 +242,10 @@ export function ExpertRecommendationsSection() {
           // Fetch general investment tips from /api/user/tips
           const generalTips = await tipsService.getAll()
           
-          // Separate basic and premium tips
-          const basicTips = generalTips.filter(tip => tip.category === 'basic')
-          const premiumTips = generalTips.filter(tip => tip.category === 'premium')
+          // Sort by creation date (latest first) and separate by category
+          const sortedTips = generalTips.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          const basicTips = sortedTips.filter(tip => tip.category === 'basic')
+          const premiumTips = sortedTips.filter(tip => tip.category === 'premium')
           
           // Alternate between basic and premium tips
           const alternatingTips = []
@@ -250,7 +260,8 @@ export function ExpertRecommendationsSection() {
         } else if (activeTab === "modelPortfolio") {
           // Fetch portfolio-specific tips from /api/user/tips-with-portfolio
           const portfolioTips = await tipsService.getPortfolioTips()
-          setModelPortfolioTips(portfolioTips)
+          const sortedPortfolioTips = portfolioTips.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          setModelPortfolioTips(sortedPortfolioTips)
         }
       } catch (error) {
         console.error(`Failed to fetch ${activeTab} tips:`, error)
@@ -309,11 +320,11 @@ export function ExpertRecommendationsSection() {
             ))}
           </div>
         ) : activeTab === "RangaOneWealth" ? (
-          rangaOneWealthTips.slice(0, 4).map((tip) => (
+          rangaOneWealthTips.slice(0, isMobile ? 2 : 4).map((tip) => (
             <GeneralTipCard key={tip._id} tip={tip} subscriptionAccess={subscriptionAccess} />
           ))
         ) : (
-          modelPortfolioTips.slice(0, 4).map((tip) => (
+          modelPortfolioTips.slice(0, isMobile ? 2 : 4).map((tip) => (
             <ModelPortfolioTipCard key={tip._id} tip={tip} subscriptionAccess={subscriptionAccess} />
           ))
         )}
@@ -532,29 +543,18 @@ function hasPortfolioAccess(portfolioId: string, subscriptionAccess: Subscriptio
 function GeneralTipCard({ tip, subscriptionAccess }: { tip: Tip; subscriptionAccess: SubscriptionAccess | null }) {
   const router = useRouter()
   
-  // Use same stock symbol extraction logic as tips carousel
-  let stockSymbol = tip.stockId ? stockSymbolCacheService.getCachedSymbol(tip.stockId) : undefined;
+  // Extract stock symbol - prioritize stockId, then extract from title
+  let stockSymbol = tip.stockId || undefined;
   
-  // Try to extract from title if no cached symbol
   if (!stockSymbol && tip.title) {
-    const titleParts = tip.title.split(/[:\-]/);
-    const potentialName = titleParts[0]?.trim();
-    if (potentialName && potentialName.length > 2 && potentialName !== tip.stockId) {
+    const titleParts = tip.title.split(/[:\-\s]/);
+    const potentialName = titleParts[0]?.trim().toUpperCase();
+    if (potentialName && potentialName.length > 1 && /^[A-Z0-9&\-\.]+$/i.test(potentialName)) {
       stockSymbol = potentialName;
     }
   }
   
-  // Only use stockId as last resort if it looks like a readable symbol
-  if (!stockSymbol && tip.stockId) {
-    if (tip.stockId.length <= 12 && /^[A-Z0-9&\-\.]+$/i.test(tip.stockId)) {
-      stockSymbol = tip.stockId;
-    }
-  }
-  
-  // Final fallback
-  if (!stockSymbol) {
-    stockSymbol = "STOCK";
-  }
+  stockSymbol = stockSymbol || "STOCK";
   
   const category = tip.category || "basic"
   
@@ -608,7 +608,7 @@ function GeneralTipCard({ tip, subscriptionAccess }: { tip: Tip; subscriptionAcc
   return (
     <div className="mb-4">
       <h3 className="text-sm font-medium text-gray-900 line-clamp-2 mb-2">
-        {tip.title}
+        <b>Title:- </b>{tip.title}
       </h3>
       <div 
         className={`relative p-[3px] rounded-lg mx-auto max-w-[18rem] md:max-w-[24rem] ${canAccessTip ? 'cursor-pointer' : ''}`}
@@ -639,7 +639,23 @@ function GeneralTipCard({ tip, subscriptionAccess }: { tip: Tip; subscriptionAcc
                   </div>
                 </div>
                 <h3 className="text-lg font-bold" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>
-                  {stockSymbol}
+                  {(() => {
+                    try {
+                      if (tip?.title) {
+                        const extracted = tip.title.split(/[:\-\s]/)[0]?.trim().toUpperCase();
+                        if (extracted && extracted.length > 0) {
+                          return extracted;
+                        }
+                      }
+                      if (tip?.stockId) {
+                        const cachedSymbol = stockSymbolCacheService.getCachedSymbol(tip.stockId);
+                        return cachedSymbol || tip.stockId;
+                      }
+                      return "STOCK";
+                    } catch (error) {
+                      return "STOCK";
+                    }
+                  })()}
                 </h3>
                 <p className="text-sm font-light text-gray-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>NSE</p>
               </div>
@@ -715,29 +731,18 @@ function GeneralTipCard({ tip, subscriptionAccess }: { tip: Tip; subscriptionAcc
 function ModelPortfolioTipCard({ tip, subscriptionAccess }: { tip: Tip; subscriptionAccess: SubscriptionAccess | null }) {
   const router = useRouter()
   
-  // Use same stock symbol extraction logic as tips carousel
-  let stockSymbol = tip.stockId ? stockSymbolCacheService.getCachedSymbol(tip.stockId) : undefined;
+  // Extract stock symbol - prioritize stockId, then extract from title
+  let stockSymbol = tip.stockId || undefined;
   
-  // Try to extract from title if no cached symbol
   if (!stockSymbol && tip.title) {
-    const titleParts = tip.title.split(/[:\-]/);
-    const potentialName = titleParts[0]?.trim();
-    if (potentialName && potentialName.length > 2 && potentialName !== tip.stockId) {
+    const titleParts = tip.title.split(/[:\-\s]/);
+    const potentialName = titleParts[0]?.trim().toUpperCase();
+    if (potentialName && potentialName.length > 1 && /^[A-Z0-9&\-\.]+$/i.test(potentialName)) {
       stockSymbol = potentialName;
     }
   }
   
-  // Only use stockId as last resort if it looks like a readable symbol
-  if (!stockSymbol && tip.stockId) {
-    if (tip.stockId.length <= 12 && /^[A-Z0-9&\-\.]+$/i.test(tip.stockId)) {
-      stockSymbol = tip.stockId;
-    }
-  }
-  
-  // Final fallback
-  if (!stockSymbol) {
-    stockSymbol = "STOCK";
-  }
+  stockSymbol = stockSymbol || "STOCK";
   
   // Check access for model portfolio tips
   const hasAccess = () => {
@@ -780,9 +785,6 @@ function ModelPortfolioTipCard({ tip, subscriptionAccess }: { tip: Tip; subscrip
   
   return (
     <div className="mb-4">
-      <h3 className="text-sm font-medium text-gray-900 line-clamp-2 mb-2">
-        {tip.title}
-      </h3>
       <div 
         className={`relative p-[3px] rounded-lg mx-auto max-w-[18rem] md:max-w-[24rem] ${canAccessTip ? 'cursor-pointer' : ''}`}
         style={{ 
@@ -806,7 +808,33 @@ function ModelPortfolioTipCard({ tip, subscriptionAccess }: { tip: Tip; subscrip
                   </div>
                 </div>
                 <h3 className="text-lg font-bold" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>
-                  {stockSymbol}
+                  {(() => {
+                    const [symbol, setSymbol] = useState(tip.stockId || "STOCK");
+                    
+                    useEffect(() => {
+                      if (tip.stockId) {
+                        const cachedSymbol = stockSymbolCacheService.getCachedSymbol(tip.stockId);
+                        if (!cachedSymbol) {
+                          const cachedSymbol = stockSymbolCacheService.getCachedSymbol(tip.stockId);
+                        if (!cachedSymbol) {
+                          axiosApi.get(`/api/stock-symbols/${tip.stockId}`)
+                            .then(response => {
+                              if (response.data?.symbol) {
+                                setSymbol(response.data.symbol);
+                              }
+                            })
+                            .catch(() => {});
+                        } else {
+                          setSymbol(cachedSymbol);
+                        }
+                        } else {
+                          setSymbol(cachedSymbol);
+                        }
+                      }
+                    }, [tip.stockId]);
+                    
+                    return symbol;
+                  })()}
                 </h3>
                 <p className="text-sm font-light text-gray-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>NSE</p>
               </div>
@@ -925,13 +953,13 @@ function PortfolioCard({
       
       return {
         monthlyGains: portfolioDetails.monthlyGains !== undefined ? 
-          `${portfolioDetails.monthlyGains >= 0 ? '+' : ''}${portfolioDetails.monthlyGains}%` : 
+          (portfolioDetails.monthlyGains === 0 ? '-' : `${portfolioDetails.monthlyGains >= 0 ? '+' : ''}${portfolioDetails.monthlyGains}%`) : 
           `+${portfolio.monthlyGains || '13.78'}%`,
         oneYearGains: portfolioDetails.oneYearGains !== undefined ? 
-          `${portfolioDetails.oneYearGains >= 0 ? '+' : ''}${portfolioDetails.oneYearGains}%` : 
+          (portfolioDetails.oneYearGains === 0 ? '-' : `${portfolioDetails.oneYearGains >= 0 ? '+' : ''}${portfolioDetails.oneYearGains}%`) : 
           `+${portfolio.oneYearGains || '2.86'}%`,
         cagr: portfolioDetails.CAGRSinceInception !== undefined ? 
-          `${portfolioDetails.CAGRSinceInception >= 0 ? '+' : ''}${portfolioDetails.CAGRSinceInception}%` : 
+          (portfolioDetails.CAGRSinceInception === 0 ? '-' : `${portfolioDetails.CAGRSinceInception >= 0 ? '+' : ''}${portfolioDetails.CAGRSinceInception}%`) : 
           `+${portfolio.cagr || '19.78'}%`
       }
     }
@@ -997,18 +1025,11 @@ function PortfolioCard({
               {portfolio.name}
             </h3>
             <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
-              <span>Min: ₹{(() => {
+              <span>Minimum Investment : ₹{(() => {
                 if (portfolioDetails?.minInvestment) {
                   return portfolioDetails.minInvestment.toLocaleString()
                 }
                 return typeof portfolio.minInvestment === 'number' ? portfolio.minInvestment.toLocaleString() : '10,000'
-              })()}</span>
-              <span>•</span>
-              <span>{(() => {
-                if (portfolioDetails?.durationMonths) {
-                  return `${portfolioDetails.durationMonths} months`
-                }
-                return typeof portfolio.durationMonths === 'number' ? `${portfolio.durationMonths} months` : '12 months'
               })()}</span>
             </div>
           </div>
