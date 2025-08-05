@@ -31,6 +31,41 @@ function MobileGlobalSearch() {
 // Market Indices Component
 export function MarketIndicesSection() {
   const [isExpanded, setIsExpanded] = useState(true)
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [touchStart, setTouchStart] = useState(0)
+  const [touchEnd, setTouchEnd] = useState(0)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null)
+  const [indices, setIndices] = useState([
+    {
+      name: "NIFTY 50",
+      value: "₹0",
+      change: "0",
+      changePercent: "(0.00%)",
+      isNegative: false,
+      isSelected: true,
+      symbol: "NIFTY"
+    },
+    {
+      name: "NIFTY MIDCAP 150",
+      value: "₹0",
+      change: "0",
+      changePercent: "(0.00%)",
+      isNegative: false,
+      isSelected: false,
+      symbol: "MIDCAP150"
+    },
+    {
+      name: "NIFTY SMALL CAP 250",
+      value: "₹0",
+      change: "0",
+      changePercent: "(0.00%)",
+      isNegative: false,
+      isSelected: false,
+      symbol: "SMCP250"
+    },
+  ])
+  const [loading, setLoading] = useState(true)
   
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -41,36 +76,102 @@ export function MarketIndicesSection() {
     
     return () => clearTimeout(timer)
   }, [])
-  
-  const [indices, setIndices] = useState([
-    {
-      name: "Sensex",
-      value: "₹76,597.38",
-      change: "-101.21",
-      changePercent: "(-0.18%)",
-      isNegative: true,
-      isSelected: true,
-    },
-    {
-      name: "BSE 100",
-      value: "₹24,424.59",
-      change: "-16.33",
-      changePercent: "(-0.07%)",
-      isNegative: true,
-      isSelected: false,
-    },
-    {
-      name: "BSE Mid Cap",
-      value: "₹41,652.26",
-      change: "+162.4",
-      changePercent: "(0.39%)",
-      isNegative: false,
-      isSelected: false,
-    },
-  ])
+
+  // Fetch real-time market indices data
+  useEffect(() => {
+    const fetchIndicesData = async () => {
+      try {
+        setLoading(true)
+        const indicesToFetch = ['NIFTY', 'MIDCAP150', 'NIFTYSMLCAP250']
+        const promises = indicesToFetch.map(async (symbol) => {
+          try {
+            const response = await fetch(`https://stocks-backend-cmjxc.ondigitalocean.app/api/stock-symbols/search?keyword=${symbol}`)
+            const data = await response.json()
+            
+            if (data.success && data.data.length > 0) {
+              const stockData = data.data[0] // Get the first match
+              const priceChange = parseFloat(stockData.priceChange || '0')
+              const priceChangePercent = parseFloat(stockData.priceChangePercent || '0')
+              
+              return {
+                name: stockData.name,
+                value: `₹${parseFloat(stockData.currentPrice || '0').toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                change: priceChange >= 0 ? `+₹${priceChange.toFixed(2)}` : `-₹${Math.abs(priceChange).toFixed(2)}`,
+                changePercent: `(${priceChangePercent >= 0 ? '+' : ''}${priceChangePercent.toFixed(2)}%)`,
+                isNegative: priceChange < 0,
+                isSelected: symbol === 'NIFTY',
+                symbol: stockData.symbol
+              }
+            }
+            return null
+          } catch (error) {
+            console.error(`Failed to fetch data for ${symbol}:`, error)
+            return null
+          }
+        })
+        
+        const results = await Promise.all(promises)
+        const validResults = results.filter(result => result !== null)
+        
+        if (validResults.length > 0) {
+          setIndices(validResults)
+        }
+      } catch (error) {
+        console.error('Failed to fetch indices data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchIndicesData()
+    
+    // Refresh data every 30 seconds
+    const interval = setInterval(fetchIndicesData, 30000)
+    
+    return () => clearInterval(interval)
+  }, [])
+
+  // Touch handlers for swipe functionality with smooth animations
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(0)
+    setTouchStart(e.targetTouches[0].clientX)
+    setSwipeDirection(null)
+    setIsAnimating(false)
+  }
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return
+    
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > 50
+    const isRightSwipe = distance < -50
+
+    if (isLeftSwipe) {
+      setSwipeDirection('left')
+      setIsAnimating(true)
+      setTimeout(() => {
+        setCurrentIndex(prev => prev === indices.length - 1 ? 0 : prev + 1)
+        setSwipeDirection(null)
+        setIsAnimating(false)
+      }, 300)
+    }
+    if (isRightSwipe) {
+      setSwipeDirection('right')
+      setIsAnimating(true)
+      setTimeout(() => {
+        setCurrentIndex(prev => prev === 0 ? indices.length - 1 : prev - 1)
+        setSwipeDirection(null)
+        setIsAnimating(false)
+      }, 300)
+    }
+  }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg mb-4 overflow-hidden">
+    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
       <div 
         className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
@@ -84,96 +185,183 @@ export function MarketIndicesSection() {
       <div className={`transition-all duration-500 ease-in-out ${
         isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
       } overflow-hidden`}>
-        <div className="px-4 pb-4">
-      <div className="hidden md:grid md:grid-cols-3 gap-4">
-        {indices.map((index) => (
-          <div 
-            key={index.name} 
-            className="bg-white rounded-lg p-4" style={{ boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)' }}
-          >
-            <div className="relative h-16">
-              <div className="absolute top-2 right-2">
-                <div className="text-xl font-bold text-gray-900">{index.value}</div>
-                <div
-                  className={cn(
-                    "flex items-center justify-end text-sm font-medium",
-                    index.isNegative ? "text-red-500" : "text-green-500",
-                  )}
+        <div className="px-4 pb-2">
+          {/* Desktop: 3-column grid layout */}
+          <div className="hidden md:grid md:grid-cols-3 gap-4">
+            {loading ? (
+              [...Array(3)].map((_, i) => (
+                <div 
+                  key={i} 
+                  className="bg-white rounded-xl p-5 animate-pulse"
+                  style={{ 
+                    boxShadow: '0 8px 25px rgba(0, 0, 0, 0.12)',
+                    background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)'
+                  }}
                 >
-                  {index.isNegative ? (
-                    <ArrowDown className="h-3 w-3 mr-1" />
-                  ) : (
-                    <ArrowUp className="h-3 w-3 mr-1" />
-                  )}
-                  <span>
-                    {index.change} {index.changePercent}
-                  </span>
+                  <div className="space-y-3">
+                    <div className="h-4 bg-gray-200 rounded w-24"></div>
+                    <div className="h-8 bg-gray-200 rounded w-20"></div>
+                    <div className="h-6 bg-gray-200 rounded w-16"></div>
+                  </div>
                 </div>
-              </div>
-              <div className="absolute bottom-2 left-2">
-                <h3 className="text-lg font-bold text-gray-700">
-                  {index.name}
-                </h3>
-              </div>
-            </div>
+              ))
+            ) : (
+              indices.map((index) => (
+                <div 
+                  key={index.name} 
+                  className="bg-white rounded-xl p-5 transition-all duration-300"
+                  style={{ 
+                    boxShadow: '0 8px 25px rgba(0, 0, 0, 0.12)',
+                    background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)'
+                  }}
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide">
+                        {index.name}
+                      </h3>
+                      <div className={`w-2 h-2 rounded-full ${
+                        index.isNegative ? 'bg-red-400' : 'bg-green-400'
+                      }`}></div>
+                    </div>
+                    
+                    <div className="text-3xl font-bold text-gray-900 leading-none">
+                      {index.value}
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-semibold ${
+                        index.isNegative 
+                          ? 'bg-red-100 text-red-700' 
+                          : 'bg-green-100 text-green-700'
+                      }`}>
+                        {index.isNegative ? (
+                          <ArrowDown className="h-3.5 w-3.5" />
+                        ) : (
+                          <ArrowUp className="h-3.5 w-3.5" />
+                        )}
+                        <span>{index.change}</span>
+                      </div>
+                      <div className={`text-sm font-medium ${
+                        index.isNegative ? 'text-red-600' : 'text-green-600'
+                      }`}>
+                        ₹ {index.changePercent}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
-        ))}
-      </div>
-      
-      {/* Mobile slider version */}
-      <div className="md:hidden overflow-x-scroll scrollbar-hide snap-x snap-mandatory">
-        <div className="flex pb-3" style={{ paddingLeft: 'calc(50vw - 125px)', paddingRight: 'calc(50vw - 125px)' }}>
-          {indices.map((index, i) => (
-            <div 
-              key={index.name} 
-              className="bg-white rounded-xl p-3 flex-shrink-0 w-[250px] snap-center snap-always transition-all duration-300 mr-4 last:mr-0"
-              style={{ 
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.12)',
-                background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)'
-              }}
-            >
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide">
-                    {index.name}
-                  </h3>
-                  <div className={`w-2 h-2 rounded-full ${
-                    index.isNegative ? 'bg-red-400' : 'bg-green-400'
-                  }`}></div>
-                </div>
-                
-                <div className="text-2xl font-bold text-gray-900 leading-none">
-                  {index.value}
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-sm font-semibold ${
-                    index.isNegative 
-                      ? 'bg-red-100 text-red-700' 
-                      : 'bg-green-100 text-green-700'
-                  }`}>
-                    {index.isNegative ? (
-                      <ArrowDown className="h-3 w-3" />
-                    ) : (
-                      <ArrowUp className="h-3 w-3" />
-                    )}
-                    <span>{index.change}</span>
-                  </div>
-                  <div className={`text-sm font-medium ${
-                    index.isNegative ? 'text-red-600' : 'text-green-600'
-                  }`}>
-                    {index.changePercent}
+
+          {/* Mobile: Swipeable slider */}
+          <div className="md:hidden relative">
+            {loading ? (
+              <div className="flex justify-center">
+                <div 
+                  className="bg-white rounded-xl p-5 w-full max-w-sm animate-pulse"
+                  style={{ 
+                    boxShadow: '0 8px 25px rgba(0, 0, 0, 0.12)',
+                    background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)'
+                  }}
+                >
+                  <div className="space-y-3">
+                    <div className="h-4 bg-gray-200 rounded w-24"></div>
+                    <div className="h-8 bg-gray-200 rounded w-20"></div>
+                    <div className="h-6 bg-gray-200 rounded w-16"></div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ) : (
+              <>
+                {/* Single card display with touch handlers and smooth animations */}
+                <div 
+                  className="flex justify-center overflow-hidden"
+                  onTouchStart={onTouchStart}
+                  onTouchMove={onTouchMove}
+                  onTouchEnd={onTouchEnd}
+                >
+                  <div 
+                    className={`bg-white rounded-xl p-5 w-full max-w-sm cursor-grab active:cursor-grabbing ${
+                      isAnimating 
+                        ? swipeDirection === 'left' 
+                          ? 'animate-slide-out-left' 
+                          : swipeDirection === 'right' 
+                            ? 'animate-slide-out-right' 
+                            : ''
+                        : 'animate-slide-in'
+                    }`}
+                    style={{ 
+                      boxShadow: '0 8px 25px rgba(0, 0, 0, 0.12)',
+                      background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                      transform: isAnimating 
+                        ? swipeDirection === 'left' 
+                          ? 'translateX(-100%)' 
+                          : swipeDirection === 'right' 
+                            ? 'translateX(100%)' 
+                            : 'translateX(0)'
+                        : 'translateX(0)',
+                      transition: 'transform 0.3s ease-in-out'
+                    }}
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide">
+                          {indices[currentIndex]?.name}
+                        </h3>
+                        <div className={`w-2 h-2 rounded-full ${
+                          indices[currentIndex]?.isNegative ? 'bg-red-400' : 'bg-green-400'
+                        }`}></div>
+                      </div>
+                      
+                      <div className="text-3xl font-bold text-gray-900 leading-none">
+                        {indices[currentIndex]?.value}
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-semibold ${
+                          indices[currentIndex]?.isNegative 
+                            ? 'bg-red-100 text-red-700' 
+                            : 'bg-green-100 text-green-700'
+                        }`}>
+                          {indices[currentIndex]?.isNegative ? (
+                            <ArrowDown className="h-3.5 w-3.5" />
+                          ) : (
+                            <ArrowUp className="h-3.5 w-3.5" />
+                          )}
+                          <span>{indices[currentIndex]?.change}</span>
+                        </div>
+                        <div className={`text-sm font-medium ${
+                          indices[currentIndex]?.isNegative ? 'text-red-600' : 'text-green-600'
+                        }`}>
+                          ₹ {indices[currentIndex]?.changePercent}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Swipe indicator dots */}
+                <div className="flex justify-center mt-4">
+                  <div className="flex space-x-1">
+                    {indices.map((_, index) => (
+                      <div
+                        key={index}
+                        className={`w-1.5 h-1.5 rounded-full transition-all duration-200 ${
+                          index === currentIndex 
+                            ? 'bg-blue-500' 
+                            : 'bg-gray-300'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
-    </div>
-    </div>
-    
   )
 }
 
@@ -277,8 +465,8 @@ export function ExpertRecommendationsSection() {
 
     
     <div className="bg-white border border-gray-200 rounded-lg p-4">
-            {/* Mobile search bar - outside drawer */}
-            <div className="md:hidden mt-4 px-4 pb-4">
+   {/* Mobile search bar - outside drawer */}
+      <div className="md:hidden px-2 pb-4">
         <MobileGlobalSearch />
       </div>
       <div className="flex items-center justify-between mb-4">
@@ -932,9 +1120,9 @@ function PortfolioCard({
   
   // Generate realistic fake data for blurred content
   const generateFakeData = () => ({
-    monthlyGains: `+${Math.floor(Math.random() * 20) + 5}.${Math.floor(Math.random() * 99)}%`,
-    oneYearGains: `+${Math.floor(Math.random() * 15) + 2}.${Math.floor(Math.random() * 99)}%`,
-    cagr: `+${Math.floor(Math.random() * 25) + 10}.${Math.floor(Math.random() * 99)}%`
+    monthlyGains: `+${Math.floor(Math.random() * 20) + 5}.${Math.floor(Math.random() * 99)}`,
+    oneYearGains: `+${Math.floor(Math.random() * 15) + 2}.${Math.floor(Math.random() * 99)}`,
+    cagr: `+${Math.floor(Math.random() * 25) + 10}.${Math.floor(Math.random() * 99)}`
   })
 
   const fakeData = generateFakeData()
@@ -953,14 +1141,14 @@ function PortfolioCard({
       
       return {
         monthlyGains: portfolioDetails.monthlyGains !== undefined ? 
-          (portfolioDetails.monthlyGains === 0 ? '-' : `${portfolioDetails.monthlyGains >= 0 ? '+' : ''}${portfolioDetails.monthlyGains}%`) : 
-          `+${portfolio.monthlyGains || '13.78'}%`,
+          (portfolioDetails.monthlyGains === 0 || String(portfolioDetails.monthlyGains) === '0%' ? '-' : `${portfolioDetails.monthlyGains >= 0 ? '+₹' : '-₹'}${Math.abs(portfolioDetails.monthlyGains)}`) : 
+          (portfolio.monthlyGains === 0 || String(portfolio.monthlyGains) === '0%' ? '-' : `+₹${portfolio.monthlyGains || '13.78'}`),
         oneYearGains: portfolioDetails.oneYearGains !== undefined ? 
-          (portfolioDetails.oneYearGains === 0 ? '-' : `${portfolioDetails.oneYearGains >= 0 ? '+' : ''}${portfolioDetails.oneYearGains}%`) : 
-          `+${portfolio.oneYearGains || '2.86'}%`,
+          (portfolioDetails.oneYearGains === 0 || String(portfolioDetails.oneYearGains) === '0%' ? '-' : `${portfolioDetails.oneYearGains >= 0 ? '+₹' : '-₹'}${Math.abs(portfolioDetails.oneYearGains)}`) : 
+          (portfolio.oneYearGains === 0 || String(portfolio.oneYearGains) === '0%' ? '-' : `+₹${portfolio.oneYearGains || '2.86'}`),
         cagr: portfolioDetails.CAGRSinceInception !== undefined ? 
-          (portfolioDetails.CAGRSinceInception === 0 ? '-' : `${portfolioDetails.CAGRSinceInception >= 0 ? '+' : ''}${portfolioDetails.CAGRSinceInception}%`) : 
-          `+${portfolio.cagr || '19.78'}%`
+          (portfolioDetails.CAGRSinceInception === 0 || String(portfolioDetails.CAGRSinceInception) === '0%' ? '-' : `${portfolioDetails.CAGRSinceInception >= 0 ? '+₹' : '-₹'}${Math.abs(portfolioDetails.CAGRSinceInception)}`) : 
+          (portfolio.cagr === 0 || String(portfolio.cagr) === '0%' ? '-' : `+₹${portfolio.cagr || '19.78'}`)
       }
     }
     
@@ -968,9 +1156,9 @@ function PortfolioCard({
     
     // Fallback to original data or defaults
     return {
-      monthlyGains: `+${portfolio.monthlyGains || '13.78'}%`,
-      oneYearGains: `+${portfolio.oneYearGains || '2.86'}%`,
-      cagr: `+${portfolio.cagr || '19.78'}%`
+      monthlyGains: portfolio.monthlyGains === 0 ? '-' : `+₹${portfolio.monthlyGains || '13.78'}`,
+      oneYearGains: portfolio.oneYearGains === 0 ? '-' : `+₹${portfolio.oneYearGains || '2.86'}`,
+      cagr: portfolio.cagr === 0 ? '-' : `+₹${portfolio.cagr || '19.78'}`
     }
   }
 

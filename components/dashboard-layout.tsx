@@ -193,7 +193,7 @@ export default function DashboardLayout({
               </div>
 
               {/* Search */}
-              <div className="hidden md:flex flex-1 items-center gap-4">
+              <div className="hidden md:flex flex-1 items-center gap-4 max-w-3xl">
                 <GlobalSearch />
               </div>
               

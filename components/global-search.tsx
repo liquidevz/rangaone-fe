@@ -245,15 +245,8 @@ export function GlobalSearch() {
   }
 
   return (
-    <div ref={searchRef} className="relative flex-1 max-w-md">
+    <div ref={searchRef} className="relative flex-1 max-w-  xl">
       <div className="relative group">
-        <div className="absolute left-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
-          <Search className="h-4 w-4 text-gray-400 group-focus-within:text-blue-500 transition-colors duration-200" />
-          <div className="hidden lg:flex items-center gap-1 text-xs text-gray-400 group-focus-within:text-blue-500 transition-colors duration-200">
-            <Command className="h-3 w-3" />
-            <span>K</span>
-          </div>
-        </div>
         <input
           type="text"
           placeholder="Search stocks, portfolios & reports..."
@@ -262,16 +255,23 @@ export function GlobalSearch() {
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
           className={cn(
-            "w-full bg-gray-100 backdrop-blur-sm border-gray-200/80 shadow-sm border rounded-xl",
-            "pl-10 lg:pl-16 pr-10 py-2.5",
+            "w-full bg-white backdrop-blur-sm border-gray-200/80 shadow-sm border rounded-xl",
+            "pl-12 lg:pl-20 pr-12 py-3",
             "focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:border-blue-400",
             "focus-visible:shadow-lg focus-visible:bg-white",
             "transition-all duration-300 ease-out",
             "hover:shadow-md hover:border-gray-300/80",
-            "placeholder:text-gray-400 outline-none"
+            "placeholder:text-gray-400 outline-none text-base"
           )}
           aria-label="Global search"
         />
+        <div className="absolute left-4 top-1/2 transform -translate-y-1/2 flex items-center gap-3 pointer-events-none">
+          <Search className="h-5 w-5 text-gray-500 group-focus-within:text-blue-600 transition-colors duration-200" />
+          <div className="hidden lg:flex items-center gap-1 text-xs text-gray-400 group-focus-within:text-blue-500 transition-colors duration-200">
+            <Command className="h-3 w-3" />
+            <span>K</span>
+          </div>
+        </div>
         {query && (
           <button
             onClick={() => {
