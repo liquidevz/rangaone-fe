@@ -492,7 +492,7 @@ export default function PortfolioDetailsPage() {
         const apiData: ChartDataPoint[] = response.data.data;
         
         // Transform the API data to chart format
-        const transformedData = apiData.map((item: ChartDataPoint) => {
+        const transformedData = apiData.map((item: ChartDataPoint, index: number) => {
           const date = new Date(item.date);
           const portfolioValue = parseFloat(item.value?.toString() || '0');
           const portfolioChange = parseFloat(item.changePercent?.toString() || '0');
@@ -513,16 +513,19 @@ export default function PortfolioDetailsPage() {
             formattedDate = date.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
           }
           
+          // Calculate cumulative percentage change from the first data point
+          const baseValue = apiData[0]?.value || 100;
+          const cumulativePortfolioChange = ((portfolioValue - baseValue) / baseValue) * 100;
+          const cumulativeBenchmarkChange = cumulativePortfolioChange * 0.85;
+          
           return {
             date: formattedDate,
             portfolioValue: portfolioValue,
-            portfolioChange: portfolioChange,
+            portfolioChange: parseFloat(cumulativePortfolioChange.toFixed(2)),
             cash: cashValue,
             change: changeValue,
-            // For benchmark comparison, we'll use a simple calculation
-            // In a real implementation, you'd fetch benchmark data separately
-            benchmarkValue: portfolioValue * (1 + (portfolioChange * 0.8) / 100),
-            benchmarkChange: portfolioChange * 0.8,
+            benchmarkValue: portfolioValue * (1 + (cumulativePortfolioChange * 0.8) / 100),
+            benchmarkChange: parseFloat(cumulativeBenchmarkChange.toFixed(2)),
           };
         });
         
@@ -540,14 +543,12 @@ export default function PortfolioDetailsPage() {
         
       } else {
         console.warn('⚠️ No price history data returned from API');
-        // Generate sample data for demo purposes
         const sampleData = generateSampleChartData(period);
         setPriceHistory(sampleData);
       }
     } catch (error) {
       console.error("❌ Failed to fetch price history:", error);
       
-      // Generate sample data as fallback
       const sampleData = generateSampleChartData(period);
       setPriceHistory(sampleData);
       
@@ -601,9 +602,7 @@ export default function PortfolioDetailsPage() {
       switch (dateInterval) {
         case 'day':
           if (period === '1w') {
-            // For 1 week, generate 5 trading days (Monday to Friday)
             const currentDate = new Date();
-            // Start from 4 days ago (Monday) and go forward
             currentDate.setDate(currentDate.getDate() - 4 + i);
             date = currentDate;
           } else {
@@ -618,16 +617,15 @@ export default function PortfolioDetailsPage() {
           break;
       }
       
-      // Generate cumulative realistic returns
-      const dailyPortfolioChange = (Math.random() - 0.45) * 0.01; // Slight positive bias
-      const dailyBenchmarkChange = dailyPortfolioChange * 0.8 + (Math.random() - 0.5) * 0.005;
+      // Generate incremental returns
+      const dailyReturn = (Math.random() - 0.45) * 0.5;
+      const benchmarkReturn = dailyReturn * 0.85 + (Math.random() - 0.5) * 0.2;
       
-      // Multiply by time factor for longer periods
-      const timeFactor = dateInterval === 'day' ? 1 : dateInterval === 'week' ? 7 : 30;
-      portfolioChange += dailyPortfolioChange * timeFactor;
-      benchmarkChange += dailyBenchmarkChange * timeFactor;
+      // Accumulate returns
+      portfolioChange += dailyReturn;
+      benchmarkChange += benchmarkReturn;
       
-      // Format date based on period
+      // Format date
       let formattedDate: string;
       if (period === '1w') {
         formattedDate = date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' });
@@ -643,8 +641,8 @@ export default function PortfolioDetailsPage() {
       
       data.push({
         date: formattedDate,
-        portfolioValue: 100 + portfolioChange,
-        benchmarkValue: 100 + benchmarkChange,
+        portfolioValue: 100 * (1 + portfolioChange / 100),
+        benchmarkValue: 100 * (1 + benchmarkChange / 100),
         portfolioChange: parseFloat(portfolioChange.toFixed(2)),
         benchmarkChange: parseFloat(benchmarkChange.toFixed(2)),
       });
@@ -1193,15 +1191,15 @@ export default function PortfolioDetailsPage() {
                   <YAxis 
                     axisLine={false}
                     tickLine={false}
-                    tickFormatter={(value) => `₹${value.toLocaleString()}`}
+                    tickFormatter={(value) => `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`}
                     tick={{ fontSize: 11, fill: '#6b7280', fontWeight: 500 }}
-                    domain={['dataMin - 1000', 'dataMax + 1000']}
+                    domain={['dataMin - 1', 'dataMax + 1']}
                     width={80}
                   />
                   <Tooltip 
                     formatter={(value: number, name: string) => [
-                      `₹${value.toLocaleString()}`,
-                      name === 'portfolioValue' 
+                      `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`,
+                      name === 'portfolioChange' 
                         ? (safeString((portfolio as any)?.name || 'Portfolio'))
                         : safeString((portfolio as any)?.compareWith || (portfolio as any)?.index || 'NIFTY 50')
                     ]}
@@ -1217,10 +1215,10 @@ export default function PortfolioDetailsPage() {
                   />
                   <Line 
                     type="monotone" 
-                    dataKey="portfolioValue" 
+                    dataKey="portfolioChange" 
                     stroke="#10B981" 
                     strokeWidth={3}
-                    name="portfolioValue"
+                    name="portfolioChange"
                     dot={false}
                     activeDot={{ 
                       r: 5, 
@@ -1231,11 +1229,11 @@ export default function PortfolioDetailsPage() {
                   />
                   <Line 
                     type="monotone" 
-                    dataKey="benchmarkValue" 
+                    dataKey="benchmarkChange" 
                     stroke="#6B7280" 
                     strokeWidth={2}
                     strokeDasharray="5 5"
-                    name="benchmarkValue"
+                    name="benchmarkChange"
                     dot={false}
                     activeDot={{ 
                       r: 4, 
@@ -1252,7 +1250,7 @@ export default function PortfolioDetailsPage() {
                     }}
                     iconType="line"
                     formatter={(value) => {
-                      if (value === 'portfolioValue') {
+                      if (value === 'portfolioChange') {
                         const name = safeString((portfolio as any)?.name || 'Portfolio');
                         return name.length > 20 ? name.substring(0, 20) + '...' : name;
                       }
