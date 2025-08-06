@@ -422,7 +422,18 @@ export default function ModelPortfoliosPage() {
                       </div>
                       {/* Methodology button */}
                       <div className="flex flex-row gap-2 w-full sm:w-auto">
-                        {methodologyLink ? (
+                        {hasAccess ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewDetails(portfolio._id)}
+                          >
+                            <Eye className="h-4 w-4" />
+                            <span className="text-xs sm:text-sm">
+                              View Details
+                            </span>
+                          </Button>
+                        ) : methodologyLink ? (
                           <a
                             href={methodologyLink}
                             target="_blank"
@@ -596,17 +607,21 @@ export default function ModelPortfoliosPage() {
                     {/* Action section */}
                     {hasAccess ? (
                       <div className="flex flex-row gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center justify-center space-x-1 flex-1"
-                          onClick={() => handleViewDetails(portfolio._id)}
-                        >
-                          <Eye className="h-4 w-4" />
-                          <span className="text-xs sm:text-sm">
-                            View Details
-                          </span>
-                        </Button>
+                        {methodologyLink ? (
+                          <a
+                            href={methodologyLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center space-x-1 flex-1"
+                          >
+                            <Button variant="outline" size="sm" className="w-full">
+                              <FileText className="h-4 w-4" />
+                              <span className="text-xs sm:text-sm">
+                                View Methodology
+                              </span>
+                            </Button>
+                          </a>
+                        ) : null}
                         <Button
                           variant="outline"
                           size="sm"

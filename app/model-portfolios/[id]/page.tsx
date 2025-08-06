@@ -170,6 +170,7 @@ export default function PortfolioDetailsPage() {
 
   interface PriceHistoryData {
     date: string;
+    rawDate?: string;
     portfolioValue: number;
     benchmarkValue: number;
     portfolioChange: number;
@@ -491,7 +492,7 @@ export default function PortfolioDetailsPage() {
         // Use the API data directly as it matches our chart requirements
         const apiData: ChartDataPoint[] = response.data.data;
         
-        // Transform the API data to chart format
+        // Transform the API data to chart format and handle missing data points
         const transformedData = apiData.map((item: ChartDataPoint, index: number) => {
           const date = new Date(item.date);
           const portfolioValue = parseFloat(item.value?.toString() || '0');
@@ -520,6 +521,7 @@ export default function PortfolioDetailsPage() {
           
           return {
             date: formattedDate,
+            rawDate: item.date,
             portfolioValue: portfolioValue,
             portfolioChange: parseFloat(cumulativePortfolioChange.toFixed(2)),
             cash: cashValue,
@@ -528,17 +530,102 @@ export default function PortfolioDetailsPage() {
             benchmarkChange: parseFloat(cumulativeBenchmarkChange.toFixed(2)),
           };
         });
+
+        // Fill missing dates with previous day's data to maintain continuity
+        const fillMissingDates = (data: any[], period: TimePeriod) => {
+          if (data.length === 0) return data;
+
+          // Sort data by raw date to ensure chronological order
+          const sortedData = data.sort((a, b) => new Date(a.rawDate).getTime() - new Date(b.rawDate).getTime());
+          
+          const filledData = [];
+          const seenFormattedDates = new Set();
+          
+          // Get date range based on period
+          const startDate = new Date(sortedData[0].rawDate);
+          const endDate = new Date(sortedData[sortedData.length - 1].rawDate);
+          
+          let currentDate = new Date(startDate);
+          let lastKnownData = null;
+          let dataIndex = 0;
+
+          while (currentDate <= endDate) {
+            // Format current date based on period
+            let formattedDate: string;
+            if (period === '1w') {
+              formattedDate = currentDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' });
+            } else if (period === '1m') {
+              formattedDate = currentDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+            } else if (period === '3m' || period === '6m') {
+              formattedDate = currentDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+            } else if (period === '1Yr') {
+              formattedDate = currentDate.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
+            } else {
+              formattedDate = currentDate.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
+            }
+
+            // Skip if we already have this formatted date
+            if (seenFormattedDates.has(formattedDate)) {
+              currentDate.setDate(currentDate.getDate() + 1);
+              continue;
+            }
+
+            // Check if we have actual data for this date
+            const currentDateStr = currentDate.toISOString().split('T')[0];
+            let dataPoint = null;
+            
+            // Look for data point matching current date
+            while (dataIndex < sortedData.length) {
+              const dataDateStr = new Date(sortedData[dataIndex].rawDate).toISOString().split('T')[0];
+              if (dataDateStr === currentDateStr) {
+                dataPoint = sortedData[dataIndex];
+                dataIndex++;
+                break;
+              } else if (dataDateStr > currentDateStr) {
+                break; // Data is ahead, use last known
+              } else {
+                dataIndex++; // Data is behind, keep looking
+              }
+            }
+
+            if (dataPoint && dataPoint.portfolioValue > 0) {
+              // We have actual data for this date
+              lastKnownData = {
+                ...dataPoint,
+                date: formattedDate
+              };
+              filledData.push(lastKnownData);
+            } else if (lastKnownData) {
+              // No data for this date, use previous day's data
+              filledData.push({
+                ...lastKnownData,
+                date: formattedDate,
+                rawDate: currentDate.toISOString()
+              });
+            }
+
+            seenFormattedDates.add(formattedDate);
+            
+            // Move to next day
+            currentDate.setDate(currentDate.getDate() + 1);
+          }
+
+          return filledData;
+        };
+
+        // Apply date filling for continuous timeline
+        const finalTransformedData = fillMissingDates(transformedData, period);
         
-            console.log(`📊 Transformed chart data for ${transformedData.length} points:`, transformedData);
-    console.log(`📈 Portfolio: ${(portfolio as any)?.name || 'Portfolio'}`);
-    console.log('📅 Sample dates from transformed data:', transformedData.slice(0, 3).map(d => d.date));
-    console.log('📅 All dates for 1w:', transformedData.map(d => d.date));
+        console.log(`📊 Transformed chart data for ${finalTransformedData.length} points:`, finalTransformedData);
+        console.log(`📈 Portfolio: ${(portfolio as any)?.name || 'Portfolio'}`);
+        console.log('📅 Sample dates from final data:', finalTransformedData.slice(0, 3).map(d => d.date));
+        console.log('📅 All dates for period:', finalTransformedData.map(d => d.date));
         
-        setPriceHistory(transformedData);
+        setPriceHistory(finalTransformedData);
         
         // Also store as full history if it's 'all' period
         if (apiPeriod === 'all') {
-          setFullPriceHistory(transformedData);
+          setFullPriceHistory(finalTransformedData);
         }
         
       } else {
@@ -1191,18 +1278,27 @@ export default function PortfolioDetailsPage() {
                   <YAxis 
                     axisLine={false}
                     tickLine={false}
-                    tickFormatter={(value) => `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`}
+                    tickFormatter={(value) => `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
                     tick={{ fontSize: 11, fill: '#6b7280', fontWeight: 500 }}
-                    domain={['dataMin - 1', 'dataMax + 1']}
-                    width={80}
+                    domain={[(dataMin: number) => Math.floor(dataMin * 0.98), (dataMax: number) => Math.ceil(dataMax * 1.02)]}
+                    width={90}
                   />
                   <Tooltip 
-                    formatter={(value: number, name: string) => [
-                      `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`,
-                      name === 'portfolioChange' 
-                        ? (safeString((portfolio as any)?.name || 'Portfolio'))
-                        : safeString((portfolio as any)?.compareWith || (portfolio as any)?.index || 'NIFTY 50')
-                    ]}
+                    formatter={(value: number, name: string, props: any) => {
+                      // Calculate percentage change from the first data point
+                      const firstDataPoint = priceHistory[0];
+                      if (!firstDataPoint) return [`₹${value.toLocaleString('en-IN')}`, name];
+                      
+                      const baseValue = name === 'portfolioValue' ? firstDataPoint.portfolioValue : firstDataPoint.benchmarkValue;
+                      const percentChange = ((value - baseValue) / baseValue) * 100;
+                      
+                      return [
+                        `${percentChange >= 0 ? '+' : ''}${percentChange.toFixed(2)}%`,
+                        name === 'portfolioValue' 
+                          ? (safeString((portfolio as any)?.name || 'Portfolio'))
+                          : safeString((portfolio as any)?.compareWith || (portfolio as any)?.index || 'NIFTY 50')
+                      ];
+                    }}
                     labelFormatter={(label) => label}
                     contentStyle={{
                       backgroundColor: '#ffffff',
@@ -1215,10 +1311,10 @@ export default function PortfolioDetailsPage() {
                   />
                   <Line 
                     type="monotone" 
-                    dataKey="portfolioChange" 
+                    dataKey="portfolioValue" 
                     stroke="#10B981" 
                     strokeWidth={3}
-                    name="portfolioChange"
+                    name="portfolioValue"
                     dot={false}
                     activeDot={{ 
                       r: 5, 
@@ -1229,11 +1325,11 @@ export default function PortfolioDetailsPage() {
                   />
                   <Line 
                     type="monotone" 
-                    dataKey="benchmarkChange" 
+                    dataKey="benchmarkValue" 
                     stroke="#6B7280" 
                     strokeWidth={2}
                     strokeDasharray="5 5"
-                    name="benchmarkChange"
+                    name="benchmarkValue"
                     dot={false}
                     activeDot={{ 
                       r: 4, 
@@ -1250,7 +1346,7 @@ export default function PortfolioDetailsPage() {
                     }}
                     iconType="line"
                     formatter={(value) => {
-                      if (value === 'portfolioChange') {
+                      if (value === 'portfolioValue') {
                         const name = safeString((portfolio as any)?.name || 'Portfolio');
                         return name.length > 20 ? name.substring(0, 20) + '...' : name;
                       }
