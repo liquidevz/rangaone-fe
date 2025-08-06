@@ -421,7 +421,7 @@ export default function ModelPortfoliosPage() {
                         </div>
                       </div>
                       {/* Methodology button */}
-                      <div className="flex flex-row gap-2 w-full sm:w-auto">
+                      <div className="flex flex-row gap-2 w-full sm:w-auto justify-center sm:justify-start">
                         {hasAccess ? (
                           <Button
                             variant="outline"

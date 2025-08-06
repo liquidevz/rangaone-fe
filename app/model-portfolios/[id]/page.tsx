@@ -77,6 +77,29 @@ export default function PortfolioDetailsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
+  // Calculate optimized Y-axis domain for better chart visualization
+  const yAxisDomain = useMemo(() => {
+    if (priceHistory.length === 0) return ['dataMin', 'dataMax'];
+    
+    const allValues = priceHistory.flatMap(d => [d.portfolioValue, d.benchmarkValue]);
+    const minValue = Math.min(...allValues);
+    const maxValue = Math.max(...allValues);
+    const range = maxValue - minValue;
+    
+    // Use dynamic padding based on the data range
+    // Smaller ranges get proportionally more padding to show differences
+    let paddingPercent = 0.1; // Default 10%
+    if (range < 1000) paddingPercent = 0.2; // 20% for small ranges
+    else if (range < 5000) paddingPercent = 0.15; // 15% for medium ranges
+    
+    const padding = Math.max(range * paddingPercent, 50); // Minimum ₹50 padding
+    
+    return [
+      Math.max(0, minValue - padding),
+      maxValue + padding
+    ];
+  }, [priceHistory]);
+
   useEffect(() => {
     console.log("[ScrollEffect] useEffect triggered", {
       hash: window.location.hash,
@@ -683,7 +706,7 @@ export default function PortfolioDetailsPage() {
     let benchmarkChange = 0;
     
     for (let i = 0; i < dataPoints; i++) {
-      const date = new Date();
+      let date = new Date();
       
       // Calculate proper date intervals
       switch (dateInterval) {
@@ -932,38 +955,52 @@ export default function PortfolioDetailsPage() {
       }
     }, 0);
     
-    // Calculate total remaining cash from all stocks
-    const totalRemainingCash = holdingsWithQuantities.reduce((sum: number, holding: any) => {
-      return parseFloat((sum + (holding.remainingCash || 0)).toFixed(2));
+    // Calculate total actual investments (sum of all minimumInvestmentValueStock)
+    const totalActualInvestments = holdingsWithQuantities.reduce((sum: number, holding: any) => {
+      const actualInvestment = holding.minimumInvestmentValueStock || 0;
+      return parseFloat((sum + actualInvestment).toFixed(2));
     }, 0);
     
-    // Cash balance calculation with EXACT precision
-    const totalStockAllocation = parseFloat(holdingsWithQuantities.reduce((sum: number, holding: any) => sum + holding.weight, 0).toFixed(2));
-    const exactCashPercentage = parseFloat(Math.max(0, 100 - totalStockAllocation).toFixed(2));
-    const baseCashBalance = parseFloat(((exactCashPercentage / 100) * minInvestment).toFixed(2));
-    const exactCashBalance = parseFloat((baseCashBalance + totalRemainingCash).toFixed(2));
+    // Calculate cash: Minimum Investment - Sum of All Actual Investments (Investment Column)
+    const exactCashBalance = parseFloat((minInvestment - totalActualInvestments).toFixed(2));
+    
+    // Ensure cash is not negative (can't have negative cash in reality)
+    const finalCashBalance = Math.max(0, exactCashBalance);
+    
+    console.log(`💰 Cash Calculation Details:`, {
+      minInvestment,
+      totalActualInvestments,
+      calculatedCash: exactCashBalance,
+      finalCashBalance: finalCashBalance,
+      note: "Cash = Min Investment - Sum of Investment Column (not affected by current value changes)"
+    });
     
     // Total portfolio value with EXACT precision
-    const exactTotalPortfolioValue = parseFloat((actualHoldingsValue + exactCashBalance).toFixed(2));
+    const exactTotalPortfolioValue = parseFloat((actualHoldingsValue + finalCashBalance).toFixed(2));
+    
+    // Calculate cash percentage based on current portfolio value
+    const cashPercentage = exactTotalPortfolioValue > 0 ? 
+      parseFloat(((finalCashBalance / exactTotalPortfolioValue) * 100).toFixed(2)) : 0;
     
     console.log(`📋 Portfolio Metrics (EXACT):`, {
       holdingsValue: actualHoldingsValue,
-      cashBalance: exactCashBalance,
+      cashBalance: finalCashBalance,
       totalValue: exactTotalPortfolioValue,
-      cashPercentage: exactCashPercentage,
-      totalStockAllocation: totalStockAllocation,
-      totalRemainingCash: totalRemainingCash
+      cashPercentage: cashPercentage,
+      totalActualInvestments
     });
     
     return {
       holdingsValue: actualHoldingsValue,
-      cashBalance: exactCashBalance,
+      cashBalance: finalCashBalance,
       totalValue: exactTotalPortfolioValue,
-      cashPercentage: exactCashPercentage,
+      cashPercentage: cashPercentage,
       minInvestment: minInvestment,
       pnl: parseFloat((exactTotalPortfolioValue - minInvestment).toFixed(2)),
       pnlPercentage: parseFloat((((exactTotalPortfolioValue - minInvestment) / minInvestment) * 100).toFixed(2)),
-      holdingsWithQuantities
+      holdingsWithQuantities,
+      // Additional details for debugging/display
+      totalActualInvestments
     };
   };
   
@@ -1245,7 +1282,64 @@ export default function PortfolioDetailsPage() {
               </div>
             </div>
 
-            <div className="h-64 sm:h-72 md:h-80 lg:h-96 bg-white rounded-lg border border-gray-200 p-4">
+            {/* Chart Info Panel */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 mb-4 border border-blue-200">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex-1">
+                  <h4 className="font-semibold text-blue-900 mb-2">💡 How to Read This Chart</h4>
+                  <p className="text-sm text-blue-700 leading-relaxed">
+                    Track your portfolio's actual value growth over time. Hover over any point to see percentage gains/losses. 
+                    The <span className="font-semibold text-green-600">green line</span> shows your portfolio performance vs the 
+                    <span className="font-semibold text-gray-600"> dashed gray line</span> (benchmark).
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2 text-sm">
+                  <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border">
+                    <div className="w-3 h-0.5 bg-green-500 rounded"></div>
+                    <span className="text-gray-700">Your Portfolio</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border">
+                    <div className="w-3 h-0.5 bg-gray-500 rounded border-dashed border-t"></div>
+                    <span className="text-gray-700">Benchmark</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="h-64 sm:h-72 md:h-80 lg:h-96 bg-white rounded-lg border border-gray-200 p-4 relative">
+              {/* Performance Summary Overlay */}
+              {priceHistory.length > 0 && (
+                <div className="absolute top-4 right-4 z-10 bg-white/95 backdrop-blur-sm rounded-lg border border-gray-200 p-3 shadow-lg">
+                  <div className="text-xs text-gray-600 mb-1">Performance Summary</div>
+                  {(() => {
+                    const firstValue = priceHistory[0]?.portfolioValue || 0;
+                    const lastValue = priceHistory[priceHistory.length - 1]?.portfolioValue || 0;
+                    const totalGain = lastValue - firstValue;
+                    const totalGainPercent = firstValue > 0 ? ((totalGain / firstValue) * 100) : 0;
+                    const isPositive = totalGain >= 0;
+                    
+                    return (
+                      <div className="space-y-1">
+                        <div className={`text-sm font-bold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                          {isPositive ? '+' : ''}₹{Math.abs(totalGain).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                        </div>
+                        <div className={`text-xs ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                          ({isPositive ? '+' : ''}{totalGainPercent.toFixed(2)}%)
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {selectedTimePeriod === '1w' ? 'This Week' : 
+                           selectedTimePeriod === '1m' ? 'This Month' : 
+                           selectedTimePeriod === '3m' ? '3 Months' : 
+                           selectedTimePeriod === '6m' ? '6 Months' : 
+                           selectedTimePeriod === '1Yr' ? 'This Year' : 
+                           'Since Inception'}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
               {chartLoading ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
@@ -1257,8 +1351,14 @@ export default function PortfolioDetailsPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart 
                     data={priceHistory}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                    margin={{ top: 20, right: 120, left: 20, bottom: 20 }}
                   >
+                  <defs>
+                    <linearGradient id="portfolioGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.1}/>
+                      <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid 
                     strokeDasharray="3 3" 
                     stroke="#f3f4f6" 
@@ -1278,9 +1378,13 @@ export default function PortfolioDetailsPage() {
                   <YAxis 
                     axisLine={false}
                     tickLine={false}
-                    tickFormatter={(value) => `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+                    tickFormatter={(value) => {
+                      if (value >= 100000) return `₹${(value/100000).toFixed(1)}L`;
+                      if (value >= 1000) return `₹${(value/1000).toFixed(1)}K`;
+                      return `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+                    }}
                     tick={{ fontSize: 11, fill: '#6b7280', fontWeight: 500 }}
-                    domain={[(dataMin: number) => Math.floor(dataMin * 0.98), (dataMax: number) => Math.ceil(dataMax * 1.02)]}
+                    domain={yAxisDomain}
                     width={90}
                   />
                   <Tooltip 
@@ -1291,56 +1395,68 @@ export default function PortfolioDetailsPage() {
                       
                       const baseValue = name === 'portfolioValue' ? firstDataPoint.portfolioValue : firstDataPoint.benchmarkValue;
                       const percentChange = ((value - baseValue) / baseValue) * 100;
+                      const absoluteChange = value - baseValue;
                       
                       return [
-                        `${percentChange >= 0 ? '+' : ''}${percentChange.toFixed(2)}%`,
+                        <div key={name} className="space-y-1">
+                          <div className="font-semibold">
+                            ₹{value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </div>
+                          <div className={`text-sm ${percentChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {percentChange >= 0 ? '+' : ''}₹{Math.abs(absoluteChange).toLocaleString('en-IN', { maximumFractionDigits: 0 })} 
+                            ({percentChange >= 0 ? '+' : ''}{percentChange.toFixed(2)}%)
+                          </div>
+                        </div>,
                         name === 'portfolioValue' 
                           ? (safeString((portfolio as any)?.name || 'Portfolio'))
                           : safeString((portfolio as any)?.compareWith || (portfolio as any)?.index || 'NIFTY 50')
                       ];
                     }}
-                    labelFormatter={(label) => label}
+                    labelFormatter={(label) => `📅 ${label}`}
                     contentStyle={{
                       backgroundColor: '#ffffff',
                       border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      padding: '12px',
-                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+                      borderRadius: '12px',
+                      fontSize: '14px',
+                      padding: '16px',
+                      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                      minWidth: '200px'
                     }}
                   />
                   <Line 
                     type="monotone" 
                     dataKey="portfolioValue" 
                     stroke="#10B981" 
-                    strokeWidth={3}
+                    strokeWidth={4}
                     name="portfolioValue"
-                    dot={false}
+                    dot={{ fill: '#10B981', r: 3, strokeWidth: 0 }}
                     activeDot={{ 
-                      r: 5, 
+                      r: 8, 
                       fill: '#10B981', 
                       stroke: '#ffffff',
-                      strokeWidth: 2
+                      strokeWidth: 3,
+                      filter: 'drop-shadow(0 4px 6px rgba(16, 185, 129, 0.3))'
                     }}
+                    fill="url(#portfolioGradient)"
                   />
                   <Line 
                     type="monotone" 
                     dataKey="benchmarkValue" 
                     stroke="#6B7280" 
                     strokeWidth={2}
-                    strokeDasharray="5 5"
+                    strokeDasharray="8 4"
                     name="benchmarkValue"
                     dot={false}
                     activeDot={{ 
-                      r: 4, 
+                      r: 6, 
                       fill: '#6B7280',
                       stroke: '#ffffff',
-                      strokeWidth: 1
+                      strokeWidth: 2
                     }}
                   />
                   <Legend 
                     wrapperStyle={{ 
-                      fontSize: '12px', 
+                      fontSize: '14px', 
                       paddingTop: '20px',
                       textAlign: 'center'
                     }}
@@ -1348,9 +1464,9 @@ export default function PortfolioDetailsPage() {
                     formatter={(value) => {
                       if (value === 'portfolioValue') {
                         const name = safeString((portfolio as any)?.name || 'Portfolio');
-                        return name.length > 20 ? name.substring(0, 20) + '...' : name;
+                        return `📈 ${name.length > 20 ? name.substring(0, 20) + '...' : name}`;
                       }
-                      return safeString((portfolio as any)?.compareWith || (portfolio as any)?.index || 'NIFTY 50');
+                      return `📊 ${safeString((portfolio as any)?.compareWith || (portfolio as any)?.index || 'NIFTY 50')}`;
                     }}
                   />
                 </LineChart>
