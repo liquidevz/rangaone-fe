@@ -1,5 +1,6 @@
 import { post, get } from "@/lib/axios";
 import { authService } from "./auth.service";
+import { externalSubscribeService } from "./external-subscribe.service";
 
 // Razorpay types
 declare global {
@@ -180,6 +181,32 @@ export const paymentService = {
       if (response && typeof response === 'object') {
         // If response has success field, use it
         if (typeof response.success !== 'undefined') {
+          // On success, post purchased subscriptions to external subscribe API
+          if (response.success) {
+            try {
+              const { subscriptionService } = await import('./subscription.service');
+              await subscriptionService.refreshAfterPayment();
+              const userProfile = await authService.getCurrentUser().catch(() => null as any);
+              const email = userProfile?.email || "";
+              const { subscriptions } = await subscriptionService.getUserSubscriptions(true);
+              const payloads = (subscriptions || []).map((sub: any) => {
+                const productId = typeof sub.productId === 'string' ? sub.productId : sub.productId?._id;
+                const productName = typeof sub.productId === 'object' ? sub.productId?.name : undefined;
+                const expiration = sub.expiryDate || sub.commitmentEndDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+                return {
+                  email,
+                  product_id: productId,
+                  product_name: productName,
+                  expiration_datetime: expiration,
+                };
+              });
+              if (externalSubscribeService.isConfigured() && payloads.length) {
+                await externalSubscribeService.subscribeMany(payloads);
+              }
+            } catch (e) {
+              console.error('External subscribe chaining after verifyPayment failed:', e);
+            }
+          }
           return response;
         }
         
@@ -455,6 +482,28 @@ export const paymentService = {
         try {
           const { subscriptionService } = await import('./subscription.service');
           await subscriptionService.refreshAfterPayment();
+          // Chain external subscribe API calls
+          try {
+            const userProfile = await authService.getCurrentUser().catch(() => null as any);
+            const email = userProfile?.email || "";
+            const { subscriptions } = await subscriptionService.getUserSubscriptions(true);
+            const payloads = (subscriptions || []).map((sub: any) => {
+              const productId = typeof sub.productId === 'string' ? sub.productId : sub.productId?._id;
+              const productName = typeof sub.productId === 'object' ? sub.productId?.name : undefined;
+              const expiration = sub.expiryDate || sub.commitmentEndDate || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+              return {
+                email,
+                product_id: productId,
+                product_name: productName,
+                expiration_datetime: expiration,
+              };
+            });
+            if (externalSubscribeService.isConfigured() && payloads.length) {
+              await externalSubscribeService.subscribeMany(payloads);
+            }
+          } catch (subscribeError) {
+            console.error('External subscribe chaining after verifyEmandate failed:', subscribeError);
+          }
         } catch (error) {
           console.error('Failed to refresh subscription data:', error);
         }

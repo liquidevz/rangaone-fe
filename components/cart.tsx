@@ -307,20 +307,21 @@ export default function CartPage() {
         console.log("First cart item:", cart?.items?.[0]);
         
         // Check if cart has items
-        if (!cart?.items || cart.items.length === 0) {
+        const cartItems = cart?.items ?? [];
+        if (cartItems.length === 0) {
           throw new Error("Cart is empty. Please add items before checkout.");
         }
         
         // Prepare cart data for eMandate API with subscription type and pricing
         const cartData = {
           productType: "Portfolio", // Can be any product type
-          productId: cart.items[0].portfolio._id, // Use first item's product ID
+          productId: cartItems[0].portfolio._id, // Use first item's product ID
           planType: subscriptionType, // Add subscription type (yearly/quarterly)
           subscriptionType: "premium", // Add subscription category
           amount: total, // Add total amount to ensure correct pricing
           totalAmount: total, // Alternative field name
           // Add individual item pricing for the API to use correct pricing
-          items: cart.items.map(item => ({
+          items: cartItems.map(item => ({
             portfolioId: item.portfolio._id,
             quantity: item.quantity,
             price: subscriptionType === "yearly" 
@@ -360,13 +361,15 @@ export default function CartPage() {
             if (isEmandate) {
               console.log("Processing eMandate verification");
               const verificationResponse = await paymentService.verifyEmandate(
-                (orderResponse as any).subscriptionId,
-                response
+                (orderResponse as any).subscriptionId
               );
               
               if (verificationResponse.success || verificationResponse.message.includes("not authenticated yet")) {
                 const isNotAuthenticated = verificationResponse.message.includes("not authenticated yet");
                 
+                // After successful verification, chain external subscribe API calls
+                // External subscribe chaining is handled inside the payment service after successful verification
+
                 // Check profile completion after successful payment
                 await checkProfileCompletionAfterPayment();
                 
@@ -390,6 +393,9 @@ export default function CartPage() {
               });
               
               if (verificationResponse.success) {
+                // After successful verification, chain external subscribe API calls
+                // External subscribe chaining is handled inside the payment service after successful verification
+
                 // Check profile completion after successful payment
                 await checkProfileCompletionAfterPayment();
                 
@@ -503,20 +509,21 @@ export default function CartPage() {
         console.log("First cart item:", cart?.items?.[0]);
         
         // Check if cart has items
-        if (!cart?.items || cart.items.length === 0) {
+        const cartItems2 = cart?.items ?? [];
+        if (cartItems2.length === 0) {
           throw new Error("Cart is empty. Please add items before checkout.");
         }
         
         // Prepare cart data for eMandate API with subscription type and pricing
         const cartData = {
           productType: "Portfolio", // Can be any product type
-          productId: cart.items[0].portfolio._id, // Use first item's product ID
+          productId: cartItems2[0].portfolio._id, // Use first item's product ID
           planType: subscriptionType, // Add subscription type (yearly/quarterly)
           subscriptionType: "premium", // Add subscription category
           amount: total, // Add total amount to ensure correct pricing
           totalAmount: total, // Alternative field name
           // Add individual item pricing for the API to use correct pricing
-          items: cart.items.map(item => ({
+          items: cartItems2.map(item => ({
             portfolioId: item.portfolio._id,
             quantity: item.quantity,
             price: subscriptionType === "yearly" 
@@ -556,8 +563,7 @@ export default function CartPage() {
             if (isEmandate) {
               console.log("Processing eMandate verification");
               const verificationResponse = await paymentService.verifyEmandate(
-                (orderResponse as any).subscriptionId,
-                response
+                (orderResponse as any).subscriptionId
               );
               
               if (verificationResponse.success || verificationResponse.message.includes("not authenticated yet")) {

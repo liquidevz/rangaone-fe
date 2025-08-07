@@ -1,6 +1,7 @@
 import { authService } from "./auth.service";
 import { get, post } from "@/lib/axios";
 import { bundleService } from "./bundle.service";
+import { externalSubscribeService } from "./external-subscribe.service";
 
 // Interface definitions
 interface UserSubscription {
@@ -194,9 +195,58 @@ export const subscriptionService = {
           };
         };
 
-        return await poll();
+        const finalResponse = await poll();
+        // On success, chain external subscribe calls
+        if (finalResponse.success || ["active", "authenticated"].includes(finalResponse.subscriptionStatus || "")) {
+          try {
+            const { subscriptions } = await subscriptionService.getUserSubscriptions(true);
+            const userProfile = await authService.getCurrentUser().catch(() => null as any);
+            const email = userProfile?.email || "";
+            const payloads = (subscriptions || []).map((sub: any) => {
+              const productId = typeof sub.productId === 'string' ? sub.productId : sub.productId?._id;
+              const productName = typeof sub.productId === 'object' ? sub.productId?.name : undefined;
+              const expiration = sub.expiryDate || sub.commitmentEndDate || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+              return {
+                email,
+                product_id: productId,
+                product_name: productName,
+                expiration_datetime: expiration,
+              };
+            });
+            if (externalSubscribeService.isConfigured() && payloads.length) {
+              await externalSubscribeService.subscribeMany(payloads);
+            }
+          } catch (subscribeError) {
+            console.error("External subscribe chaining after emandate verification failed:", subscribeError);
+          }
+        }
+        return finalResponse;
       }
 
+      // Non-polling path; on success, chain external subscribe too
+      if (response.success || ["active", "authenticated"].includes(response.subscriptionStatus || "")) {
+        try {
+          const { subscriptions } = await subscriptionService.getUserSubscriptions(true);
+          const userProfile = await authService.getCurrentUser().catch(() => null as any);
+          const email = userProfile?.email || "";
+          const payloads = (subscriptions || []).map((sub: any) => {
+            const productId = typeof sub.productId === 'string' ? sub.productId : sub.productId?._id;
+            const productName = typeof sub.productId === 'object' ? sub.productId?.name : undefined;
+            const expiration = sub.expiryDate || sub.commitmentEndDate || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+            return {
+              email,
+              product_id: productId,
+              product_name: productName,
+              expiration_datetime: expiration,
+            };
+          });
+          if (externalSubscribeService.isConfigured() && payloads.length) {
+            await externalSubscribeService.subscribeMany(payloads);
+          }
+        } catch (subscribeError) {
+          console.error("External subscribe chaining after emandate verification (non-poll) failed:", subscribeError);
+        }
+      }
       return response;
     } catch (error) {
       console.error("eMandate verification failed:", error);
@@ -214,6 +264,32 @@ export const subscriptionService = {
       }, { headers: { Authorization: `Bearer ${token}` } });
 
       this.clearCache();
+
+      // After successful verification, chain external subscribe calls
+      if ((response as any)?.success) {
+        try {
+          const { subscriptions } = await subscriptionService.getUserSubscriptions(true);
+          const userProfile = await authService.getCurrentUser().catch(() => null as any);
+          const email = userProfile?.email || "";
+          const payloads = (subscriptions || []).map((sub: any) => {
+            const productId = typeof sub.productId === 'string' ? sub.productId : sub.productId?._id;
+            const productName = typeof sub.productId === 'object' ? sub.productId?.name : undefined;
+            const expiration = sub.expiryDate || sub.commitmentEndDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+            return {
+              email,
+              product_id: productId,
+              product_name: productName,
+              expiration_datetime: expiration,
+            };
+          });
+          if (externalSubscribeService.isConfigured() && payloads.length) {
+            await externalSubscribeService.subscribeMany(payloads);
+          }
+        } catch (subscribeError) {
+          console.error("External subscribe chaining after payment verification failed:", subscribeError);
+        }
+      }
+
       return response;
     } catch (error) {
       console.error("Payment verification failed", error);
