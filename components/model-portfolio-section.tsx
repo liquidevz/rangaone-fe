@@ -261,6 +261,24 @@ export default function ModelPortfolioSection() {
             </p>
           </div>
           {/* Desktop Grid */}
+          <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {features.map((feature, index) => (
+              <div
+                key={feature.title}
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 relative border-t-4 border-blue-800 dark:border-blue-500 hover:shadow-xl transition-shadow duration-300 flex flex-col text-center"
+              >
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-white dark:bg-gray-800 p-2 rounded-full border-2 border-blue-800 dark:border-blue-500 shadow-md">
+                  <img
+                    src={feature.icon || "/placeholder.svg"}
+                    alt={feature.title}
+                    className="h-8 w-8 object-contain"
+                  />
+                </div>
+                <h3 className="text-blue-900 dark:text-blue-300 font-bold text-lg mt-4 mb-2">{feature.title}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{feature.description}</p>
+              </div>
+            ))}
+          </div>
 
           {/* Mobile Carousel */}
           <div className="sm:hidden relative overflow-hidden py-8">
