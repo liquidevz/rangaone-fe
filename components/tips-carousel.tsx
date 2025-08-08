@@ -423,13 +423,15 @@ const TipCard = ({
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
                 {isModelPortfolio ? (
-                  <div className="relative bg-gradient-to-r from-[#00B7FF] to-[#85D437] p-[4px] rounded-xl overflow-hidden">
-                    <div className="bg-black text-xs sm:text-sm font-bold rounded-md px-2 sm:px-3 py-0.5 sm:py-1 overflow-hidden">
+                  <div className="relative bg-gradient-to-r from-[#00B7FF] to-[#85D437] p-[3px] rounded-xl overflow-hidden">
+                    <div className="bg-black text-xs sm:text-sm font-bold rounded-lg px-2 sm:px-3 py-0.5 sm:py-1 overflow-hidden">
                       {tip.portfolioName ? (
                         <div className="overflow-hidden">
                           <div className="whitespace bg-gradient-to-r from-[#00B7FF] to-[#85D437] font-bold bg-clip-text text-transparent">
-                            {/* Extract only the part before "Portfolio" */}
-                            {tip.portfolioName.split("Portfolio")[0].trim()}
+                            {(() => {
+                              const cleaned = tip.portfolioName.replace(/\bportfolio\b/i, "").trim();
+                              return cleaned.length > 0 ? cleaned : tip.portfolioName;
+                            })()}
                           </div>
                         </div>
                       ) : (

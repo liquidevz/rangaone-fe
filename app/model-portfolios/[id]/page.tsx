@@ -39,6 +39,7 @@ import {
   PieChart,
   Pie,
   Cell,
+  ReferenceLine,
 } from "recharts";
 import {
   Carousel,
@@ -51,6 +52,7 @@ import { PageHeader } from '@/components/page-header';
 import { useRouter } from "next/navigation";
 import { motion, useMotionValue, animate } from "framer-motion";
 import { format, isSameDay, addDays, differenceInDays } from "date-fns";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function PortfolioDetailsPage() {
   const params = useParams();
@@ -73,6 +75,121 @@ export default function PortfolioDetailsPage() {
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [selectedTimePeriod, setSelectedTimePeriod] = useState<TimePeriod>('1m');
   const [chartLoading, setChartLoading] = useState(false);
+  const [detailsExpanded, setDetailsExpanded] = useState(false);
+  const isMobile = useIsMobile();
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [isInteracting, setIsInteracting] = useState(false);
+  const [chartData, setChartData] = useState<PriceHistoryData[]>([]);
+  const [dailyPnl, setDailyPnl] = useState<{ value: number; percent: number }>({ value: 0, percent: 0 });
+  const inceptionGainPercent = useMemo(() => {
+    const series = (fullPriceHistory && fullPriceHistory.length > 0) ? fullPriceHistory : priceHistory;
+    if (!series || series.length < 2) return null;
+    const first = Number(series[0]?.portfolioValue || 0);
+    const last = Number(series[series.length - 1]?.portfolioValue || 0);
+    if (!isFinite(first) || first <= 0) return null;
+    const pct = ((last - first) / first) * 100;
+    return Number(pct.toFixed(2));
+  }, [fullPriceHistory, priceHistory]);
+
+  // Trailing Returns computed live from price-history API
+  type TrailingItem = { period: string; value: string };
+  const [trailingReturns, setTrailingReturns] = useState<TrailingItem[]>([
+    { period: "1 day", value: "-" },
+    { period: "1 Week", value: "-" },
+    { period: "1 Month", value: "-" },
+    { period: "3 Months", value: "-" },
+    { period: "6 Months", value: "-" },
+    { period: "1 year", value: "-" },
+    { period: "3 Years", value: "-" },
+    { period: "5 Years", value: "-" },
+    { period: "Since Inception", value: "-" },
+  ]);
+
+  const computeChangePercent = (series: Array<{ date: string; value: number }>, startIndex: number, endIndex: number): number | null => {
+    if (!series || series.length === 0) return null;
+    const start = series[startIndex]?.value;
+    const end = series[endIndex]?.value;
+    if (typeof start !== 'number' || typeof end !== 'number' || start <= 0) return null;
+    return ((end - start) / start) * 100;
+  };
+
+  const formatReturn = (val: number | null): string => {
+    if (val === null || !isFinite(val)) return "-";
+    const rounded = Number(val.toFixed(1));
+    return `${rounded}`;
+  };
+
+  useEffect(() => {
+    const loadTrailingReturns = async () => {
+      try {
+        const periods: Array<'1w' | '1m' | '3m' | '6m' | '1y' | 'all'> = ['1w', '1m', '3m', '6m', '1y', 'all'];
+        const responses = await Promise.all(periods.map(p => axiosApi.get(`/api/portfolios/${portfolioId}/price-history?period=${p}`)));
+        const byPeriod = new Map<string, any[]>(
+          responses.map((res, idx) => [periods[idx], Array.isArray(res.data?.data) ? res.data.data : []])
+        );
+
+        const series1w = byPeriod.get('1w') || [];
+        const series1m = byPeriod.get('1m') || [];
+        const series3m = byPeriod.get('3m') || [];
+        const series6m = byPeriod.get('6m') || [];
+        const series1y = byPeriod.get('1y') || [];
+        const seriesAll = byPeriod.get('all') || [];
+
+        const mapSeries = (arr: any[]) => arr.map(d => ({ date: d.date, value: Number(d.value) }));
+        const s1w = mapSeries(series1w);
+        const s1m = mapSeries(series1m);
+        const s3m = mapSeries(series3m);
+        const s6m = mapSeries(series6m);
+        const s1y = mapSeries(series1y);
+        const sAll = mapSeries(seriesAll);
+
+        let oneDay: number | null = null;
+        if (s1w.length >= 2) {
+          oneDay = computeChangePercent(s1w, s1w.length - 2, s1w.length - 1);
+        }
+
+        const oneWeek = s1w.length >= 2 ? computeChangePercent(s1w, 0, s1w.length - 1) : null;
+        const oneMonth = s1m.length >= 2 ? computeChangePercent(s1m, 0, s1m.length - 1) : null;
+        const threeMonths = s3m.length >= 2 ? computeChangePercent(s3m, 0, s3m.length - 1) : null;
+        const sixMonths = s6m.length >= 2 ? computeChangePercent(s6m, 0, s6m.length - 1) : null;
+        const oneYear = s1y.length >= 2 ? computeChangePercent(s1y, 0, s1y.length - 1) : null;
+
+        const lastDate = sAll.length > 0 ? new Date(sAll[sAll.length - 1].date) : null;
+        const findStartIndexFromYears = (years: number): number | null => {
+          if (!lastDate || sAll.length === 0) return null;
+          const cutoff = new Date(lastDate);
+          cutoff.setFullYear(cutoff.getFullYear() - years);
+          for (let i = 0; i < sAll.length; i++) {
+            if (new Date(sAll[i].date) >= cutoff) return i;
+          }
+          return null;
+        };
+        const idx3y = findStartIndexFromYears(3);
+        const threeYears = idx3y !== null ? computeChangePercent(sAll, idx3y, sAll.length - 1) : null;
+        const idx5y = findStartIndexFromYears(5);
+        const fiveYears = idx5y !== null ? computeChangePercent(sAll, idx5y, sAll.length - 1) : null;
+        const sinceInception = sAll.length >= 2 ? computeChangePercent(sAll, 0, sAll.length - 1) : null;
+
+        setTrailingReturns([
+          { period: '1 day', value: formatReturn(oneDay) },
+          { period: '1 Week', value: formatReturn(oneWeek) },
+          { period: '1 Month', value: formatReturn(oneMonth) },
+          { period: '3 Months', value: formatReturn(threeMonths) },
+          { period: '6 Months', value: formatReturn(sixMonths) },
+          { period: '1 year', value: formatReturn(oneYear) },
+          { period: '3 Years', value: formatReturn(threeYears) },
+          { period: '5 Years', value: formatReturn(fiveYears) },
+          { period: 'Since Inception', value: formatReturn(sinceInception) },
+        ]);
+      } catch (err) {
+        console.error('Failed to compute trailing returns:', err);
+      }
+    };
+
+    if (portfolioId && hasAccess) {
+      loadTrailingReturns();
+    }
+  }, [portfolioId, hasAccess]);
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -99,24 +216,51 @@ export default function PortfolioDetailsPage() {
       maxValue + padding
     ];
   }, [priceHistory]);
+  // Animate chart from flatline to actual points when data changes
+  useEffect(() => {
+    if (!priceHistory || priceHistory.length === 0) {
+      setChartData([]);
+      return;
+    }
+    const firstPoint = priceHistory[0];
+    const baseline: PriceHistoryData[] = priceHistory.map((d) => ({
+      ...d,
+      portfolioValue: firstPoint.portfolioValue,
+      benchmarkValue: firstPoint.benchmarkValue,
+    }));
+    setChartData(baseline);
+    const timeoutId = setTimeout(() => setChartData(priceHistory), 60);
+    return () => clearTimeout(timeoutId);
+  }, [priceHistory]);
+
+  // Compute and store Daily PnL in localStorage based on last two priceHistory points
+  useEffect(() => {
+    if (!priceHistory || priceHistory.length === 0) return;
+    try {
+      const last = priceHistory[priceHistory.length - 1]?.portfolioValue ?? 0;
+      const prev = priceHistory.length > 1 ? (priceHistory[priceHistory.length - 2]?.portfolioValue ?? 0) : last;
+      const change = last - prev;
+      const percent = prev > 0 ? (change / prev) * 100 : 0;
+      const rounded = { value: Number(change.toFixed(2)), percent: Number(percent.toFixed(2)) };
+      setDailyPnl(rounded);
+      const key = `dailyPnL:${portfolioId}`;
+      localStorage.setItem(key, JSON.stringify({
+        date: new Date().toISOString().slice(0, 10),
+        ...rounded,
+      }));
+    } catch (e) {
+      // ignore storage errors
+    }
+  }, [priceHistory, portfolioId]);
 
   useEffect(() => {
-    console.log("[ScrollEffect] useEffect triggered", {
-      hash: window.location.hash,
-      search: searchParams.toString(),
-      loading
-    });
-    if (
-      (window.location.hash === "#research-reports" || searchParams.get("scrollTo") === "reports") &&
-      !loading &&
-      typeof window !== "undefined"
-    ) {
+    if (typeof window === "undefined") return;
+    const wantsReports = window.location.hash === "#reports" || searchParams.get("scrollTo") === "reports";
+    if (wantsReports && !loading) {
       const tryScroll = () => {
-        const target = document.getElementById("research-reports");
-        console.log("[ScrollEffect] tryScroll", { target, hash: window.location.hash });
+        const target = document.getElementById("reports");
         if (target) {
-          console.log("[ScrollEffect] Found target, scrolling!");
-          target.scrollIntoView({ behavior: "smooth" });
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
         } else {
           requestAnimationFrame(tryScroll);
         }
@@ -277,12 +421,17 @@ export default function PortfolioDetailsPage() {
   // Handle time period selection
   const handleTimePeriodChange = async (period: TimePeriod) => {
     setSelectedTimePeriod(period);
-    setChartLoading(true);
-    try {
-      await fetchPriceHistory(portfolioId, period);
-    } finally {
-      setChartLoading(false);
+    // Flatten current chart visually while fetching
+    if (chartData && chartData.length > 0) {
+      const firstPoint = chartData[0];
+      const baseline = chartData.map((d) => ({
+        ...d,
+        portfolioValue: firstPoint.portfolioValue,
+        benchmarkValue: firstPoint.benchmarkValue,
+      }));
+      setChartData(baseline);
     }
+    await fetchPriceHistory(portfolioId, period);
   };
 
   // Handle manual price refresh
@@ -865,6 +1014,7 @@ export default function PortfolioDetailsPage() {
       </DashboardLayout>
     );
   }
+  
 
   if (!hasAccess) {
     return (
@@ -1006,18 +1156,19 @@ export default function PortfolioDetailsPage() {
   
   const portfolioMetrics = calculatePortfolioMetrics();
 
-  // Trailing Returns data from API
-  const trailingReturns = [
-    { period: "1 day", value: safeString((portfolio as any)?.dailyReturn || "0.1") },
-    { period: "1 Week", value: safeString((portfolio as any)?.weeklyReturn || "0.8") },
-    { period: "1 Month", value: safeString((portfolio as any)?.monthlyGains || "1.8") },
-    { period: "3 Months", value: safeString((portfolio as any)?.quarterlyReturn || "5.2") },
-    { period: "6 Months", value: safeString((portfolio as any)?.halfYearlyReturn || "11.4") },
-    { period: "1 year", value: safeString((portfolio as any)?.oneYearGains || "22.5") },
-    { period: "3 Years", value: safeString((portfolio as any)?.threeYearReturn || "45.8") },
-    { period: "5 Years", value: safeString((portfolio as any)?.fiveYearReturn || "—") },
-    { period: "Since Inception", value: safeString((portfolio as any)?.CAGRSinceInception || "15.2") },
-  ];
+  
+
+  // Helper: normalize API percent values and format for display
+  const normalizePercent = (value: any): number => {
+    if (value === null || value === undefined) return 0;
+    // Strip a trailing % if API ever returns strings like "12.3%"
+    const numeric = typeof value === 'string' ? Number(value.replace(/%/g, '')) : Number(value);
+    return isFinite(numeric) ? numeric : 0;
+  };
+
+  const monthlyGainsValue = normalizePercent((portfolio as any)?.monthlyGains);
+  const oneYearGainsValue = normalizePercent((portfolio as any)?.oneYearGains);
+  const cagrSinceInceptionValue = normalizePercent((portfolio as any)?.CAGRSinceInception);
 
   // Create portfolio allocation data from holdings
   const portfolioAllocationData: PortfolioAllocationItem[] = holdingsWithPrices.length > 0 
@@ -1081,12 +1232,11 @@ export default function PortfolioDetailsPage() {
                            border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-all duration-200
                            bg-white shadow-sm hover:shadow-md"
                            onClick={() => {
-                            const sectionId = "research-reports"; // Replace with the actual ID of the section you want to navigate to
-                            const section = document.getElementById(sectionId);
-                            if (section) {
-                              section.scrollIntoView({ behavior: "smooth" });
-                            }
-                          }}
+                             const section = document.getElementById("reports");
+                             if (section) {
+                               section.scrollIntoView({ behavior: "smooth", block: "start" });
+                             }
+                           }}
                 >
                   <FileText className="h-4 w-4 text-gray-600" />
                   <span className="text-sm font-medium text-gray-700">Reports</span>
@@ -1108,23 +1258,23 @@ export default function PortfolioDetailsPage() {
             </div>
           </div>
 
-                        <div className="grid grid-cols-3 gap-3 sm:gap-6">
+            <div className="grid grid-cols-3 gap-3 sm:gap-6">
               <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 text-center shadow-sm hover:shadow-md transition-shadow duration-200">
                 <p className="text-xs sm:text-sm text-gray-600 mb-2 font-medium leading-tight h-8 flex items-center justify-center">Monthly Gains</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600">
-                  +{safeString((portfolio as any)?.monthlyGains || "0")}%
+                <p className={`text-lg sm:text-xl lg:text-2xl font-bold ${monthlyGainsValue > 0 ? 'text-green-600' : monthlyGainsValue < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                  {monthlyGainsValue === 0 ? '-' : `${monthlyGainsValue > 0 ? '+' : ''}${monthlyGainsValue}%`}
                 </p>
                   </div>
               <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 text-center shadow-sm hover:shadow-md transition-shadow duration-200">
                 <p className="text-xs sm:text-sm text-gray-600 mb-2 font-medium leading-tight h-8 flex items-center justify-center">1 Year<br/>Gains</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600">
-                  +{safeString((portfolio as any)?.oneYearGains || "0")}%
+                <p className={`text-lg sm:text-xl lg:text-2xl font-bold ${oneYearGainsValue > 0 ? 'text-green-600' : oneYearGainsValue < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                  {oneYearGainsValue === 0 ? '-' : `${oneYearGainsValue > 0 ? '+' : ''}${oneYearGainsValue}%`}
                 </p>
                   </div>
               <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 text-center shadow-sm hover:shadow-md transition-shadow duration-200">
                 <p className="text-xs sm:text-sm text-gray-600 mb-2 font-medium leading-tight h-8 flex items-center justify-center">CAGR Since<br/>Inception</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600">
-                  +{safeString((portfolio as any)?.CAGRSinceInception || "0")}%
+                <p className={`text-lg sm:text-xl lg:text-2xl font-bold ${cagrSinceInceptionValue > 0 ? 'text-green-600' : cagrSinceInceptionValue < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                  {cagrSinceInceptionValue === 0 ? '-' : `${cagrSinceInceptionValue > 0 ? '+' : ''}${cagrSinceInceptionValue}%`}
                 </p>
               </div>
             </div>
@@ -1135,16 +1285,16 @@ export default function PortfolioDetailsPage() {
         <Card className="mb-4 sm:mb-6">
           <CardContent className="p-4 sm:p-6">
             <h3 className="text-lg font-semibold mb-4">Details</h3>
-                        <div className="space-y-6">
-            <div>
+            <div className="space-y-6">
+              <div>
                 {(() => {
                   let htmlContent = '';
-                  
+
                   if (Array.isArray((portfolio as any)?.description)) {
-                    const portfolioCardItem = (portfolio as any).description.find((item: any) => 
+                    const portfolioCardItem = (portfolio as any).description.find((item: any) =>
                       item.key && item.key.toLowerCase() === 'portfolio card'
                     );
-                    
+
                     if (portfolioCardItem && portfolioCardItem.value) {
                       htmlContent = portfolioCardItem.value;
                     } else {
@@ -1154,65 +1304,99 @@ export default function PortfolioDetailsPage() {
                   } else if (typeof (portfolio as any)?.description === 'string') {
                     htmlContent = (portfolio as any).description;
                   }
-                  
+
                   if (!htmlContent) {
                     htmlContent = (portfolio as any)?.details || "This portfolio is designed for investors looking for balanced growth and risk management.";
                   }
-                  
+
+                  // Split into first paragraph and the rest for mobile collapsible
+                  const tempDiv = typeof window !== 'undefined' ? document.createElement('div') : null;
+                  tempDiv && (tempDiv.innerHTML = safeString(htmlContent));
+                  const paragraphs = tempDiv ? Array.from(tempDiv.querySelectorAll('p')).map(p => p.outerHTML) : [safeString(htmlContent)];
+                  const firstParagraph = paragraphs[2] || '';
+                  const restContent = paragraphs.slice(1).join('') || '';
+
                   return (
                     <div className="tinymce-content">
-                      <div 
-                        className="text-gray-800 leading-relaxed prose prose-sm max-w-none
-                          prose-headings:text-gray-900 prose-headings:font-semibold
-                          prose-p:text-gray-700 prose-p:leading-relaxed
-                          prose-strong:text-gray-900 prose-strong:font-semibold
-                          prose-ul:my-4 prose-ol:my-4
-                          prose-li:text-gray-700 prose-li:mb-1
-                          prose-a:text-blue-600 prose-a:underline
-                        "
-                        dangerouslySetInnerHTML={{
-                          __html: safeString(htmlContent)
-                        }}
-                      />
-              </div>
+                      {/* Desktop: show full content */}
+                      <div className="hidden sm:block">
+                        <div
+                          className="text-gray-800 leading-relaxed prose prose-sm max-w-none prose-headings:text-gray-900 prose-headings:font-semibold prose-p:text-gray-700 prose-p:leading-relaxed prose-strong:text-gray-900 prose-strong:font-semibold prose-ul:my-4 prose-ol:my-4 prose-li:text-gray-700 prose-li:mb-1 prose-a:text-blue-600 prose-a:underline"
+                          dangerouslySetInnerHTML={{ __html: safeString(htmlContent) }}
+                        />
+                      </div>
+
+                      {/* Mobile: first paragraph + expandable rest */}
+                      <div className="block sm:hidden">
+                        <div
+                          className="text-gray-800 leading-relaxed prose prose-sm max-w-none prose-headings:text-gray-900 prose-headings:font-semibold prose-p:text-gray-700 prose-p:leading-relaxed prose-strong:text-gray-900 prose-strong:font-semibold prose-ul:my-4 prose-ol:my-4 prose-li:text-gray-700 prose-li:mb-1 prose-a:text-blue-600 prose-a:underline"
+                          dangerouslySetInnerHTML={{ __html: firstParagraph || safeString(htmlContent) }}
+                        />
+                        {restContent && (
+                          <div>
+                            {!detailsExpanded ? (
+                              <button
+                                className="mt-2 text-sm text-blue-600 font-medium underline"
+                                onClick={() => setDetailsExpanded(true)}
+                              >
+                                Read more
+                              </button>
+                            ) : (
+                              <>
+                                <div
+                                  className="mt-2 text-gray-800 leading-relaxed prose prose-sm max-w-none"
+                                  dangerouslySetInnerHTML={{ __html: restContent }}
+                                />
+                                <button
+                                  className="mt-2 text-sm text-blue-600 font-medium underline"
+                                  onClick={() => setDetailsExpanded(false)}
+                                >
+                                  Show less
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   );
                 })()}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-4 font-bold font-size-2xl">Portfolio Details</div>
-            </div>
+              </div>
             
-             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-4 border-t">
-            <div>
-                  <p className="font-semibold text-gray-800">Time Horizon</p>
-                  <p className="text-gray-600">{safeString((portfolio as any)?.timeHorizon || "Long term")}</p>
-              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-4 border-t">
                 <div>
-                  <p className="font-semibold text-gray-800">Rebalancing</p>
-                  <p className="text-gray-600">{safeString((portfolio as any)?.rebalancing || "Quarterly")}</p>
-            </div>
-            <div>
-                  <p className="font-semibold text-gray-800">Benchmark Index</p>
-                  <p className="text-gray-600">{safeString((portfolio as any)?.index || (portfolio as any)?.compareWith )}</p>
-              </div>
-          <div>
-            <p className="font-semibold text-gray-800">Minimum Investment</p>
-            <p className="text-gray-600">₹{safeNumber((portfolio as any)?.minInvestment || 30000).toLocaleString()}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-gray-800">Monthly Contribution</p>
-            <p className="text-gray-600">{safeString((portfolio as any)?.monthlyContribution)}</p>
-          </div>
-              <div>
-                  <p className="font-semibold text-gray-800">Last Rebalancing Date</p>
-                  <p className="text-gray-600">{(portfolio as any)?.lastRebalanceDate ? new Date((portfolio as any).lastRebalanceDate).toLocaleDateString() : "N/A"}</p>
-              </div>
-              <div>
-                  <p className="font-semibold text-gray-800">Next Rebalancing Date</p>
-                  <p className="text-gray-600">{(portfolio as any)?.nextRebalanceDate ? new Date((portfolio as any).nextRebalanceDate).toLocaleDateString() : "N/A"}</p>
-              </div>
-              <div>
-            <p className="font-semibold text-gray-800">Launched At</p>
-            <p className="text-gray-600">{(portfolio as any)?.createdAt ? new Date((portfolio as any).createdAt).toLocaleDateString() : "N/A"}</p>
-          </div>
+                  <p className="font-semibold text-gray-800 line-clamp-1 sm:line-clamp-none">Time Horizon</p>
+                  <p className="text-gray-600 line-clamp-2 sm:line-clamp-none leading-snug">{safeString((portfolio as any)?.timeHorizon || "Long term")}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800 line-clamp-1 sm:line-clamp-none">Rebalancing</p>
+                  <p className="text-gray-600 line-clamp-2 sm:line-clamp-none leading-snug">{safeString((portfolio as any)?.rebalancing || "Quarterly")}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800 line-clamp-1 sm:line-clamp-none">Benchmark Index</p>
+                  <p className="text-gray-600 line-clamp-2 sm:line-clamp-none leading-snug">{safeString((portfolio as any)?.index || (portfolio as any)?.compareWith )}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800 line-clamp-1 sm:line-clamp-none">Minimum Investment</p>
+                  <p className="text-gray-600 line-clamp-2 sm:line-clamp-none leading-snug">₹{safeNumber((portfolio as any)?.minInvestment || 30000).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800 line-clamp-1 sm:line-clamp-none">Monthly Contribution</p>
+                  <p className="text-gray-600 line-clamp-2 sm:line-clamp-none leading-snug">₹{safeNumber((portfolio as any)?.monthlyContribution || 0).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800 line-clamp-1 sm:line-clamp-none">{isMobile ? 'Last Rebalancing' : 'Last Rebalancing Date'}</p>
+                  <p className="text-gray-600 line-clamp-2 sm:line-clamp-none leading-snug">{(portfolio as any)?.lastRebalanceDate ? new Date((portfolio as any).lastRebalanceDate).toLocaleDateString() : "N/A"}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800 line-clamp-1 sm:line-clamp-none">{isMobile ? 'Next Rebalancing' : 'Next Rebalancing Date'}</p>
+                  <p className="text-gray-600 line-clamp-2 sm:line-clamp-none leading-snug">{(portfolio as any)?.nextRebalanceDate ? new Date((portfolio as any).nextRebalanceDate).toLocaleDateString() : "N/A"}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800 line-clamp-1 sm:line-clamp-none">Launched At</p>
+                  <p className="text-gray-600 line-clamp-2 sm:line-clamp-none leading-snug">{(portfolio as any)?.createdAt ? new Date((portfolio as any).createdAt).toLocaleDateString() : "N/A"}</p>
+                </div>
         </div>
           </div>
           </CardContent>
@@ -1226,7 +1410,7 @@ export default function PortfolioDetailsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="bg-blue-900 text-[#FFFFF0]">
-                {trailingReturns.map((item, index) => (
+                      {trailingReturns.map((item, index) => (
                       <th key={index} className="px-2 sm:px-4 py-3 text-center font-medium text-xs sm:text-sm whitespace-nowrap">
                         {item.period}
                       </th>
@@ -1237,7 +1421,7 @@ export default function PortfolioDetailsPage() {
                   <tr className="bg-gray-50">
                     {trailingReturns.map((item, index) => (
                       <td key={index} className="px-2 sm:px-4 py-3 text-center text-xs sm:text-sm">
-                        {item.value}
+                        {item.value === '-' ? '-' : `${item.value}%`}
                       </td>
                     ))}
                   </tr>
@@ -1267,12 +1451,12 @@ export default function PortfolioDetailsPage() {
                   onChange={(e) => handleTimePeriodChange(e.target.value as TimePeriod)}
                   className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
                 >
-                  <option value="1w">1w</option>
-                  <option value="1m">1m</option>
-                  <option value="3m">3m</option>
-                  <option value="6m">6m</option>
-                  <option value="1Yr">1y</option>
-                  <option value="Since Inception">all</option>
+                  <option value="1w">1 Week</option>
+                  <option value="1m">1 Month</option>
+                  <option value="3m">3 Months</option>
+                  <option value="6m">6 Months</option>
+                  <option value="1Yr">1 Year</option>
+                  <option value="Since Inception">Since Inception</option>
                 </select>
                 <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1306,10 +1490,10 @@ export default function PortfolioDetailsPage() {
               </div>
             </div>
 
-            <div className="h-64 sm:h-72 md:h-80 lg:h-96 bg-white rounded-lg border border-gray-200 p-4 relative">
-              {/* Performance Summary Overlay */}
-              {priceHistory.length > 0 && (
-                <div className="absolute top-4 right-4 z-10 bg-white/95 backdrop-blur-sm rounded-lg border border-gray-200 p-3 shadow-lg">
+            <div className="h-80 sm:h-88 md:h-96 lg:h-[28rem] bg-white rounded-lg border border-gray-200 p-4 relative">
+              {/* Performance Summary Overlay - desktop only to avoid covering data on mobile */}
+              {priceHistory.length > 0 && !isMobile && (
+                <div className="absolute top-3 right-3 z-10 bg-white/95 backdrop-blur-sm rounded-lg border border-gray-200 p-2 shadow-lg max-w-[240px]">
                   <div className="text-xs text-gray-600 mb-1">Performance Summary</div>
                   {(() => {
                     const firstValue = priceHistory[0]?.portfolioValue || 0;
@@ -1340,18 +1524,20 @@ export default function PortfolioDetailsPage() {
                 </div>
               )}
 
-              {chartLoading ? (
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                    <p className="text-gray-600">Loading chart data...</p>
-                  </div>
-                </div>
-              ) : priceHistory.length > 0 ? (
+              {priceHistory.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart 
-                    data={priceHistory}
-                    margin={{ top: 20, right: 120, left: 20, bottom: 20 }}
+                    data={chartData}
+                    margin={{ top: 12, right: isMobile ? 12 : 120, left: 12, bottom: 16 }}
+                    onMouseMove={(state: any) => {
+                      if (state?.activeTooltipIndex !== undefined) {
+                        setActiveIndex(state.activeTooltipIndex);
+                        setIsInteracting(true);
+                      }
+                    }}
+                    onMouseLeave={() => { setActiveIndex(null); setIsInteracting(false); }}
+                    onMouseDown={() => setIsInteracting(true)}
+                    onMouseUp={() => setIsInteracting(false)}
                   >
                   <defs>
                     <linearGradient id="portfolioGradient" x1="0" y1="0" x2="0" y2="1">
@@ -1368,12 +1554,12 @@ export default function PortfolioDetailsPage() {
                     dataKey="date" 
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fontSize: 11, fill: '#6b7280', fontWeight: 500 }}
-                    interval={0}
-                    angle={selectedTimePeriod === '1w' || selectedTimePeriod === '1m' ? -45 : 0}
-                    textAnchor={selectedTimePeriod === '1w' || selectedTimePeriod === '1m' ? 'end' : 'middle'}
-                    height={selectedTimePeriod === '1w' || selectedTimePeriod === '1m' ? 60 : 40}
-                    minTickGap={5}
+                    tick={{ fontSize: isMobile ? 10 : 11, fill: '#6b7280', fontWeight: 500 }}
+                    interval={isMobile ? 'preserveStartEnd' : 0}
+                    angle={!isMobile && (selectedTimePeriod === '1w' || selectedTimePeriod === '1m') ? -45 : 0}
+                    textAnchor={!isMobile && (selectedTimePeriod === '1w' || selectedTimePeriod === '1m') ? 'end' : 'middle'}
+                    height={!isMobile && (selectedTimePeriod === '1w' || selectedTimePeriod === '1m') ? 60 : 32}
+                    minTickGap={8}
                   />
                   <YAxis 
                     axisLine={false}
@@ -1383,9 +1569,9 @@ export default function PortfolioDetailsPage() {
                       if (value >= 1000) return `₹${(value/1000).toFixed(1)}K`;
                       return `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
                     }}
-                    tick={{ fontSize: 11, fill: '#6b7280', fontWeight: 500 }}
+                    tick={{ fontSize: isMobile ? 10 : 11, fill: '#6b7280', fontWeight: 500 }}
                     domain={yAxisDomain}
-                    width={90}
+                    width={isMobile ? 48 : 90}
                   />
                   <Tooltip 
                     formatter={(value: number, name: string, props: any) => {
@@ -1416,12 +1602,21 @@ export default function PortfolioDetailsPage() {
                     contentStyle={{
                       backgroundColor: '#ffffff',
                       border: '1px solid #e5e7eb',
-                      borderRadius: '12px',
-                      fontSize: '14px',
-                      padding: '16px',
+                      borderRadius: '10px',
+                      fontSize: isMobile ? '12px' : '14px',
+                      padding: isMobile ? '10px' : '16px',
                       boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                      minWidth: '200px'
+                      minWidth: isMobile ? '140px' : '200px',
+                      pointerEvents: 'none'
                     }}
+                    wrapperStyle={{ pointerEvents: 'none' }}
+                    allowEscapeViewBox={{ x: false, y: true }}
+                    offset={10}
+                    cursor={false}
+                    isAnimationActive={false}
+                    position={(activeIndex !== null && activeIndex > priceHistory.length - 3)
+                      ? { x: undefined, y: 0 }
+                      : undefined}
                   />
                   <Line 
                     type="monotone" 
@@ -1438,6 +1633,9 @@ export default function PortfolioDetailsPage() {
                       filter: 'drop-shadow(0 4px 6px rgba(16, 185, 129, 0.3))'
                     }}
                     fill="url(#portfolioGradient)"
+                    isAnimationActive={true}
+                    animationDuration={800}
+                    animationEasing="ease-out"
                   />
                   <Line 
                     type="monotone" 
@@ -1453,31 +1651,38 @@ export default function PortfolioDetailsPage() {
                       stroke: '#ffffff',
                       strokeWidth: 2
                     }}
+                    isAnimationActive={true}
+                    animationDuration={800}
+                    animationEasing="ease-out"
                   />
-                  <Legend 
-                    wrapperStyle={{ 
-                      fontSize: '14px', 
-                      paddingTop: '20px',
-                      textAlign: 'center'
-                    }}
-                    iconType="line"
-                    formatter={(value) => {
-                      if (value === 'portfolioValue') {
-                        const name = safeString((portfolio as any)?.name || 'Portfolio');
-                        return `📈 ${name.length > 20 ? name.substring(0, 20) + '...' : name}`;
-                      }
-                      return `📊 ${safeString((portfolio as any)?.compareWith || (portfolio as any)?.index || 'NIFTY 50')}`;
-                    }}
-                  />
+                  {activeIndex !== null && priceHistory[activeIndex] && (
+                    <ReferenceLine
+                      x={priceHistory[activeIndex].date}
+                      stroke="#9CA3AF"
+                      strokeDasharray="3 3"
+                      ifOverflow="extendDomain"
+                    />
+                  )}
+                  {!isMobile && (
+                    <Legend 
+                      layout="horizontal"
+                      verticalAlign="bottom"
+                      align="center"
+                      wrapperStyle={{ fontSize: '14px', paddingTop: '20px', textAlign: 'center' }}
+                      iconType="line"
+                      formatter={(value) => {
+                        if (value === 'portfolioValue') {
+                          const name = safeString((portfolio as any)?.name || 'Portfolio');
+                          return `📈 ${name.length > 20 ? name.substring(0, 20) + '...' : name}`;
+                        }
+                        return `📊 ${safeString((portfolio as any)?.compareWith || (portfolio as any)?.index || 'NIFTY 50')}`;
+                      }}
+                    />
+                  )}
                 </LineChart>
-              </ResponsiveContainer>
+                </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <div className="text-gray-400 mb-2">📊</div>
-                    <p className="text-gray-600">Loading chart data...</p>
-                  </div>
-                </div>
+                <div className="flex items-center justify-center h-full text-gray-500 text-sm">No data</div>
               )}
           </div>
           </CardContent>
@@ -1703,22 +1908,29 @@ export default function PortfolioDetailsPage() {
             </table>
           </div>
 
+          {/* Daily P&L */}
+            <div className="flex items-center justify-between mt-4">
+              <div className="flex items-center space-x-2 px-4">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Daily P&L</span>
+                  </div>
+                  <div className={`flex items-center space-x-2 px-2 py-1 rounded-full ${dailyPnl.value >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
+                    <span className={`text-xs font-bold ${dailyPnl.value >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                      {dailyPnl.value >= 0 ? '+' : ''}₹{Math.abs(dailyPnl.value).toLocaleString('en-IN', { maximumFractionDigits: 0 })} ({dailyPnl.percent >= 0 ? '+' : ''}{Math.abs(dailyPnl.percent).toFixed(2)}%)
+                    </span>
+                  </div>
+            </div>
           
 
             {/* Portfolio Summary */}
-                        <div className="mt-3 pt-3 border-t border-gray-100">
+            <div className="mt-3 pt-3 border-t border-gray-100">
               <div className="bg-gradient-to-br from-white via-gray-50/30 to-blue-50/20 rounded-xl border border-gray-200/60 p-4 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                     <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Portfolio Summary</span>
                   </div>
-                  <div className="flex items-center space-x-1 bg-green-100 px-2 py-1 rounded-full">
-                    <span className="text-xs font-bold text-green-700">
-                      {portfolioMetrics.pnlPercentage >= 0 ? '+' : ''}{portfolioMetrics.pnlPercentage.toFixed(2)}%
-                    </span>
-          </div>
-        </div>
+            </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="bg-white/70 rounded-lg border border-gray-200/50 p-3">
@@ -1761,7 +1973,9 @@ export default function PortfolioDetailsPage() {
                       <div className="w-1 h-1 bg-green-500 rounded-full"></div>
                       <span className="text-xs text-gray-600">Since Inception:</span>
                     </div>
-                    <span className="text-sm font-bold text-green-700">+{safeString((portfolio as any)?.CAGRSinceInception || "15.2")}% CAGR</span>
+                    <span className={`text-sm font-bold ${inceptionGainPercent !== null && inceptionGainPercent >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                      {inceptionGainPercent === null ? '-' : `${inceptionGainPercent >= 0 ? '+' : ''}${Math.abs(inceptionGainPercent).toFixed(2)}%`} Gain
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1967,7 +2181,7 @@ export default function PortfolioDetailsPage() {
       </div>
 
       {/* Latest Research Reports Section */}
-        <div className="mt-8" id="research-reports">
+        <div className="mt-8 scroll-mt-24 md:scroll-mt-28" id="reports">
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 space-y-3 sm:space-y-0">
               <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-600 leading-tight">
@@ -2026,6 +2240,28 @@ export default function PortfolioDetailsPage() {
                 </div>
               )}
             </div>
+
+            {/* Compact Performance Summary for mobile placed below chart */}
+            {isMobile && priceHistory.length > 0 && (
+              <div className="mt-2 px-2 py-2 bg-white border rounded-md text-xs flex items-center justify-between">
+                {(() => {
+                  const firstValue = priceHistory[0]?.portfolioValue || 0;
+                  const lastValue = priceHistory[priceHistory.length - 1]?.portfolioValue || 0;
+                  const totalGain = lastValue - firstValue;
+                  const totalGainPercent = firstValue > 0 ? ((totalGain / firstValue) * 100) : 0;
+                  const isPositive = totalGain >= 0;
+                  return (
+                    <>
+                      <span className="text-gray-600">Performance</span>
+                      <span className={`font-semibold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                        {isPositive ? '+' : ''}₹{Math.abs(totalGain).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                        {' '}({isPositive ? '+' : ''}{totalGainPercent.toFixed(2)}%)
+                      </span>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
             </div>
           </div>
       </div>
