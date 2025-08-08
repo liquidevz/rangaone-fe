@@ -260,7 +260,11 @@ export default function PortfolioDetailsPage() {
       const tryScroll = () => {
         const target = document.getElementById("reports");
         if (target) {
-          target.scrollIntoView({ behavior: "smooth", block: "start" });
+          target.scrollIntoView({ behavior: "smooth", block: "end" });
+          setTimeout(() => {
+            const doc = document.documentElement;
+            window.scrollTo({ top: doc.scrollHeight, behavior: "smooth" });
+          }, 200);
         } else {
           requestAnimationFrame(tryScroll);
         }
@@ -396,6 +400,14 @@ export default function PortfolioDetailsPage() {
   const safeString = (value: any): string => {
     if (value === null || value === undefined) return '';
     return String(value);
+  };
+
+  // Display title should drop the word "Portfolio" and keep only the first word
+  const getDisplayTitle = (value: any): string => {
+    const name = safeString(value);
+    const withoutPortfolio = name.replace(/\bportfolio\b/gi, '').trim();
+    const firstWord = withoutPortfolio.split(/\s+/)[0] || withoutPortfolio;
+    return firstWord;
   };
 
   // Map UI periods to API periods (according to API spec: 1w, 1m, 3m, 6m, 1y, all)
@@ -1206,7 +1218,7 @@ export default function PortfolioDetailsPage() {
     <DashboardLayout>
       <div className="max-w-7xl mx-auto">
         <PageHeader 
-          title={safeString(portfolio.name)} 
+          title={getDisplayTitle(portfolio.name)} 
           subtitle={(() => {
             if (Array.isArray(portfolio.description)) {
               const homeCardDesc = portfolio.description.find((item: any) => item.key === "home card");
@@ -1232,10 +1244,14 @@ export default function PortfolioDetailsPage() {
                            border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-all duration-200
                            bg-white shadow-sm hover:shadow-md"
                            onClick={() => {
-                             const section = document.getElementById("reports");
-                             if (section) {
-                               section.scrollIntoView({ behavior: "smooth", block: "start" });
-                             }
+                    const section = document.getElementById("reports");
+                    if (section) {
+                      section.scrollIntoView({ behavior: "smooth", block: "end" });
+                      setTimeout(() => {
+                        const doc = document.documentElement;
+                        window.scrollTo({ top: doc.scrollHeight, behavior: "smooth" });
+                      }, 150);
+                    }
                            }}
                 >
                   <FileText className="h-4 w-4 text-gray-600" />
@@ -1594,7 +1610,7 @@ export default function PortfolioDetailsPage() {
                           </div>
                         </div>,
                         name === 'portfolioValue' 
-                          ? (safeString((portfolio as any)?.name || 'Portfolio'))
+                          ? (getDisplayTitle((portfolio as any)?.name || 'Portfolio'))
                           : safeString((portfolio as any)?.compareWith || (portfolio as any)?.index || 'NIFTY 50')
                       ];
                     }}
@@ -1672,7 +1688,7 @@ export default function PortfolioDetailsPage() {
                       iconType="line"
                       formatter={(value) => {
                         if (value === 'portfolioValue') {
-                          const name = safeString((portfolio as any)?.name || 'Portfolio');
+                          const name = getDisplayTitle((portfolio as any)?.name || 'Portfolio');
                           return `📈 ${name.length > 20 ? name.substring(0, 20) + '...' : name}`;
                         }
                         return `📊 ${safeString((portfolio as any)?.compareWith || (portfolio as any)?.index || 'NIFTY 50')}`;
@@ -2187,7 +2203,7 @@ export default function PortfolioDetailsPage() {
               <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-600 leading-tight">
                 <span className="block sm:inline">Latest Research Reports</span>
                 <span className="block sm:inline text-base sm:text-lg lg:text-xl text-gray-700 font-medium mt-1 sm:mt-0 sm:ml-2">
-                  for {safeString((portfolio as any)?.name || 'Portfolio')}
+                  for {getDisplayTitle((portfolio as any)?.name || 'Portfolio')}
                 </span>
               </h2>
               <div className="flex items-center space-x-2 flex-shrink-0">

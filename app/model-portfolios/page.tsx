@@ -343,8 +343,9 @@ export default function ModelPortfoliosPage() {
       <DashboardLayout>
         <div className="max-w-6xl mx-auto">
           <PageHeader
-            title="MODEL PORTFOLIOS"
+            title="MODEL PORTFOLIOS" 
             subtitle="Discover our expertly crafted investment strategies"
+            size="lg"
           />
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>

@@ -148,8 +148,8 @@ export default function PortfolioTipDetailsPage() {
   return (
     <DashboardLayout>
       <InnerPageHeader title="MODEL PORTFOLIO" subtitle="" />
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto px-1 py-6">
+      <div className="bg-gray-50 -mb-6">
+        <div className="max-w-4xl mx-auto px-1 pt-6 pb-0">
           <div className="text-center mb-6">
             <h2 className="text-xl font-bold" style={{ fontFamily: "Helvetica, Arial, sans-serif" }}>
               EXPERT RECOMMENDATIONS
@@ -163,8 +163,8 @@ export default function PortfolioTipDetailsPage() {
             <div className="bg-white rounded-lg p-2 h-full">
               <div className="flex justify-between items-start">
                 <div>
-                  <div className="relative bg-gradient-to-r from-[#00B7FF] to-[#85D437] p-[4px] rounded-xl overflow-hidden">
-                    <div className="bg-black text-xs sm:text-sm font-bold rounded-md px-2 sm:px-3 py-0.5 sm:py-1 overflow-hidden">
+                  <div className="relative bg-gradient-to-r from-[#00B7FF] to-[#85D437] p-[3px] rounded-xl overflow-hidden">
+                    <div className="bg-black text-xs sm:text-sm font-bold rounded-lg px-2 sm:px-3 py-0.5 sm:py-1 overflow-hidden">
                       {tipData.portfolio && typeof tipData.portfolio === "object" && "name" in tipData.portfolio ? (
                         <div className="overflow-hidden">
                           <div className="whitespace bg-gradient-to-r from-[#00B7FF] to-[#85D437] font-bold bg-clip-text text-transparent">
@@ -290,7 +290,7 @@ export default function PortfolioTipDetailsPage() {
             className="p-[3px] rounded-lg mx-auto max-w-5xl"
             style={{ background: "linear-gradient(90deg, #00B7FF 0%, #85D437 100%)", boxShadow: "0 0 9px rgba(0, 0, 0, 0.3)" }}
           >
-            <div className="bg-white rounded-lg p-4">
+            <div className="bg-white rounded-lg p-4 mb-0">
               <div className="mb-4">
                 <div className="bg-[#131859] text-white rounded-2xl px-4 py-1 inline-block border-4 border-[#2C349A]">
                   <h3 className="text-2xl font-bold">Why Buy This?</h3>
