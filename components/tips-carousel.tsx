@@ -1022,8 +1022,10 @@ export default function TipsCarousel({
           );
         }
 
-        // Convert tips immediately with available data
-        const carouselTips = convertTipsToCarouselFormat(filteredTips);
+        // Convert tips and sort ascending by createdAt
+        const carouselTips = convertTipsToCarouselFormat(filteredTips).sort(
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
         setTips(carouselTips);
         setLoading(false);
 
@@ -1047,8 +1049,10 @@ export default function TipsCarousel({
           });
         }
 
-        // Convert tips immediately with available data
-        const carouselTips = convertTipsToCarouselFormat(apiTips);
+        // Convert tips and sort ascending by createdAt
+        const carouselTips = convertTipsToCarouselFormat(apiTips).sort(
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
         setTips(carouselTips);
         setLoading(false);
 
@@ -1099,7 +1103,9 @@ export default function TipsCarousel({
           (tip) => tip.category === categoryFilter
         );
       }
-      const carouselTips = convertTipsToCarouselFormat(filteredTips);
+      const carouselTips = convertTipsToCarouselFormat(filteredTips).sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
       setTips(carouselTips);
     }
   }, [stockSymbols, propTips, categoryFilter, loading]);

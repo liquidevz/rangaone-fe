@@ -92,7 +92,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       } else {
         setPaymentStep("success");
       }
-      toast({ title: "Payment Successful", description: "Your subscription has been activated" });
+      toast({ 
+        title: "Payment Successful", 
+        description: verifyResponse?.telegramInviteLinks?.length > 0 
+          ? "Your subscription has been activated" 
+          : "Your subscription has been activated. Please check your email for Telegram group links."
+      });
       setLoading(false);
     };
 
@@ -616,9 +621,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     </p>
                   </div>
                 ) : (
-                  <p className="text-gray-600 mb-6">
-                    Your subscription has been activated successfully.
-                  </p>
+                  <div className="text-gray-600 mb-6">
+                    <p className="mb-2">
+                      Your subscription has been activated successfully.
+                    </p>
+                    <p className="text-sm text-blue-600">
+                      Please check your email for Telegram group invitation links.
+                    </p>
+                  </div>
                 )}
 
                 <Button
