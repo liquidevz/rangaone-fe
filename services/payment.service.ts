@@ -14,6 +14,8 @@ export interface CreateOrderPayload {
   productId: string;
   planType?: "monthly" | "quarterly" | "yearly";
   subscriptionType?: "basic" | "premium" | "individual"; // Added for subscription type tracking
+  amount?: number; // optional explicit amount for some flows
+  items?: any[]; // optional breakdown payload (cart-like)
 }
 
 // Updated interface for cart checkout
@@ -331,7 +333,7 @@ export const paymentService = {
       ...("subscriptionId" in orderData
         ? { 
             subscription_id: orderData.subscriptionId,
-            recurring: 1 // Enable recurring payments for eMandate
+            recurring: 1
           }
         : {
             order_id: orderData.orderId,
@@ -357,10 +359,16 @@ export const paymentService = {
       },
     };
 
-    console.log("Razorpay options:", {
+    console.log("🔍 RAZORPAY OPTIONS:", {
       ...options,
       key: options.key.substring(0, 8) + "...", // Hide full key in logs
     });
+    
+    if ("subscriptionId" in orderData) {
+      console.log("🔍 SUBSCRIPTION ID:", orderData.subscriptionId);
+      console.log("🔍 SUBSCRIPTION ID TYPE:", typeof orderData.subscriptionId);
+      console.log("🔍 SUBSCRIPTION ID LENGTH:", orderData.subscriptionId?.length);
+    }
 
     try {
       const razorpay = new window.Razorpay(options);
@@ -415,18 +423,14 @@ export const paymentService = {
   ): Promise<CreateEMandateResponse> => {
     const token = authService.getAccessToken();
 
-    console.log("Payment service - creating emandate with payload:", payload);
+    console.log("🔍 EMANDATE PAYLOAD BEING SENT:", JSON.stringify(payload, null, 2));
+    console.log("🔍 EMANDATE PAYLOAD KEYS:", Object.keys(payload));
+    console.log("🔍 EMANDATE PAYLOAD VALUES:", Object.values(payload));
 
     try {
-      // Correct payload structure for eMandate creation
-      const emandatePayload = {
-        productType: payload.productType,
-        productId: payload.productId
-      };
-
       const response = await post<CreateEMandateResponse>(
         "/api/subscriptions/emandate",
-        emandatePayload,
+        payload,
         {
           headers: {
             accept: "application/json",
@@ -437,15 +441,18 @@ export const paymentService = {
       );
 
       console.log("eMandate creation response:", response);
-      console.log("🔍 Response type:", typeof response);
-      console.log("🔍 Response keys:", Object.keys(response));
-      console.log("🔍 Has subscriptionId:", 'subscriptionId' in response);
-      if ('subscriptionId' in response) {
-        console.log("🔍 subscriptionId value:", response.subscriptionId);
-      }
+      console.log("🔍 Full eMandate response:", JSON.stringify(response, null, 2));
+      console.log("🔍 subscriptionId type:", typeof response?.subscriptionId);
+      console.log("🔍 subscriptionId value:", response?.subscriptionId);
       return response;
     } catch (error: any) {
-      console.error("eMandate creation failed:", error);
+      console.error("🚨 EMANDATE ERROR DETAILS:", {
+        status: error?.response?.status,
+        statusText: error?.response?.statusText,
+        data: error?.response?.data,
+        message: error?.message
+      });
+      console.error("🚨 BACKEND ERROR MESSAGE:", error?.response?.data?.message || error?.response?.data?.error);
       throw error;
     }
   },

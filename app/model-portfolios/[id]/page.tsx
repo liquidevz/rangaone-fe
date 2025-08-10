@@ -1764,7 +1764,7 @@ export default function PortfolioDetailsPage() {
                               <div className={`inline-block font-medium px-2 py-1 rounded text-[#FFFFF0] text-xs ${
                                 holding.changePercent && holding.changePercent >= 0 ? 'bg-green-500' : 'bg-red-500'
                               }`}>
-                                {holding.currentPrice.toFixed(2)}
+                                ₹{holding.currentPrice.toFixed(2)}
                               </div>
                               {holding.changePercent && (
                                 <div className={`text-xs mt-1 ${holding.changePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>

@@ -10,6 +10,9 @@ import { useAuth } from "./auth/auth-context";
 import { useCart } from "./cart/cart-context";
 import { useRouter } from "next/navigation";
 import { Bundle } from "@/services/bundle.service";
+import { paymentService, type CreateOrderResponse, type CreateEMandateResponse } from "@/services/payment.service";
+import { DigioVerificationModal } from "@/components/digio-verification-modal";
+import type { PaymentAgreementData } from "@/services/digio.service";
 import {
   UserPortfolio,
   userPortfolioService,
@@ -34,8 +37,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [paymentStep, setPaymentStep] = useState<
-    "review" | "processing" | "success" | "error"
+    "review" | "processing" | "success" | "telegram" | "error"
   >("review");
+  const [telegramLinks, setTelegramLinks] = useState<any[]>([]);
+  const [showDigio, setShowDigio] = useState(false);
+  const [agreementData, setAgreementData] = useState<PaymentAgreementData | null>(null);
   
   const { user, isAuthenticated } = useAuth();
   const { cart, refreshCart, calculateTotal: cartCalculateTotal } = useCart();
@@ -71,31 +77,105 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     setLoading(true);
     setPaymentStep("processing");
 
-    try {
-      // Fake payment processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      setPaymentStep("success");
-      
-      toast({
-        title: "Payment Successful",
-        description: "Your subscription has been activated",
-      });
+    const userInfo = {
+      name: (user as any)?.fullName || user?.username || "User",
+      email: user?.email || "user@example.com",
+    };
 
-      setTimeout(() => {
-        onClose();
-        setPaymentStep("review");
-        setLoading(false);
-      }, 2000);
-    } catch (error: any) {
-      setPaymentStep("error");
-      toast({
-        title: "Payment Failed",
-        description: "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
+    const finishSuccess = (verifyResponse?: any) => {
+      console.log("🔍 VERIFY RESPONSE:", verifyResponse);
+      console.log("🔍 TELEGRAM LINKS:", verifyResponse?.telegramInviteLinks);
+      
+      if (verifyResponse?.telegramInviteLinks?.length > 0) {
+        setTelegramLinks(verifyResponse.telegramInviteLinks);
+        setPaymentStep("telegram");
+      } else {
+        setPaymentStep("success");
+      }
+      toast({ title: "Payment Successful", description: "Your subscription has been activated" });
       setLoading(false);
+    };
+
+    const finishError = (message: string) => {
+      setPaymentStep("error");
+      toast({ title: "Payment Failed", description: message || "Something went wrong. Please try again.", variant: "destructive" });
+      setLoading(false);
+    };
+
+    try {
+      // CART checkout flow
+      if (type === "cart") {
+        if (subscriptionType === "yearly" || subscriptionType === "quarterly") {
+          // eMandate for cart
+          const emandate: CreateEMandateResponse = await paymentService.cartCheckoutEmandate({ planType: subscriptionType });
+          await paymentService.openCheckout(
+            emandate,
+            userInfo,
+            async () => {
+              const verify = await paymentService.verifyEmandateWithRetry(emandate.subscriptionId);
+              if (verify.success || ["active", "authenticated"].includes(verify.subscriptionStatus || "")) {
+                finishSuccess();
+              } else {
+                finishError(verify.message || "eMandate verification failed");
+              }
+            },
+            (err) => finishError(err?.message || "Payment cancelled")
+          );
+        } else {
+          // Regular order for cart
+          const order: CreateOrderResponse = await paymentService.cartCheckout({ planType: "monthly" });
+          await paymentService.openCheckout(
+            order,
+            userInfo,
+            async (resp) => {
+              const verify = await paymentService.verifyPayment(
+                resp.razorpay_payment_id,
+                resp.razorpay_order_id,
+                resp.razorpay_signature
+              );
+              if (verify.success) finishSuccess(); else finishError(verify.message);
+            },
+            (err) => finishError(err?.message || "Payment cancelled")
+          );
+        }
+        return;
+      }
+
+      // SINGLE checkout flow (bundle or portfolio)
+      const productType: "Bundle" | "Portfolio" = bundle ? "Bundle" : "Portfolio";
+      const productId = bundle?._id || (portfolio as any)?._id;
+      if (!productId) {
+        finishError("Invalid product");
+        return;
+      }
+
+      if (subscriptionType === "yearly" || subscriptionType === "quarterly") {
+        // Show Digio first, payment will start after verification
+        startDigioFlow();
+      } else {
+        // Monthly one-time payment
+        const order = await paymentService.createOrder({ 
+          productType, 
+          productId, 
+          planType: "monthly",
+          subscriptionType: (bundle?.category as any) || "premium"
+        });
+        await paymentService.openCheckout(
+          order,
+          userInfo,
+          async (resp) => {
+            const verify = await paymentService.verifyPayment({
+              orderId: resp.razorpay_order_id,
+              paymentId: resp.razorpay_payment_id,
+              signature: resp.razorpay_signature
+            });
+            if (verify.success) finishSuccess(); else finishError(verify.message);
+          },
+          (err) => finishError(err?.message || "Payment cancelled")
+        );
+      }
+    } catch (error: any) {
+      finishError(error?.message || "Unexpected error while creating payment");
     }
   };
 
@@ -103,6 +183,63 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     setPaymentStep("review");
     setLoading(false);
     onClose();
+  };
+
+  const startDigioFlow = () => {
+    if (!bundle) return;
+    const price = calculateTotal();
+    const data: PaymentAgreementData = {
+      customerName: (user as any)?.fullName || user?.username || "User",
+      customerEmail: user?.email || "user@example.com",
+      amount: price,
+      subscriptionType,
+      portfolioNames: [bundle.name, ...bundle.portfolios.map(p => p.name)],
+      agreementDate: new Date().toLocaleDateString("en-IN"),
+    } as any;
+    setAgreementData(data);
+    setShowDigio(true);
+  };
+
+  const handleDigioSuccess = async () => {
+    if (!bundle) return;
+    
+    const productType: "Bundle" | "Portfolio" = "Bundle";
+    const productId = bundle._id;
+    
+    try {
+      const emandate = await paymentService.createEmandate({ 
+        productType, 
+        productId, 
+        planType: subscriptionType,
+        timestamp: Date.now(),
+      });
+      
+      if (!emandate?.subscriptionId) {
+        throw new Error("Invalid eMandate response: missing subscriptionId");
+      }
+      
+      console.log("Opening Razorpay with subscriptionId:", emandate.subscriptionId);
+      
+      await paymentService.openCheckout(
+        emandate,
+        {
+          name: (user as any)?.fullName || user?.username || "User",
+          email: user?.email || "user@example.com",
+        },
+        async () => {
+          const verify = await paymentService.verifyEmandateWithRetry(emandate.subscriptionId);
+          console.log("🔍 EMANDATE VERIFY RESULT:", verify);
+          if (verify.success || ["active", "authenticated"].includes(verify.subscriptionStatus || "")) {
+            finishSuccess(verify);
+          } else {
+            finishError(verify.message || "eMandate verification failed");
+          }
+        },
+        (err) => finishError(err?.message || "Payment cancelled")
+      );
+    } catch (error: any) {
+      finishError(error?.message || "Failed to create eMandate");
+    }
   };
 
   const getCheckoutDescription = (portfolio: UserPortfolio) => {
@@ -143,6 +280,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   if (!isOpen) return null;
 
   return (
+    <>
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
@@ -404,6 +542,50 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </div>
             )}
 
+            {paymentStep === "telegram" && (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Check className="h-8 w-8 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2 text-blue-800">
+                  Join Your Telegram Groups
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  Click the links below to join your exclusive Telegram groups for portfolio updates and insights.
+                </p>
+                
+                <div className="space-y-3 mb-6">
+                  {telegramLinks.map((link, index) => (
+                    <a
+                      key={index}
+                      href={link.invite_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full p-3 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors"
+                    >
+                      <div className="text-sm font-medium text-blue-800">
+                        Join Telegram Group
+                      </div>
+                      <div className="text-xs text-blue-600">
+                        Expires: {new Date(link.expires_at).toLocaleDateString()}
+                      </div>
+                    </a>
+                  ))}
+                </div>
+
+                <Button
+                  onClick={() => {
+                    handleClose();
+                    refreshCart();
+                    router.push('/dashboard');
+                  }}
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                >
+                  Continue to Dashboard
+                </Button>
+              </div>
+            )}
+
             {paymentStep === "success" && (
               <div className="text-center py-8">
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -484,5 +666,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         </motion.div>
       </motion.div>
     </AnimatePresence>
+    {showDigio && agreementData && (
+      <DigioVerificationModal
+        isOpen={showDigio}
+        onClose={() => setShowDigio(false)}
+        onVerificationComplete={() => {
+          setShowDigio(false);
+          handleDigioSuccess();
+        }}
+        agreementData={agreementData}
+      />
+    )}
+    </>
   );
 };

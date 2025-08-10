@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/components/auth/auth-context";
 import { useCart } from "@/components/cart/cart-context";
+import { useRouter } from "next/navigation";
 import { bundleService, Bundle } from "@/services/bundle.service";
 import { CheckoutModal } from "./checkout-modal";
 import FeatureComparison from "./feature-comparison";
@@ -35,6 +36,7 @@ export default function PricingSection() {
 
   const { isAuthenticated } = useAuth();
   const { addBundleToCart, hasBundle } = useCart();
+  const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -58,7 +60,23 @@ export default function PricingSection() {
     }
   };
 
-  const handleBundlePurchase = (bundle: Bundle, pricingType: SubscriptionType) => {
+  const handleBundlePurchase = async (bundle: Bundle, pricingType: SubscriptionType) => {
+    // For yearly/quarterly, use the exact Cart flow by adding to cart and redirecting
+    if (pricingType === "yearly" || pricingType === "quarterly") {
+      if (!isAuthenticated) {
+        router.push("/login");
+        return;
+      }
+      try {
+        await addBundleToCart(bundle._id, pricingType, bundle.category);
+        router.push("/cart");
+        return;
+      } catch (e) {
+        // Fallback to modal if cart add fails
+      }
+    }
+
+    // Monthly or fallback: open single checkout modal
     setCheckoutModal({
       isOpen: true,
       type: "single",
