@@ -90,6 +90,7 @@ interface TipCardData {
   stockName: string;
   exchange: string;
   weightage?: number;
+  mpWeightage?: number;
   buyRange: string;
   action: "HOLD" | "Partial Profit Booked" | "BUY" | "SELL";
   category: "basic" | "premium";
@@ -502,7 +503,7 @@ const TipCard = ({
                         : "text-black"
                       : "text-black"
                 }`}>
-                  {isModelPortfolio ? `${tip.weightage}%` : (tip.status === "closed" ? `${tip.exitStatusPercentage}%` : `${tip.targetPercentage}%`)}
+                  {isModelPortfolio ? `${tip.mpWeightage || tip.weightage}%` : (tip.status === "closed" ? `${tip.exitStatusPercentage}%` : `${tip.targetPercentage}%`)}
                 </p>
               </div>
             </div>
@@ -895,6 +896,7 @@ export default function TipsCarousel({
         stockName,
         exchange: "NSE",
         weightage,
+        mpWeightage: (tip as any).mpWeightage,
         buyRange: tip.buyRange || "₹ 1000 - 1050",
         action:
           (tip.action as "HOLD" | "Partial Profit Booked" | "BUY" | "SELL") ||

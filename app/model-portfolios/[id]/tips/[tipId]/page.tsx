@@ -192,7 +192,7 @@ export default function PortfolioTipDetailsPage() {
                       <p className="text-xs text-gray-700 mb-0 leading-tight font-medium">Weightage</p>
                       <p className="text-right text-2xl font-bold text-black leading-tight">
                         {(() => {
-                          const w = (tipData as any)?.weightage;
+                          const w = (tipData as any)?.mpWeightage;
                           if (w === undefined || w === null || Number.isNaN(Number(w))) return "—";
                           const val = typeof w === "string" ? parseFloat(w) : Number(w);
                           return `${val}%`;
