@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ShoppingCart, CreditCard, Check, AlertCircle } from "lucide-react";
+import { X, ShoppingCart, CreditCard, Check, AlertCircle, Copy, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "./auth/auth-context";
@@ -86,15 +86,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       console.log("🔍 VERIFY RESPONSE:", verifyResponse);
       console.log("🔍 TELEGRAM LINKS:", verifyResponse?.telegramInviteLinks);
       
-      if (verifyResponse?.telegramInviteLinks?.length > 0) {
-        setTelegramLinks(verifyResponse.telegramInviteLinks);
+      // Check for telegram links in response
+      const telegramLinks = verifyResponse?.telegramInviteLinks || verifyResponse?.telegram_invite_links || [];
+      
+      if (telegramLinks?.length > 0) {
+        setTelegramLinks(telegramLinks);
         setPaymentStep("telegram");
       } else {
         setPaymentStep("success");
       }
       toast({ 
         title: "Payment Successful", 
-        description: verifyResponse?.telegramInviteLinks?.length > 0 
+        description: telegramLinks?.length > 0 
           ? "Your subscription has been activated" 
           : "Your subscription has been activated. Please check your email for Telegram group links."
       });
@@ -561,20 +564,37 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 
                 <div className="space-y-3 mb-6">
                   {telegramLinks.map((link, index) => (
-                    <a
-                      key={index}
-                      href={link.invite_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block w-full p-3 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors"
-                    >
-                      <div className="text-sm font-medium text-blue-800">
-                        Join Telegram Group
+                    <div key={index} className="bg-blue-50 rounded-lg border border-blue-200 p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-sm font-medium text-blue-800">
+                          Telegram Group {index + 1}
+                        </div>
+                        <div className="text-xs text-blue-600">
+                          Expires: {new Date(link.expires_at).toLocaleDateString()}
+                        </div>
                       </div>
-                      <div className="text-xs text-blue-600">
-                        Expires: {new Date(link.expires_at).toLocaleDateString()}
+                      <div className="flex gap-2">
+                        <a
+                          href={link.invite_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          Join Group
+                        </a>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(link.invite_link);
+                            toast({ title: "Link copied to clipboard" });
+                          }}
+                          className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm transition-colors flex items-center gap-1"
+                        >
+                          <Copy className="w-4 h-4" />
+                          Copy
+                        </button>
                       </div>
-                    </a>
+                    </div>
                   ))}
                 </div>
 
