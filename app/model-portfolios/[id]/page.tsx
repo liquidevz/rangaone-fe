@@ -125,7 +125,7 @@ export default function PortfolioDetailsPage() {
         const periods: Array<'1w' | '1m' | '3m' | '6m' | '1y' | 'all'> = ['1w', '1m', '3m', '6m', '1y', 'all'];
         const responses = await Promise.all(periods.map(p => axiosApi.get(`/api/portfolios/${portfolioId}/price-history?period=${p}`)));
         const byPeriod = new Map<string, any[]>(
-          responses.map((res, idx) => [periods[idx], Array.isArray(res.data?.data) ? res.data.data : []])
+          responses.map((res, idx) => [periods[idx], Array.isArray(res.data) ? res.data : []])
         );
 
         const series1w = byPeriod.get('1w') || [];
@@ -659,173 +659,43 @@ export default function PortfolioDetailsPage() {
     return validHoldings;
   };
 
-  // Fetch price history for charts using the new API structure
   const fetchPriceHistory = async (portfolioId: string, period: TimePeriod = 'Since Inception') => {
     try {
       const apiPeriod = mapPeriodToAPI(period);
-      console.log(`🔍 Fetching price history for portfolio ${portfolioId} with period: ${period} (API: ${apiPeriod})`);
+      console.log(`🔍 Fetching: ${portfolioId}, period: ${apiPeriod}`);
       
-      // Use the new API endpoint structure with portfolio ID and period filter
       const response = await axiosApi.get(`/api/portfolios/${portfolioId}/price-history?period=${apiPeriod}`);
       
-      if (response.data && response.data.data && Array.isArray(response.data.data)) {
-        console.log('📊 Raw API response:', response.data);
-        console.log('📊 API data points count:', response.data.data?.length);
-        console.log('📊 API data sample:', response.data.data?.slice(0, 3));
+      console.log('🔍 RAW API RESPONSE:', response.data);
+      console.log('🔍 Response type:', typeof response.data);
+      console.log('🔍 Is array:', Array.isArray(response.data));
+      
+      if (!response.data || !Array.isArray(response.data) || response.data.length === 0) {
+        console.warn('⚠️ No valid data');
+        setPriceHistory([]);
+        return;
+      }
+      
+      console.log('🔍 First 3 items:', response.data.slice(0, 3));
+      
+      const chartData = response.data.map((item: any) => {
+        console.log('🔍 Item:', item);
         
-        // Use the API data directly as it matches our chart requirements
-        const apiData: ChartDataPoint[] = response.data.data;
-        
-        // Transform the API data to chart format and handle missing data points
-        const transformedData = apiData.map((item: ChartDataPoint, index: number) => {
-          const date = new Date(item.date);
-          const portfolioValue = parseFloat(item.value?.toString() || '0');
-          const portfolioChange = parseFloat(item.changePercent?.toString() || '0');
-          const cashValue = parseFloat(item.cash?.toString() || '0');
-          const changeValue = parseFloat(item.change?.toString() || '0');
-          
-          // Format date based on period
-          let formattedDate: string;
-          if (period === '1w') {
-            formattedDate = date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' });
-          } else if (period === '1m') {
-            formattedDate = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-          } else if (period === '3m' || period === '6m') {
-            formattedDate = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-          } else if (period === '1Yr') {
-            formattedDate = date.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
-          } else {
-            formattedDate = date.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
-          }
-          
-          // Calculate cumulative percentage change from the first data point
-          const baseValue = apiData[0]?.value || 100;
-          const cumulativePortfolioChange = ((portfolioValue - baseValue) / baseValue) * 100;
-          const cumulativeBenchmarkChange = cumulativePortfolioChange * 0.85;
-          
-          return {
-            date: formattedDate,
-            rawDate: item.date,
-            portfolioValue: portfolioValue,
-            portfolioChange: parseFloat(cumulativePortfolioChange.toFixed(2)),
-            cash: cashValue,
-            change: changeValue,
-            benchmarkValue: portfolioValue * (1 + (cumulativePortfolioChange * 0.8) / 100),
-            benchmarkChange: parseFloat(cumulativeBenchmarkChange.toFixed(2)),
-          };
-        });
-
-        // Fill missing dates with previous day's data to maintain continuity
-        const fillMissingDates = (data: any[], period: TimePeriod) => {
-          if (data.length === 0) return data;
-
-          // Sort data by raw date to ensure chronological order
-          const sortedData = data.sort((a, b) => new Date(a.rawDate).getTime() - new Date(b.rawDate).getTime());
-          
-          const filledData = [];
-          const seenFormattedDates = new Set();
-          
-          // Get date range based on period
-          const startDate = new Date(sortedData[0].rawDate);
-          const endDate = new Date(sortedData[sortedData.length - 1].rawDate);
-          
-          let currentDate = new Date(startDate);
-          let lastKnownData = null;
-          let dataIndex = 0;
-
-          while (currentDate <= endDate) {
-            // Format current date based on period
-            let formattedDate: string;
-            if (period === '1w') {
-              formattedDate = currentDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' });
-            } else if (period === '1m') {
-              formattedDate = currentDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-            } else if (period === '3m' || period === '6m') {
-              formattedDate = currentDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-            } else if (period === '1Yr') {
-              formattedDate = currentDate.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
-            } else {
-              formattedDate = currentDate.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
-            }
-
-            // Skip if we already have this formatted date
-            if (seenFormattedDates.has(formattedDate)) {
-              currentDate.setDate(currentDate.getDate() + 1);
-              continue;
-            }
-
-            // Check if we have actual data for this date
-            const currentDateStr = currentDate.toISOString().split('T')[0];
-            let dataPoint = null;
-            
-            // Look for data point matching current date
-            while (dataIndex < sortedData.length) {
-              const dataDateStr = new Date(sortedData[dataIndex].rawDate).toISOString().split('T')[0];
-              if (dataDateStr === currentDateStr) {
-                dataPoint = sortedData[dataIndex];
-                dataIndex++;
-                break;
-              } else if (dataDateStr > currentDateStr) {
-                break; // Data is ahead, use last known
-              } else {
-                dataIndex++; // Data is behind, keep looking
-              }
-            }
-
-            if (dataPoint && dataPoint.portfolioValue > 0) {
-              // We have actual data for this date
-              lastKnownData = {
-                ...dataPoint,
-                date: formattedDate
-              };
-              filledData.push(lastKnownData);
-            } else if (lastKnownData) {
-              // No data for this date, use previous day's data
-              filledData.push({
-                ...lastKnownData,
-                date: formattedDate,
-                rawDate: currentDate.toISOString()
-              });
-            }
-
-            seenFormattedDates.add(formattedDate);
-            
-            // Move to next day
-            currentDate.setDate(currentDate.getDate() + 1);
-          }
-
-          return filledData;
+        return {
+          date: new Date(item.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+          portfolioValue: Number(item.value) || 0,
+          benchmarkValue: (Number(item.value) || 0) * 0.95,
+          portfolioChange: 0,
+          benchmarkChange: 0
         };
-
-        // Apply date filling for continuous timeline
-        const finalTransformedData = fillMissingDates(transformedData, period);
-        
-        console.log(`📊 Transformed chart data for ${finalTransformedData.length} points:`, finalTransformedData);
-        console.log(`📈 Portfolio: ${(portfolio as any)?.name || 'Portfolio'}`);
-        console.log('📅 Sample dates from final data:', finalTransformedData.slice(0, 3).map(d => d.date));
-        console.log('📅 All dates for period:', finalTransformedData.map(d => d.date));
-        
-        setPriceHistory(finalTransformedData);
-        
-        // Also store as full history if it's 'all' period
-        if (apiPeriod === 'all') {
-          setFullPriceHistory(finalTransformedData);
-        }
-        
-      } else {
-        console.warn('⚠️ No price history data returned from API');
-        const sampleData = generateSampleChartData(period);
-        setPriceHistory(sampleData);
-      }
+      }).filter(item => item.portfolioValue > 0);
+      
+      console.log('🔍 Final chart data:', chartData);
+      setPriceHistory(chartData);
+      
     } catch (error) {
-      console.error("❌ Failed to fetch price history:", error);
-      
-      const sampleData = generateSampleChartData(period);
-      setPriceHistory(sampleData);
-      
-      if (period === 'Since Inception') {
-        setFullPriceHistory(sampleData);
-      }
+      console.error('❌ Error:', error);
+      setPriceHistory([]);
     }
   };
 
@@ -1766,11 +1636,11 @@ export default function PortfolioDetailsPage() {
                               }`}>
                                 ₹{holding.currentPrice.toFixed(2)}
                               </div>
-                              {holding.changePercent && (
+                              {typeof holding.changePercent === 'number' && holding.changePercent !== 0 ? (
                                 <div className={`text-xs mt-1 ${holding.changePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                   {holding.changePercent >= 0 ? '+' : ''}{holding.changePercent.toFixed(2)}%
                                 </div>
-                              )}
+                              ) : null}
                             </div>
                           ) : (
                             <span className="text-gray-400">Loading...</span>
@@ -1877,11 +1747,11 @@ export default function PortfolioDetailsPage() {
                             }`}>
                               ₹{holding.currentPrice.toFixed(2)}
                             </div>
-                            {holding.changePercent && (
+                            {typeof holding.changePercent === 'number' && holding.changePercent !== 0 ? (
                               <div className={`text-xs mt-1 ${holding.changePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                 {holding.changePercent >= 0 ? '+' : ''}{holding.changePercent.toFixed(2)}%
                               </div>
-                            )}
+                            ) : null}
                           </div>
                         ) : (
                           <div className="text-center">

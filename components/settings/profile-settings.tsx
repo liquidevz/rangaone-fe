@@ -14,6 +14,7 @@ export default function ProfileSettings() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -54,10 +55,12 @@ export default function ProfileSettings() {
         fullName: profile.fullName,
         phone: profile.phone,
         dateofBirth: profile.dateofBirth,
-        pnadetails: profile.pnadetails,
+        adharcard: profile.adharcard,
+        address: profile.address,
       })
       
       setProfile(updatedProfile)
+      setIsEditing(false)
       
       toast({
         title: "Profile Updated",
@@ -86,10 +89,21 @@ export default function ProfileSettings() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold mb-6">Profile Information</h2>
-        <p className="text-gray-600 mb-6">Update your personal information and complete your profile.</p>
+      <div className="flex justify-end mb-6">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsEditing(!isEditing)}
+          className="flex items-center gap-2"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+          {isEditing ? 'Cancel' : 'Edit Profile'}
+        </Button>
+      </div>
         
+      <div>
         {/* Profile Completion Status */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-2">
@@ -156,7 +170,8 @@ export default function ProfileSettings() {
                 name="fullName" 
                 value={profile?.fullName || ""} 
                 onChange={handleChange}
-                className={profile?.missingFields?.includes('fullName') ? 'border-red-300' : ''}
+                disabled={!isEditing}
+                className={`${profile?.missingFields?.includes('fullName') ? 'border-red-300' : ''} ${!isEditing ? 'bg-gray-50' : ''}`}
               />
               {profile?.missingFields?.includes('fullName') && (
                 <p className="text-xs text-red-600">Full name is required</p>
@@ -184,7 +199,8 @@ export default function ProfileSettings() {
                 value={profile?.phone || ""} 
                 onChange={handleChange}
                 placeholder="+1234567890"
-                className={profile?.missingFields?.includes('phone') ? 'border-red-300' : ''}
+                disabled={!isEditing}
+                className={`${profile?.missingFields?.includes('phone') ? 'border-red-300' : ''} ${!isEditing ? 'bg-gray-50' : ''}`}
               />
               {profile?.missingFields?.includes('phone') && (
                 <p className="text-xs text-red-600">Phone number is required</p>
@@ -198,7 +214,8 @@ export default function ProfileSettings() {
                 type="date"
                 value={profile?.dateofBirth || ""} 
                 onChange={handleChange}
-                className={profile?.missingFields?.includes('dateofBirth') ? 'border-red-300' : ''}
+                disabled={!isEditing}
+                className={`${profile?.missingFields?.includes('dateofBirth') ? 'border-red-300' : ''} ${!isEditing ? 'bg-gray-50' : ''}`}
               />
               {profile?.missingFields?.includes('dateofBirth') && (
                 <p className="text-xs text-red-600">Date of birth is required</p>
@@ -217,16 +234,43 @@ export default function ProfileSettings() {
             <p className="text-xs text-gray-500">Username cannot be changed.</p>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="pandetails">PAN Details</Label>
+              <Input 
+                id="pandetails" 
+                name="pandetails" 
+                value={profile?.pandetails || "Not provided"} 
+                disabled
+                className="bg-gray-50"
+              />
+              <p className="text-xs text-gray-500">PAN cannot be changed. Contact support if needed.</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="adharcard">Aadhar Card</Label>
+              <Input 
+                id="adharcard" 
+                name="adharcard" 
+                value={profile?.adharcard || ""} 
+                onChange={handleChange}
+                placeholder="1234-5678-9012"
+                disabled={!isEditing}
+                className={!isEditing ? 'bg-gray-50' : ''}
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="pnadetails">PAN Details</Label>
+            <Label htmlFor="address">Address</Label>
             <Input 
-              id="pnadetails" 
-              name="pnadetails" 
-              value={profile?.pnadetails || ""} 
+              id="address" 
+              name="address" 
+              value={profile?.address || ""} 
               onChange={handleChange}
-              placeholder="AAAAA9999A (Indian PAN format)"
+              placeholder="Your complete address"
+              disabled={!isEditing}
+              className={!isEditing ? 'bg-gray-50' : ''}
             />
-            <p className="text-xs text-gray-500">PAN card must follow Indian format: AAAAA9999A</p>
           </div>
 
           <div className="space-y-2">
@@ -253,21 +297,30 @@ export default function ProfileSettings() {
             </div>
           </div>
 
-          <div className="flex justify-end">
-            <Button onClick={handleSave} disabled={saving} className="bg-indigo-900 hover:bg-indigo-800">
-              {saving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Changes
-                </>
-              )}
-            </Button>
-          </div>
+          {isEditing && (
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsEditing(false)}
+                disabled={saving}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleSave} disabled={saving} className="bg-indigo-900 hover:bg-indigo-800">
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Changes
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>

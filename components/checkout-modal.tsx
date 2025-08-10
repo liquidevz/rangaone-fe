@@ -119,7 +119,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             async () => {
               const verify = await paymentService.verifyEmandateWithRetry(emandate.subscriptionId);
               if (verify.success || ["active", "authenticated"].includes(verify.subscriptionStatus || "")) {
-                finishSuccess();
+                finishSuccess(verify);
               } else {
                 finishError(verify.message || "eMandate verification failed");
               }
@@ -138,7 +138,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 resp.razorpay_order_id,
                 resp.razorpay_signature
               );
-              if (verify.success) finishSuccess(); else finishError(verify.message);
+              if (verify.success) finishSuccess(verify); else finishError(verify.message);
             },
             (err) => finishError(err?.message || "Payment cancelled")
           );
@@ -174,7 +174,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               paymentId: resp.razorpay_payment_id,
               signature: resp.razorpay_signature
             });
-            if (verify.success) finishSuccess(); else finishError(verify.message);
+            if (verify.success) finishSuccess(verify); else finishError(verify.message);
           },
           (err) => finishError(err?.message || "Payment cancelled")
         );
