@@ -158,46 +158,67 @@ export function InvestmentCalculator() {
       return 0;
     });
     
-    // Show ALL stocks but only buy from buyable ones using direct weightage
-    sortedAllHoldings.forEach(holding => {
-      const weight = holding.weight || 0;
-      const price = holding.buyPrice;
-      const action = (holding.status || 'Fresh Buy') as 'Buy' | 'Buy More' | 'Fresh Buy';
-      const isBuyable = buyableHoldings.includes(holding);
+    // Step 1: Ensure at least 1 share of each buyable stock (priority rule)
+    prioritizedBuyableHoldings.forEach(holding => {
+      if (remainingAmount >= holding.buyPrice) {
+        const sharesBought = 1;
+        const actualCost = holding.buyPrice;
+        remainingAmount -= actualCost;
+        
+        stocks.push({
+          symbol: holding.symbol,
+          weight: holding.weight || 0,
+          price: holding.buyPrice,
+          action: (holding.status || 'Fresh Buy') as 'Buy' | 'Buy More' | 'Fresh Buy',
+          sharesBought,
+          actualCost
+        });
+      }
+    });
+    
+    // Step 2: Apply weightage allocation with 50% rule for additional shares
+    stocks.forEach(stock => {
+      const allocatedAmount = (stock.weight / 100) * totalAmount;
+      const alreadyInvested = stock.actualCost;
+      const remainingAllocation = allocatedAmount - alreadyInvested;
       
-      let sharesBought = 0;
-      let actualCost = 0;
-      
-      // Only buy if this stock is in the buyable list using direct weightage
-      if (isBuyable) {
-        const allocatedAmount = (weight / 100) * totalAmount;
+      if (remainingAllocation > 0 && remainingAmount > 0) {
+        // Buy additional whole shares
+        const additionalShares = Math.floor(Math.min(remainingAllocation, remainingAmount) / stock.price);
+        let additionalCost = additionalShares * stock.price;
+        let totalAdditionalShares = additionalShares;
         
-        // Buy whole shares with allocated amount
-        const wholeShares = Math.floor(allocatedAmount / price);
-        let totalCost = wholeShares * price;
-        let shares = wholeShares;
+        // Apply 50% rule for one more share if needed
+        const leftoverAllocation = remainingAllocation - additionalCost;
+        const extraNeeded = stock.price - leftoverAllocation;
         
-        // Check if we can buy one more share with 50% rule
-        const remainingAllocation = allocatedAmount - totalCost;
-        const extraNeeded = price - remainingAllocation;
-        
-        if (extraNeeded > 0 && extraNeeded <= (price * 0.5)) {
-          shares += 1;
-          totalCost += price;
+        if (extraNeeded > 0 && extraNeeded <= (stock.price * 0.5) && remainingAmount >= stock.price) {
+          totalAdditionalShares += 1;
+          additionalCost += stock.price;
         }
         
-        sharesBought = shares;
-        actualCost = totalCost;
+        // Update stock allocation
+        if (totalAdditionalShares > 0 && remainingAmount >= additionalCost) {
+          stock.sharesBought += totalAdditionalShares;
+          stock.actualCost += additionalCost;
+          remainingAmount -= additionalCost;
+        }
       }
-      
-      stocks.push({
-        symbol: holding.symbol,
-        weight,
-        price,
-        action,
-        sharesBought,
-        actualCost
-      });
+    });
+    
+    // Step 3: Add non-buyable stocks to display (0 shares)
+    sortedAllHoldings.forEach(holding => {
+      const isBuyable = buyableHoldings.includes(holding);
+      if (!isBuyable) {
+        stocks.push({
+          symbol: holding.symbol,
+          weight: holding.weight || 0,
+          price: holding.buyPrice,
+          action: (holding.status || 'Fresh Buy') as 'Buy' | 'Buy More' | 'Fresh Buy',
+          sharesBought: 0,
+          actualCost: 0
+        });
+      }
     });
 
     // Calculate remaining cash
@@ -432,10 +453,10 @@ export function InvestmentCalculator() {
             <div className="mt-6 p-4 bg-gray-50 rounded-lg">
               <h5 className="font-medium mb-2">Rules Applied:</h5>
               <ul className="text-sm text-gray-600 space-y-1">
-                <li>• <strong>Priority:</strong> Buy More → Buy → Fresh Buy</li>
-                <li>• <strong>Guaranteed Purchase:</strong> At least 1 share of each affordable priority stock</li>
-                <li>• <strong>Whole Shares:</strong> Only complete shares purchased</li>
-                <li>• <strong>Weight-based Allocation:</strong> Remaining funds distributed by portfolio weightage</li>
+                <li>• <strong>Step 1 - Priority Purchase:</strong> Buy More → Buy → Fresh Buy (at least 1 share each)</li>
+                <li>• <strong>Step 2 - Weightage Allocation:</strong> Additional shares based on portfolio weightage</li>
+                <li>• <strong>Step 3 - 50% Rule:</strong> Buy extra share if shortfall ≤ 50% of stock price</li>
+                <li>• <strong>Guarantee:</strong> At least 1 share bought even if weightage is low and 50% rule is broken</li>
                 <li>• <strong>Cash Balance:</strong> Unused funds remain as cash balance</li>
               </ul>
             </div>
