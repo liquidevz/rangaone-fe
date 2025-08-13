@@ -216,8 +216,8 @@ export default function PricingSection() {
                 </div>
 
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[0.6rem] sm:text-lg">
-                    (Annual commitment, monthly billing)
+                <span className="text-[0.6rem] sm:text-lg">
+                    (Annual, but billed <br></br>monthly)
                   </span>
                 </div>
 
@@ -278,7 +278,7 @@ export default function PricingSection() {
                   selected === "A" ? "text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" : ""
                 }`}>
                   <span className="text-[0.6rem] sm:text-lg">
-                    (Flexible, but higher costing)
+                    (Flexible, but higher <br></br>costing)
                   </span>
                 </div>
 
