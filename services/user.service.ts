@@ -129,11 +129,24 @@ class UserService {
    */
   async updateProfile(profileData: Partial<UserProfile>): Promise<UserProfile> {
     try {
-      const response = await axiosApi.put<UserProfile>(`${this.baseUrl}/profile`, profileData);
+      // Whitelist only fields the backend accepts to avoid 403 due to forbidden keys
+      const allowedPayload: Record<string, any> = {};
+      if (typeof profileData.fullName !== 'undefined') allowedPayload.fullName = profileData.fullName;
+      if (typeof profileData.phone !== 'undefined') allowedPayload.phone = profileData.phone;
+      if (typeof (profileData as any).pandetails !== 'undefined') allowedPayload.pandetails = (profileData as any).pandetails;
+      if (typeof profileData.dateofBirth !== 'undefined') allowedPayload.dateofBirth = profileData.dateofBirth;
+      if (typeof (profileData as any).address !== 'undefined') allowedPayload.address = (profileData as any).address;
+      if (typeof (profileData as any).adharcard !== 'undefined') allowedPayload.adharcard = (profileData as any).adharcard;
+
+      const response = await axiosApi.put<UserProfile>(
+        `${this.baseUrl}/profile`,
+        allowedPayload,
+        { headers: { accept: 'application/json', 'Content-Type': 'application/json' } }
+      );
       return response.data;
     } catch (error) {
       console.error('Failed to update user profile:', error);
-      throw new Error('Unable to update profile. Please try again later.');
+      throw error;
     }
   }
 

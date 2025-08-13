@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { userService, UserProfile } from "@/services/user.service"
 import { useAuth } from "@/components/auth/auth-context"
-import { User, Phone, Calendar, FileText, ArrowRight, ArrowLeft } from "lucide-react"
+import { User, Phone, FileText, ArrowRight, Shield, CheckCircle } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
 interface ProfileCompletionModalProps {
@@ -20,17 +20,16 @@ interface ProfileCompletionModalProps {
 
 export function ProfileCompletionModal({ open, onOpenChange, onProfileComplete, forceOpen = false }: ProfileCompletionModalProps) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
-  const [currentStep, setCurrentStep] = useState(0)
+
   const [formData, setFormData] = useState({
     fullName: "",
     phone: "",
-    dateofBirth: "",
-    pandetails: "",
-    address: "",
-    adharcard: ""
+    pandetails: ""
   })
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [panVerified, setPanVerified] = useState(false)
+  const [verifyingPan, setVerifyingPan] = useState(false)
   const { toast } = useToast()
   const { refreshUser } = useAuth()
 
@@ -52,16 +51,13 @@ export function ProfileCompletionModal({ open, onOpenChange, onProfileComplete, 
       setFormData({
         fullName: profileData.fullName || "",
         phone: profileData.phone || "",
-        dateofBirth: profileData.dateofBirth || "",
-        pandetails: profileData.pandetails || "",
-        address: profileData.address || "",
-        adharcard: profileData.adharcard || ""
+        pandetails: profileData.pandetails || ""
       })
       console.log("ProfileCompletionModal - form data set:", {
         fullName: profileData.fullName || "",
         phone: profileData.phone || "",
-        dateofBirth: profileData.dateofBirth || "",
-        pnadetails: profileData.pnadetails || ""
+        pandetails: profileData.pandetails || "",
+        missingFields: profileData.missingFields
       });
     } catch (error) {
       console.error("ProfileCompletionModal - failed to load profile:", error);
@@ -75,165 +71,259 @@ export function ProfileCompletionModal({ open, onOpenChange, onProfileComplete, 
     }
   }
 
-  const handleSave = async () => {
-    // Validate that all missing fields are filled
-    const missingFieldsToFill = missingFields.filter(field => {
-      const value = formData[field as keyof typeof formData];
-      return !value || value.trim() === '';
-    });
+  const validatePAN = (pan: string): boolean => {
+    const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+    return panRegex.test(pan);
+  };
 
-    if (missingFieldsToFill.length > 0) {
+  const handleSave = async () => {
+    // Validate required fields
+    if (!formData.fullName.trim()) {
       toast({
-        title: "Incomplete Profile",
-        description: `Please fill in all required fields: ${missingFieldsToFill.join(', ')}`,
+        title: "Validation Error",
+        description: "Please enter your full name",
         variant: "destructive"
       });
       return;
     }
 
+    if (!formData.pandetails.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter your PAN card number",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!validatePAN(formData.pandetails)) {
+      toast({
+        title: "Invalid PAN Format",
+        description: "PAN must be in format: AAAAA0578L (5 letters, 4 numbers, 1 letter)",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!validatePhone(formData.phone)) {
+      toast({
+        title: "Invalid Mobile Number",
+        description: "Please enter a valid 10-digit mobile number",
+        variant: "destructive"
+      });
+      return;
+    }
+
+
+
     try {
       setSaving(true)
+      console.log('Sending profile data:', formData);
+      
       await userService.updateProfile(formData)
       await refreshUser() // Refresh auth context
       toast({
         title: "Profile Updated",
         description: "Your profile has been completed successfully"
       })
+      console.log('Profile updated successfully');
       onProfileComplete()
       onOpenChange(false)
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Profile update error:', error);
       toast({
         title: "Update Failed",
         description: "Failed to update profile. Please try again.",
         variant: "destructive"
-      })
+      });
     } finally {
       setSaving(false)
     }
   }
 
-  const missingFields = profile?.missingFields || []
-  const steps = missingFields.length > 0 ? missingFields : ["complete"]
-  
-  const handleNext = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1)
+  // Auto-verify PAN when valid format is entered
+  useEffect(() => {
+    if (validatePAN(formData.pandetails)) {
+      setPanVerified(true);
     } else {
-      handleSave()
+      setPanVerified(false);
     }
-  }
-  
-  const handlePrev = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1)
-    }
-  }
-  
-  const renderStepContent = () => {
-    const currentField = steps[currentStep]
+  }, [formData.pandetails]);
+
+  // Format PAN input to enforce correct pattern
+  const formatPanInput = (value: string): string => {
+    const cleaned = value.replace(/[^A-Z0-9]/g, '');
+    let formatted = '';
     
-    switch (currentField) {
-      case "fullName":
-        return (
-          <div className="space-y-4">
-            <Label htmlFor="fullName" className="flex items-center gap-2">
-              <User className="w-4 h-4" />
-              Full Name *
-            </Label>
-            <Input
-              id="fullName"
-              value={formData.fullName}
-              onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
-              placeholder="Enter your full name"
-            />
-          </div>
-        )
-      case "phone":
-        return (
-          <div className="space-y-4">
-            <Label htmlFor="phone" className="flex items-center gap-2">
-              <Phone className="w-4 h-4" />
-              Phone Number *
-            </Label>
-            <Input
-              id="phone"
-              value={formData.phone}
-              onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-              placeholder="+1234567890"
-            />
-          </div>
-        )
-      case "dateofBirth":
-        return (
-          <div className="space-y-4">
-            <Label htmlFor="dateofBirth" className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              Date of Birth *
-            </Label>
-            <Input
-              id="dateofBirth"
-              type="date"
-              value={formData.dateofBirth}
-              onChange={(e) => setFormData(prev => ({ ...prev, dateofBirth: e.target.value }))}
-            />
-          </div>
-        )
-      case "pandetails":
-        return (
-          <div className="space-y-4">
-            <Label htmlFor="pandetails" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              PAN Details *
-            </Label>
+    for (let i = 0; i < cleaned.length && i < 10; i++) {
+      if (i < 5) {
+        // First 5 positions: only letters
+        if (/[A-Z]/.test(cleaned[i])) {
+          formatted += cleaned[i];
+        }
+      } else if (i < 9) {
+        // Positions 6-9: only numbers
+        if (/[0-9]/.test(cleaned[i])) {
+          formatted += cleaned[i];
+        }
+      } else {
+        // Last position: only letter
+        if (/[A-Z]/.test(cleaned[i])) {
+          formatted += cleaned[i];
+        }
+      }
+    }
+    
+    return formatted;
+  };
+
+  // Get appropriate input mode for mobile keyboards
+  const getPanInputMode = (length: number): "text" | "numeric" => {
+    if (length < 5) return 'text'; // Letters
+    if (length < 9) return 'numeric'; // Numbers
+    return 'text'; // Last letter
+  };
+
+  // Handle key down for PAN input
+  const handlePanKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const currentLength = formData.pandetails.length;
+    const key = e.key;
+    
+    // Allow backspace, delete, arrow keys, tab
+    if (['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(key)) {
+      return;
+    }
+    
+    // Prevent input if max length reached
+    if (currentLength >= 10) {
+      e.preventDefault();
+      return;
+    }
+    
+    // Validate input based on position
+    if (currentLength < 5) {
+      // First 5 positions: only letters
+      if (!/[A-Za-z]/.test(key)) {
+        e.preventDefault();
+      }
+    } else if (currentLength < 9) {
+      // Positions 6-9: only numbers
+      if (!/[0-9]/.test(key)) {
+        e.preventDefault();
+      }
+    } else {
+      // Last position: only letter
+      if (!/[A-Za-z]/.test(key)) {
+        e.preventDefault();
+      }
+    }
+  };
+
+  // Validate phone number (10 digits only)
+  const validatePhone = (phone: string): boolean => {
+    const phoneRegex = /^[0-9]{10}$/;
+    return phoneRegex.test(phone);
+  };
+
+  // Handle phone input change (10 digits only)
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^0-9]/g, '');
+    if (value.length <= 10) {
+      setFormData(prev => ({ ...prev, phone: value }));
+    }
+  };
+
+  // Single step completion
+  const handleComplete = () => {
+    handleSave();
+  };
+  
+  const renderFormContent = () => {
+    const missingFields = profile?.missingFields || [];
+    
+    return (
+      <div className="space-y-4">
+        {(!formData.fullName || missingFields.includes('fullName')) && (
+        <div>
+          <Label htmlFor="fullName" className="flex items-center gap-2 text-sm font-medium text-gray-700 pb-1">
+            <User className="w-4 h-4" />
+            Full Name *
+          </Label>
+          <Input
+            id="fullName"
+            value={formData.fullName}
+            onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
+            placeholder="Enter your full name"
+            className="focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-indigo-600 focus:bg-indigo-50 transition-colors"
+          />
+        </div>
+        )}
+
+        {(!formData.phone || missingFields.includes('phone')) && (
+        <div>
+          <Label htmlFor="phone" className="flex items-center gap-2 text-sm font-medium text-gray-700 pb-1">
+            <Phone className="w-4 h-4" />
+            Mobile Number *
+          </Label>
+          <Input
+            id="phone"
+            type="tel"
+            value={formData.phone}
+            onChange={(e) => {
+              const value = e.target.value.replace(/[^0-9]/g, '');
+              if (value.length <= 10) {
+                setFormData(prev => ({ ...prev, phone: value }));
+              }
+            }}
+            placeholder="1234567890"
+            inputMode="numeric"
+            maxLength={10}
+            className="focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-indigo-600 focus:bg-indigo-50 transition-colors"
+          />
+          <p className="text-xs text-gray-500 mt-1">Enter 10-digit mobile number</p>
+        </div>
+        )}
+        
+        {(!formData.pandetails || missingFields.includes('pandetails')) && (
+        <div>
+          <Label htmlFor="pandetails" className="flex items-center gap-2 text-sm font-medium text-gray-700 pb-1">
+            <FileText className="w-4 h-4" />
+            PAN Card Number *
+          </Label>
+          <div className="flex gap-2">
             <Input
               id="pandetails"
               value={formData.pandetails}
-              onChange={(e) => setFormData(prev => ({ ...prev, pandetails: e.target.value }))}
-              placeholder="AAAAA9999A"
+              onChange={(e) => {
+                const formatted = formatPanInput(e.target.value.toUpperCase());
+                setFormData(prev => ({ ...prev, pandetails: formatted }));
+                setPanVerified(false);
+              }}
+              onKeyDown={handlePanKeyDown}
+              placeholder="AAAAA0578L"
+              maxLength={10}
+              inputMode={getPanInputMode(formData.pandetails.length)}
+              className={`focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-indigo-600 focus:bg-indigo-50 transition-colors ${panVerified ? 'border-green-600 bg-green-50' : ''}`}
+              disabled={panVerified}
             />
+            {panVerified && (
+              <div className="flex items-center text-green-600 text-sm">
+                <CheckCircle className="w-4 h-4 mr-1" />
+                Verified
+              </div>
+            )}
           </div>
-        )
-      case "address":
-        return (
-          <div className="space-y-4">
-            <Label htmlFor="address" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Address *
-            </Label>
-            <Input
-              id="address"
-              value={formData.address}
-              onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-              placeholder="Enter your address"
-            />
-          </div>
-        )
-      case "adharcard":
-        return (
-          <div className="space-y-4">
-            <Label htmlFor="adharcard" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Aadhaar Card Number *
-            </Label>
-            <Input
-              id="adharcard"
-              value={formData.adharcard}
-              onChange={(e) => setFormData(prev => ({ ...prev, adharcard: e.target.value }))}
-              placeholder="XXXX-XXXX-XXXX"
-            />
-          </div>
-        )
-      default:
-        return (
-          <div className="text-center space-y-4">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-              <User className="w-8 h-8 text-green-600" />
-            </div>
-            <h3 className="text-lg font-semibold">Profile Complete!</h3>
-            <p className="text-gray-600">All required fields have been filled</p>
-          </div>
-        )
-    }
+          <p className="text-xs text-gray-500 mt-1">Format: 5 letters, 4 numbers, 1 letter (e.g., AAAAA0578L)</p>
+          {panVerified && (
+            <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" />
+              PAN verified successfully
+            </p>
+          )}
+        </div>
+        )}
+      </div>
+    )
   }
 
   return (
@@ -252,119 +342,34 @@ export function ProfileCompletionModal({ open, onOpenChange, onProfileComplete, 
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div className="bg-blue-50/70 border border-blue-200 rounded-lg p-3">
               <p className="text-sm text-blue-800 font-medium">
                 Complete your profile to continue using the system
               </p>
             </div>
             
-            {/* Progress Steps */}
-            <div className="flex items-center justify-between gap-3">
-              {steps.map((step, index) => {
-                const isActive = index <= currentStep;
-                const isCompleted = index < currentStep;
-                
-                return (
-                  <React.Fragment key={index}>
-                    <div className="relative">
-                      <div
-                        className={`w-8 h-8 flex items-center justify-center shrink-0 border-2 rounded-full font-semibold text-xs relative z-10 transition-colors duration-300 ${
-                          isActive
-                            ? "border-indigo-600 bg-indigo-600 text-white"
-                            : "border-gray-300 text-gray-300"
-                        }`}
-                      >
-                        <AnimatePresence mode="wait">
-                          {isCompleted ? (
-                            <motion.svg
-                              key="check"
-                              stroke="currentColor"
-                              fill="currentColor"
-                              strokeWidth="0"
-                              viewBox="0 0 16 16"
-                              height="1em"
-                              width="1em"
-                              xmlns="http://www.w3.org/2000/svg"
-                              initial={{ rotate: 180, opacity: 0 }}
-                              animate={{ rotate: 0, opacity: 1 }}
-                              exit={{ rotate: -180, opacity: 0 }}
-                              transition={{ duration: 0.125 }}
-                            >
-                              <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"></path>
-                            </motion.svg>
-                          ) : (
-                            <motion.span
-                              key="number"
-                              initial={{ rotate: 180, opacity: 0 }}
-                              animate={{ rotate: 0, opacity: 1 }}
-                              exit={{ rotate: -180, opacity: 0 }}
-                              transition={{ duration: 0.125 }}
-                            >
-                              {index + 1}
-                            </motion.span>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                      {isActive && (
-                        <div className="absolute z-0 -inset-1.5 bg-indigo-100 rounded-full animate-pulse" />
-                      )}
-                    </div>
-                    {index !== steps.length - 1 && (
-                      <div className="flex-1 h-1 rounded-full bg-gray-200 relative">
-                        <motion.div
-                          className="absolute top-0 bottom-0 left-0 bg-indigo-600 rounded-full"
-                          animate={{ width: isCompleted ? "100%" : "0%" }}
-                          transition={{ ease: "easeIn", duration: 0.3 }}
-                        />
-                      </div>
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </div>
+            {/* Form Content */}
+            <form onSubmit={(e) => { e.preventDefault(); handleComplete(); }}>
+              {renderFormContent()}
 
-            {/* Step Content */}
-            <div className="min-h-[120px]">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={currentStep}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.2 }}
+              {/* Complete Button */}
+              <div className="flex justify-end">
+                <Button
+                  type="submit"
+                  disabled={saving || !panVerified}
+                  className="flex items-center gap-2"
                 >
-                  {renderStepContent()}
-                </motion.div>
-              </AnimatePresence>
-            </div>
-
-            {/* Navigation Buttons */}
-            <div className="flex items-center justify-between gap-2">
-              <Button
-                variant="outline"
-                onClick={handlePrev}
-                disabled={currentStep === 0 || saving}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back
-              </Button>
-
-              <Button
-                onClick={handleNext}
-                disabled={saving}
-                className="flex items-center gap-2"
-              >
                 {saving ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <>
-                    {currentStep === steps.length - 1 ? "Complete Profile" : "Next"}
+                    Complete Profile
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
-              </Button>
-            </div>
+                </Button>
+              </div>
+            </form>
           </div>
         )}
       </DialogContent>
