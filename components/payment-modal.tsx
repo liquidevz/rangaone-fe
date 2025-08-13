@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { X, Check, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -35,12 +35,34 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [showDigio, setShowDigio] = useState(false)
   const [agreementData, setAgreementData] = useState<PaymentAgreementData | null>(null)
   const cancelRequested = useRef(false)
+  const continuedAfterAuthRef = useRef(false)
   
   const { isAuthenticated, user } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
 
   const isPremium = bundle?.category === "premium"
+
+  // When modal opens, if the user is not authenticated, show login as the first step
+  useEffect(() => {
+    if (!isOpen) return
+    if (!isAuthenticated) {
+      setStep("auth")
+      continuedAfterAuthRef.current = false
+    } else {
+      setStep("plan")
+    }
+  }, [isOpen, isAuthenticated])
+
+  // If user authenticates while viewing the auth step, automatically continue to Digio
+  useEffect(() => {
+    if (!isOpen) return
+    if (step !== "auth") return
+    if (isAuthenticated && bundle && !continuedAfterAuthRef.current) {
+      continuedAfterAuthRef.current = true
+      startDigioFlow()
+    }
+  }, [isOpen, step, isAuthenticated, bundle])
 
   const computeMonthlyEmandateDiscount = () => {
     if (!bundle) return 0
@@ -93,8 +115,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   }
 
   const handleAuthSuccess = async () => {
-    setStep("plan")
-    if (bundle) startDigioFlow()
+    // Immediately continue the flow after successful login
+    continuedAfterAuthRef.current = true
+    startDigioFlow()
   }
 
   const startDigioFlow = () => {
@@ -134,11 +157,25 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
       if (isEmandateFlow) {
         setProcessingMsg("Creating eMandate…")
+        const emandateAmount =
+          subscriptionType === "yearly"
+            ? (bundle.yearlyPrice || bundle.quarterlyPrice || bundle.monthlyPrice || 0)
+            : (((bundle as any).monthlyemandateprice as number) || bundle.monthlyPrice || 0)
+
         const emandate = await paymentService.createEmandate({
           productType: "Bundle",
           productId: bundle._id,
           planType: subscriptionType,
           subscriptionType: (bundle.category as any) || "premium",
+          amount: emandateAmount,
+          items: [
+            {
+              productType: "Bundle",
+              productId: bundle._id,
+              planType: subscriptionType,
+              amount: emandateAmount,
+            },
+          ],
         })
 
         if (cancelRequested.current) {

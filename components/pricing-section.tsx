@@ -43,6 +43,28 @@ export default function PricingSection() {
     loadBundles();
   }, []);
 
+  // Resume modal state after a login-triggered refresh/navigation
+  useEffect(() => {
+    if (loading) return;
+    try {
+      const raw = sessionStorage.getItem("pendingCheckout");
+      if (!raw) return;
+      const pending = JSON.parse(raw) as { bundleId: string; pricingType: SubscriptionType | "monthlyEmandate" } | null;
+      if (!pending) return;
+      const bundle = bundles.find(b => b._id === pending.bundleId);
+      if (!bundle) return;
+      // Open modal and then clear the flag
+      setCheckoutModal({
+        isOpen: true,
+        type: "single",
+        bundle,
+        isBasicPlan: bundle.category === "basic",
+        pricingType: pending.pricingType,
+      });
+      sessionStorage.removeItem("pendingCheckout");
+    } catch {}
+  }, [loading, bundles]);
+
   const loadBundles = async () => {
     try {
       setLoading(true);
@@ -61,12 +83,10 @@ export default function PricingSection() {
   };
 
   const handleBundlePurchase = async (bundle: Bundle, pricingType: SubscriptionType | "monthlyEmandate") => {
-    if (!isAuthenticated) {
-      router.push("/login");
-      return;
-    }
-
-    // Direct eMandate API usage for all Buy Now buttons
+    try {
+      sessionStorage.setItem("pendingCheckout", JSON.stringify({ bundleId: bundle._id, pricingType }));
+    } catch {}
+    // Always open modal; if not authenticated, modal starts at login step and continues
     setCheckoutModal({
       isOpen: true,
       type: "single",
@@ -94,9 +114,9 @@ export default function PricingSection() {
   };
 
   const BASIC_SELECTED_STYLES =
-    "text-[#FFFFF0] font-bold rounded-lg py-3 w-28 relative bg-[linear-gradient(295.3deg,_#131859_11.58%,_rgba(24,_101,_123,_0.8)_108.02%)]";
+    "text-[#FFFFF0] font-bold rounded-lg py-3 w-28 relative z-10 bg-transparent bg-gradient-to-r from-[#131859] to-[#18657B]";
   const PREMIUM_SELECTED_STYLES =
-    "text-slate-800 font-bold rounded-lg py-3 w-28 relative bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]";
+    "text-slate-800 font-bold rounded-lg py-3 w-28 relative z-10 bg-transparent bg-gradient-to-r from-[#D4AF37] to-[#FFC107]";
   const DESELECTED_STYLES =
     "font-bold rounded-lg py-3 w-28 hover:bg-slate-100 transition-colors relative";
 
@@ -121,7 +141,12 @@ export default function PricingSection() {
             <div className="relative">
               <div className="p-[4px] rounded-2xl bg-gradient-to-r from-[#3B82F6] to-[#FFD700] inline-flex shadow-md">
                 <div className="rounded-xl bg-white relative overflow-hidden">
-                  <div className="flex items-center gap-1 px-1 py-1">
+                  <motion.span
+                    layoutId="bg-shift"
+                    className={`absolute top-1 bottom-1 rounded-lg shadow-sm ${selected === "M" ? "left-1 right-[calc(50%+0.5rem)] bg-[linear-gradient(295.3deg,_#131859_11.58%,_rgba(24,101,123,0.8)_108.02%)]" : "right-1 left-[calc(50%+0.5rem)] bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]"}`}
+                    transition={{ type: "spring", stiffness: 400, damping: 40 }}
+                  />
+                  <div className="relative z-10 flex items-center gap-1 px-1 py-1">
                     <button
                       onClick={() => setSelected("M")}
                       className={
@@ -174,7 +199,7 @@ export default function PricingSection() {
                 }`}
               >
                 <p className="text-xm sm:text-2xl font-bold font-serif">
-                  Monthly eMandate
+                  Yearly
                 </p>
                 <div className="overflow-hidden">
                   <motion.p
@@ -253,7 +278,7 @@ export default function PricingSection() {
                   selected === "A" ? "text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" : ""
                 }`}>
                   <span className="text-[0.6rem] sm:text-lg">
-                    (Flexible, but higher cost)
+                    (Flexible, but higher costing)
                   </span>
                 </div>
 
@@ -299,7 +324,7 @@ export default function PricingSection() {
 const BackgroundShift = () => (
   <motion.span
     layoutId="bg-shift"
-    className="absolute inset-0 bg-black rounded-lg -z-10"
+    className="absolute inset-0 bg-transparent rounded-lg -z-10"
   />
 );
 
