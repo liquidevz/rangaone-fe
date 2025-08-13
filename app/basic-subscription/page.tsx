@@ -12,6 +12,8 @@ import { bundleService, Bundle } from "@/services/bundle.service";
 import { Navbar } from "@/components/navbar";
 import BasicStackedCardTestimonials from "@/components/basic-stacked-card-testimonials";
 import PricingTable from "@/components/pricingComponents";
+import { PaymentModal } from "@/components/payment-modal";
+import { useRouter } from "next/navigation";
 
 // Animation variants
 const fadeIn = {
@@ -88,6 +90,8 @@ export default function BasicSubscriptionPage() {
   const { isAuthenticated } = useAuth();
   const { addBundleToCart, hasBundle } = useCart();
   const { toast } = useToast();
+  const router = useRouter();
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   // Ensure scroll to top on page load
   useEffect(() => {
@@ -107,24 +111,9 @@ export default function BasicSubscriptionPage() {
     }
   };
 
-  const handleAddToCart = async (
-    subscriptionType: "monthly" | "quarterly" | "yearly" = "monthly"
-  ) => {
+  const handleAddToCart = async () => {
     if (!basicBundle) return;
-
-    try {
-      await addBundleToCart(basicBundle._id, subscriptionType, "basic");
-      toast({
-        title: "Added to Cart",
-        description: `Basic subscription (${subscriptionType}) has been added to your cart.`,
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to add to cart.",
-        variant: "destructive",
-      });
-    }
+    setShowPaymentModal(true);
   };
 
   const isInCart = basicBundle ? hasBundle(basicBundle._id) : false;
@@ -222,6 +211,7 @@ export default function BasicSubscriptionPage() {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
+                onClick={handleAddToCart}
                 className="bg-white text-[#8193ff] font-bold py-4 px-8 rounded-full shadow-lg hover:shadow-xl transition-all text-base border border-blue-300"
               >
                 BUY NOW
@@ -296,6 +286,7 @@ export default function BasicSubscriptionPage() {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
+                  onClick={handleAddToCart}
                   className="bg-white text-[#8193ff] font-bold py-4 px-8 rounded-full shadow-lg hover:shadow-xl transition-all text-base border border-blue-300"
                 >
                   BUY NOW
@@ -963,6 +954,13 @@ export default function BasicSubscriptionPage() {
           </div>
         </div>
       </section>
+
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        bundle={basicBundle}
+      />
     </main>
   );
 }

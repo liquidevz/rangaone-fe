@@ -10,11 +10,11 @@ import { useAuth } from "@/components/auth/auth-context";
 import { useCart } from "@/components/cart/cart-context";
 import { useRouter } from "next/navigation";
 import { bundleService, Bundle } from "@/services/bundle.service";
-import { CheckoutModal } from "./checkout-modal";
+import { PaymentModal } from "./payment-modal";
 import FeatureComparison from "./feature-comparison";
 import Link from "next/link";
 
-type SubscriptionType = "monthly" | "quarterly" | "yearly";
+type SubscriptionType = "monthly" | "monthlyEmandate" | "quarterly" | "yearly";
 
 
 
@@ -27,7 +27,7 @@ export default function PricingSection() {
     type: "single" | "cart";
     bundle?: Bundle;
     isBasicPlan?: boolean;
-    pricingType: SubscriptionType;
+    pricingType: SubscriptionType | "monthlyEmandate";
   }>({
     isOpen: false,
     type: "single",
@@ -60,7 +60,7 @@ export default function PricingSection() {
     }
   };
 
-  const handleBundlePurchase = async (bundle: Bundle, pricingType: SubscriptionType) => {
+  const handleBundlePurchase = async (bundle: Bundle, pricingType: SubscriptionType | "monthlyEmandate") => {
     if (!isAuthenticated) {
       router.push("/login");
       return;
@@ -76,9 +76,10 @@ export default function PricingSection() {
     });
   };
 
-  const handleAddToCart = async (bundle: Bundle, pricingType: SubscriptionType) => {
+  const handleAddToCart = async (bundle: Bundle, pricingType: SubscriptionType | "monthlyEmandate") => {
     try {
-      await addBundleToCart(bundle._id, pricingType);
+      const cartPricingType = pricingType === "monthlyEmandate" ? "monthly" : pricingType;
+      await addBundleToCart(bundle._id, cartPricingType as "monthly" | "quarterly" | "yearly");
       toast({
         title: "Added to Cart",
         description: `${bundle.name} (${pricingType}) has been added to your cart.`,
@@ -143,92 +144,124 @@ export default function PricingSection() {
       <div className="p-4 flex justify-between sm:gap-8 gap-8 md:gap-16 lg:gap-16  mx-auto relative z-10 container max-w-4xl mb-16">
         {bundles
           .filter((bundle) => bundle.category === (selected === "M" ? "basic" : "premium"))
-          .map((bundle) =>
-            ["quarterlyPrice", "monthlyPrice"] // Swapped order: quarterly first, monthly second
-              .filter((priceType) => bundle[priceType as keyof Bundle] !== undefined)
-              .map((priceType) => {
-                const subscriptionType = priceType === "monthlyPrice" ? "monthly" : "quarterly";
-                const isInCart = hasBundle(bundle._id);
-                const isQuarterly = priceType === "quarterlyPrice";
-                const isPremium = selected === "A";
-                
-                return (
-                  <AnimatePresence mode="wait" key={`${bundle._id}-${priceType}`}>
-                    <motion.div
-                      initial={{ opacity: 0, y: 30 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -30 }}
-                      transition={{ duration: 0.4 }}
-                      onClick={() => handleBundlePurchase(bundle, subscriptionType)}
-                      className={`w-full p-3 sm:p-6 ${isQuarterly ? 'border-[3px]' : 'border-0'} rounded-xl transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer ${
-                        isPremium
-                          ? isQuarterly
-                            ? "bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)] text-[#333333] border-[#333333] shadow-[0px_4px_21.5px_8px_#AD9000]"
-                            : "bg-[#333333]"
-                          : isQuarterly
-                            ? "bg-[linear-gradient(295.3deg,_#131859_11.58%,_rgba(24,101,123,0.8)_108.02%)] text-[#FFFFF0] border-slate-300 shadow-[0px_4px_21.5px_8px_#00A6E8]"
-                            : "bg-[linear-gradient(295.3deg,_#131859_11.58%,_rgba(24,101,123,0.8)_108.02%)] text-[#FFFFF0]"
-                      }`}
-                    >
-                      <p className={`text-xm sm:text-2xl font-bold font-serif ${
-                        isPremium && !isQuarterly ? "text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" : ""
-                      }`}>
-                        {priceType === "quarterlyPrice" ? "Quarterly" : "Monthly"}
-                      </p>
-                      <div className="overflow-hidden">
-                        <motion.p
-                          key={bundle._id + priceType}
-                          initial={{ y: -50, opacity: 0 }}
-                          animate={{ y: 0, opacity: 1 }}
-                          exit={{ y: 50, opacity: 0 }}
-                          transition={{ ease: "linear", duration: 0.25 }}
-                          className={`text-2xl sm:text-6xl font-semibold ${
-                            isPremium && !isQuarterly ? "text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" : ""
-                          }`}
-                        >
-                          <span>&#8377;{bundle[priceType as keyof Bundle] as number}</span>
-                          <span className="font-normal text-xs sm:text-xl">/month</span>
-                        </motion.p>
-                      </div>
+          .map((bundle) => [
+            // Monthly eMandate card
+            <AnimatePresence mode="wait" key={`${bundle._id}-monthlyEmandate`}>
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -30 }}
+                transition={{ duration: 0.4 }}
+                onClick={() => handleBundlePurchase(bundle, "monthlyEmandate")}
+                className={`w-full p-3 sm:p-6 border-[3px] rounded-xl transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer ${
+                  selected === "A"
+                    ? "bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)] text-[#333333] border-[#333333] shadow-[0px_4px_21.5px_8px_#AD9000]"
+                    : "bg-[linear-gradient(295.3deg,_#131859_11.58%,_rgba(24,101,123,0.8)_108.02%)] text-[#FFFFF0] border-slate-300 shadow-[0px_4px_21.5px_8px_#00A6E8]"
+                }`}
+              >
+                <p className="text-xm sm:text-2xl font-bold font-serif">
+                  Monthly eMandate
+                </p>
+                <div className="overflow-hidden">
+                  <motion.p
+                    key={bundle._id + "monthlyEmandate"}
+                    initial={{ y: -50, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: 50, opacity: 0 }}
+                    transition={{ ease: "linear", duration: 0.25 }}
+                    className="text-2xl sm:text-6xl font-semibold"
+                  >
+                    <span>&#8377;{(bundle as any).monthlyemandateprice || 0}</span>
+                    <span className="font-normal text-xs sm:text-xl">/month</span>
+                  </motion.p>
+                </div>
 
-                      <div className={`flex items-center gap-2 mb-2 ${
-                        isPremium && !isQuarterly ? "text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" : ""
-                      }`}>
-                        <span className="text-[0.6rem] sm:text-lg">
-                          {priceType === "quarterlyPrice"
-                            ? "(3 Months, Billed Monthly)"
-                            : "(Flexible, but higher cost)"}
-                        </span>
-                      </div>
-{/* 
-                      <div className={`flex items-center gap-2 mb-4 ${priceType === "quarterlyPrice" ? "" : "invisible"} ${
-                        isPremium && !isYearly ? "text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" : ""
-                      }`}>
-                      </div> */}
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[0.6rem] sm:text-lg">
+                    (Annual commitment, monthly billing)
+                  </span>
+                </div>
 
-                      {/* Buy Now Button */}
-                      <motion.button
-                        whileHover={{ scale: 1.015 }}
-                        whileTap={{ scale: 0.985 }}
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent double triggering
-                          handleBundlePurchase(bundle, subscriptionType);
-                        }}
-                        className={`w-full py-2 sm:py-4 text-sm sm:text-base font-semibold rounded-2xl uppercase ${
-                          isPremium
-                            ? isQuarterly
-                              ? "bg-[#333333] text-[#D4AF37] hover:text-[#FFD700]"
-                              : "bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)] text-[#333333]"
-                            : "bg-white text-[#131859]"
-                        }`}
-                      >
-                        Buy Now
-                      </motion.button>
-                    </motion.div>
-                  </AnimatePresence>
-                );
-              })
-          )}
+                <motion.button
+                  whileHover={{ scale: 1.015 }}
+                  whileTap={{ scale: 0.985 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleBundlePurchase(bundle, "monthlyEmandate");
+                  }}
+                  className={`w-full py-2 sm:py-4 text-sm sm:text-base font-semibold rounded-2xl uppercase ${
+                    selected === "A"
+                      ? "bg-[#333333] text-[#D4AF37] hover:text-[#FFD700]"
+                      : "bg-white text-[#131859]"
+                  }`}
+                >
+                  Buy Now
+                </motion.button>
+              </motion.div>
+            </AnimatePresence>,
+            
+            // Monthly Regular card
+            <AnimatePresence mode="wait" key={`${bundle._id}-monthly`}>
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -30 }}
+                transition={{ duration: 0.4 }}
+                onClick={() => handleBundlePurchase(bundle, "monthly")}
+                className={`w-full p-3 sm:p-6 border-0 rounded-xl transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer ${
+                  selected === "A"
+                    ? "bg-[#333333]"
+                    : "bg-[linear-gradient(295.3deg,_#131859_11.58%,_rgba(24,101,123,0.8)_108.02%)] text-[#FFFFF0]"
+                }`}
+              >
+                <p className={`text-xm sm:text-2xl font-bold font-serif ${
+                  selected === "A" ? "text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" : ""
+                }`}>
+                  Monthly
+                </p>
+                <div className="overflow-hidden">
+                  <motion.p
+                    key={bundle._id + "monthly"}
+                    initial={{ y: -50, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: 50, opacity: 0 }}
+                    transition={{ ease: "linear", duration: 0.25 }}
+                    className={`text-2xl sm:text-6xl font-semibold ${
+                      selected === "A" ? "text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" : ""
+                    }`}
+                  >
+                    <span>&#8377;{bundle.monthlyPrice || 0}</span>
+                    <span className="font-normal text-xs sm:text-xl">/month</span>
+                  </motion.p>
+                </div>
+
+                <div className={`flex items-center gap-2 mb-2 ${
+                  selected === "A" ? "text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" : ""
+                }`}>
+                  <span className="text-[0.6rem] sm:text-lg">
+                    (Flexible, but higher cost)
+                  </span>
+                </div>
+
+                <motion.button
+                  whileHover={{ scale: 1.015 }}
+                  whileTap={{ scale: 0.985 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleBundlePurchase(bundle, "monthly");
+                  }}
+                  className={`w-full py-2 sm:py-4 text-sm sm:text-base font-semibold rounded-2xl uppercase ${
+                    selected === "A"
+                      ? "bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)] text-[#333333]"
+                      : "bg-white text-[#131859]"
+                  }`}
+                >
+                  Buy Now
+                </motion.button>
+              </motion.div>
+            </AnimatePresence>
+          ])
+        }
       </div>
 
       {/* Feature Comparison Cards */}
@@ -238,13 +271,12 @@ export default function PricingSection() {
       <TopLeftCircle />
       <BottomRightCircle />
 
-      {/* Checkout Modal */}
-      <CheckoutModal
+      {/* Payment Modal */}
+      <PaymentModal
         isOpen={checkoutModal.isOpen}
         onClose={() => setCheckoutModal({ isOpen: false, type: "single", pricingType: "monthly" })}
-        type={checkoutModal.type}
-        bundle={checkoutModal.bundle}
-        subscriptionType={checkoutModal.pricingType}
+        bundle={checkoutModal.bundle || null}
+        isEmandateFlow={checkoutModal.pricingType === "monthlyEmandate"}
       />
     </section>
   );

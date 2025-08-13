@@ -13,6 +13,8 @@ import { bundleService, Bundle } from "@/services/bundle.service";
 import { Navbar } from "@/components/navbar";
 import PremiumStackedCardTestimonials from "@/components/premium-stacked-card-testimonials";
 import { PricingCompare } from "@/components/pricingComponents";
+import { PaymentModal } from "@/components/payment-modal";
+import { useRouter } from "next/navigation";
 
 // Animation variants
 const fadeIn = {
@@ -89,6 +91,8 @@ export default function PremiumSubscriptionPage() {
   const { isAuthenticated } = useAuth();
   const { addBundleToCart, hasBundle } = useCart();
   const { toast } = useToast();
+  const router = useRouter();
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   // Ensure scroll to top on page load
   useEffect(() => {
@@ -108,25 +112,9 @@ export default function PremiumSubscriptionPage() {
     }
   };
 
-  const handleAddToCart = async (
-    subscriptionType: "monthly" | "quarterly" | "yearly" = "monthly"
-  ) => {
+  const handleAddToCart = async () => {
     if (!premiumBundle) return;
-
-    // Remove authentication check - allow all users to add to cart
-    try {
-      await addBundleToCart(premiumBundle._id, subscriptionType, "premium");
-      toast({
-        title: "Added to Cart",
-        description: `Premium subscription (${subscriptionType}) has been added to your cart.`,
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to add to cart.",
-        variant: "destructive",
-      });
-    }
+    setShowPaymentModal(true);
   };
 
   const isInCart = premiumBundle ? hasBundle(premiumBundle._id) : false;
@@ -223,6 +211,7 @@ export default function PremiumSubscriptionPage() {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
+                onClick={handleAddToCart}
                 className="bg-[#382404] text-[#f4d03f] font-bold py-4 rounded-full shadow-lg hover:shadow-xl transition-all text-base"
               >
                 BUY NOW
@@ -284,6 +273,7 @@ export default function PremiumSubscriptionPage() {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
+                  onClick={handleAddToCart}
                   className="bg-[#382404] text-[#f4d03f] font-bold py-4 px-10 rounded-full shadow-lg hover:shadow-xl transition-all text-base"
                 >
                   BUY NOW
@@ -1115,6 +1105,13 @@ export default function PremiumSubscriptionPage() {
           </div>
         </div>
       </section>
+
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        bundle={premiumBundle}
+      />
     </main>
   );
 }

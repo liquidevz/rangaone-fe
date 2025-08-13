@@ -4,6 +4,10 @@ import { motion } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
+import { useEffect, useState } from "react"
+import { bundleService, type Bundle } from "@/services/bundle.service"
+import { useRouter } from "next/navigation"
+import { PaymentModal } from "@/components/payment-modal"
 
 const wealthPlans = [
   {
@@ -23,6 +27,38 @@ const wealthPlans = [
 ]
 
 export default function FeatureComparison() {
+  const [bundles, setBundles] = useState<Bundle[]>([])
+  const [selectedBundle, setSelectedBundle] = useState<Bundle | null>(null)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const router = useRouter()
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const data = await bundleService.getAll()
+        setBundles(data)
+      } catch (e) {
+        // Silent fail; buttons will fallback to plan pages
+      }
+    }
+    load()
+  }, [])
+
+  const handleBuyNow = async (plan: { isPremium: boolean }) => {
+    const category = plan.isPremium ? "premium" : "basic"
+    const bundle = bundles.find(b => (b.category || "").toLowerCase() === category)
+
+    // Fallback: go to plan page if bundle not loaded yet
+    if (!bundle) {
+      router.push(plan.isPremium ? "/premium-subscription" : "/basic-subscription")
+      return
+    }
+
+    // Open payment modal with 5-step process
+    setSelectedBundle(bundle)
+    setShowPaymentModal(true)
+  }
+
   return (
     <div className="w-full">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -73,6 +109,7 @@ export default function FeatureComparison() {
                       ? 'linear-gradient(to right, #fbbf24, #f59e0b)' 
                       : 'linear-gradient(to right, #131859, #18657BCC)' 
                   }}
+                  onClick={() => handleBuyNow(plan)}
                 >
                   BUY NOW
                 </Button>
@@ -101,6 +138,13 @@ export default function FeatureComparison() {
           </Link>
         </motion.div>
       </div>
+      
+      {/* Payment Modal with 5-step process and quarterly/yearly toggle */}
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        bundle={selectedBundle}
+      />
     </div>
   )
 }

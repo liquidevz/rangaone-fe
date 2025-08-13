@@ -1,7 +1,7 @@
 // components/checkout-modal.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ShoppingCart, CreditCard, Check, AlertCircle, Copy, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [telegramLinks, setTelegramLinks] = useState<any[]>([]);
   const [showDigio, setShowDigio] = useState(false);
   const [agreementData, setAgreementData] = useState<PaymentAgreementData | null>(null);
+  const [pendingEmandateId, setPendingEmandateId] = useState<string | null>(null);
+  const [fetchingLinks, setFetchingLinks] = useState(false);
+  const pollTimerRef = useRef<any>(null);
   
   const { user, isAuthenticated } = useAuth();
   const { cart, refreshCart, calculateTotal: cartCalculateTotal } = useCart();
@@ -92,6 +95,31 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       if (telegramLinks?.length > 0) {
         setTelegramLinks(telegramLinks);
         setPaymentStep("telegram");
+      } else if (pendingEmandateId) {
+        // Poll for telegram links shortly after activation
+        setPaymentStep("telegram");
+        setFetchingLinks(true);
+        let attempts = 0;
+        const maxAttempts = 10;
+        if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+        pollTimerRef.current = setInterval(async () => {
+          attempts += 1;
+          try {
+            const latest = await paymentService.verifyEmandate(pendingEmandateId as string);
+            const newLinks = (latest as any)?.telegramInviteLinks || (latest as any)?.telegram_invite_links;
+            if (newLinks && newLinks.length) {
+              clearInterval(pollTimerRef.current);
+              pollTimerRef.current = null;
+              setFetchingLinks(false);
+              setTelegramLinks(newLinks);
+            }
+          } catch {}
+          if (attempts >= maxAttempts) {
+            clearInterval(pollTimerRef.current);
+            pollTimerRef.current = null;
+            setFetchingLinks(false);
+          }
+        }, 2000);
       } else {
         setPaymentStep("success");
       }
@@ -190,6 +218,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const handleClose = () => {
     setPaymentStep("review");
     setLoading(false);
+    if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    setPendingEmandateId(null);
+    setFetchingLinks(false);
     onClose();
   };
 
@@ -221,6 +252,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         planType: subscriptionType,
         timestamp: Date.now(),
       });
+      setPendingEmandateId(emandate.subscriptionId);
       
       if (!emandate?.subscriptionId) {
         throw new Error("Invalid eMandate response: missing subscriptionId");
@@ -237,10 +269,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         async () => {
           const verify = await paymentService.verifyEmandateWithRetry(emandate.subscriptionId);
           console.log("🔍 EMANDATE VERIFY RESULT:", verify);
-          if (verify.success || ["active", "authenticated"].includes(verify.subscriptionStatus || "")) {
-            finishSuccess(verify);
+          if (verify.success || ["active", "authenticated"].includes((verify as any).subscriptionStatus || "")) {
+            const links = (verify as any)?.telegramInviteLinks || (verify as any)?.telegram_invite_links || [];
+            if (links.length > 0) {
+              setTelegramLinks(links);
+              setPaymentStep("telegram");
+            } else {
+              setPaymentStep("success");
+            }
+            toast({ title: "Payment Successful", description: "Your subscription has been activated" });
+            setLoading(false);
           } else {
-            finishError(verify.message || "eMandate verification failed");
+            finishError((verify as any)?.message || "eMandate verification failed");
           }
         },
         (err) => finishError(err?.message || "Payment cancelled")
