@@ -116,23 +116,37 @@ export default function PricingSection() {
             </p>
            </div>
           
-          {/* Plan Selector */}
+          {/* Plan Selector - segmented control with persistent gradient border */}
           <div className="flex items-center justify-center gap-3">
-            <button
-              onClick={() => setSelected("M")}
-              className={selected === "M" ? BASIC_SELECTED_STYLES : DESELECTED_STYLES}
-            >
-              Basic
-              {selected === "M" && <BackgroundShift />}
-            </button>
             <div className="relative">
-              <button
-                onClick={() => setSelected("A")}
-                className={selected === "A" ? PREMIUM_SELECTED_STYLES : DESELECTED_STYLES}
-              >
-                Premium
-                {selected === "A" && <BackgroundShift />}
-              </button>
+              <div className="p-[4px] rounded-2xl bg-gradient-to-r from-[#3B82F6] to-[#FFD700] inline-flex shadow-md">
+                <div className="rounded-xl bg-white relative overflow-hidden">
+                  <div className="flex items-center gap-1 px-1 py-1">
+                    <button
+                      onClick={() => setSelected("M")}
+                      className={
+                        selected === "M"
+                          ? BASIC_SELECTED_STYLES
+                          : "font-bold rounded-lg py-3 w-28 bg-transparent text-slate-800 hover:bg-slate-50"
+                      }
+                    >
+                      Basic
+                      {selected === "M" && <BackgroundShift />}
+                    </button>
+                    <button
+                      onClick={() => setSelected("A")}
+                      className={
+                        selected === "A"
+                          ? PREMIUM_SELECTED_STYLES
+                          : "font-bold rounded-lg py-3 w-28 bg-transparent text-slate-800 hover:bg-slate-50"
+                      }
+                    >
+                      Premium
+                      {selected === "A" && <BackgroundShift />}
+                    </button>
+                  </div>
+                </div>
+              </div>
               <CTAArrow />
             </div>
           </div>
@@ -207,7 +221,7 @@ export default function PricingSection() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -30 }}
                 transition={{ duration: 0.4 }}
-                onClick={() => handleBundlePurchase(bundle, "monthly")}
+                onClick={() => handleBundlePurchase(bundle, "monthlyEmandate")}
                 className={`w-full p-3 sm:p-6 border-0 rounded-xl transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer ${
                   selected === "A"
                     ? "bg-[#333333]"
@@ -248,7 +262,7 @@ export default function PricingSection() {
                   whileTap={{ scale: 0.985 }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleBundlePurchase(bundle, "monthly");
+                    handleBundlePurchase(bundle, "monthlyEmandate");
                   }}
                   className={`w-full py-2 sm:py-4 text-sm sm:text-base font-semibold rounded-2xl uppercase ${
                     selected === "A"
