@@ -38,6 +38,7 @@ function SubscriptionModal({ open, onClose, productId, productType }: { open: bo
   const [planType, setPlanType] = useState("quarterly");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
 
   // Ensure Razorpay script is loaded
   useEffect(() => {
@@ -52,40 +53,95 @@ function SubscriptionModal({ open, onClose, productId, productType }: { open: bo
   const handleBuy = async () => {
     setLoading(true);
     setError("");
+    
     try {
-      const res = await fetch(process.env.NEXT_PUBLIC_API_BASE_URL + "/api/subscriptions/order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productType, productId, planType }),
+      const { paymentService } = await import('@/services/payment.service');
+      const { authService } = await import('@/services/auth.service');
+      
+      const user = await authService.getCurrentUser();
+      
+      const emandate = await paymentService.createEmandate({
+        productType: "Portfolio",
+        productId: productId!,
+        planType: planType as "quarterly" | "yearly"
       });
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      // Razorpay options
-      const options = {
-        key: "YOUR_RAZORPAY_KEY_ID", // TODO: Replace with your Razorpay key
-        amount: data.amount, // in paise
-        currency: data.currency,
-        name: "RangaOne",
-        order_id: data.orderId,
-        handler: function (response: any) {
-          // Optionally verify payment on backend
-          onClose();
-        },
-        prefill: {},
-        theme: { color: "#fbbf24" },
+
+      const userInfo = {
+        name: user?.fullName || user?.username || "User",
+        email: user?.email || "user@example.com"
       };
-      if (window.Razorpay) {
-        const rzp = new window.Razorpay(options);
-        rzp.open();
-      } else {
-        setError("Razorpay failed to load. Please try again.");
-      }
-    } catch (err) {
+
+      await paymentService.openCheckout(
+        emandate,
+        userInfo,
+        async (response) => {
+          console.log("Payment success callback triggered:", response);
+          setLoading(true);
+          try {
+            // Wait a bit for backend processing
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            const verify = await paymentService.verifyEmandateWithRetry(emandate.subscriptionId);
+            console.log("Verification result:", verify);
+            
+            if (verify.success || ["active", "authenticated"].includes(verify.subscriptionStatus || "")) {
+              // Refresh subscription data
+              const { subscriptionService } = await import('@/services/subscription.service');
+              await subscriptionService.refreshAfterPayment();
+              
+              setSuccess(true);
+              setLoading(false);
+            } else {
+              console.error("Verification failed:", verify.message);
+              setError(verify.message || "Payment successful but verification pending. Please refresh the page.");
+              setLoading(false);
+            }
+          } catch (verifyError) {
+            console.error("Verification error:", verifyError);
+            setError("Payment successful but verification pending. Please refresh the page.");
+            setLoading(false);
+          }
+        },
+        (err) => {
+          console.error("Payment error:", err);
+          setError(err?.message || "Payment cancelled");
+          setLoading(false);
+        }
+      );
+    } catch (error: any) {
       setError("Failed to create order. Please try again.");
     } finally {
       setLoading(false);
     }
   };
+
+  if (success) {
+    return (
+      <Dialog open={open} onOpenChange={() => { onClose(); window.location.reload(); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-green-600">Payment Successful! 🎉</DialogTitle>
+          </DialogHeader>
+          <div className="text-center py-6">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Subscription Activated!</h3>
+            <p className="text-gray-600 mb-4">
+              Your {planType} subscription has been successfully activated. You now have access to the portfolio.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => { onClose(); window.location.reload(); }} className="w-full">
+              Continue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -109,7 +165,21 @@ function SubscriptionModal({ open, onClose, productId, productType }: { open: bo
             Yearly
           </Button>
         </div>
-        {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
+        {error && (
+          <div className="space-y-2">
+            <div className="text-red-600 text-sm">{error}</div>
+            {error.includes("pending") && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.location.reload()}
+                className="w-full"
+              >
+                Refresh Page
+              </Button>
+            )}
+          </div>
+        )}
         <DialogFooter>
           <Button onClick={handleBuy} className="w-full" disabled={loading}>
             {loading ? "Processing..." : "Buy Now"}

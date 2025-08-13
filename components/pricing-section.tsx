@@ -61,22 +61,12 @@ export default function PricingSection() {
   };
 
   const handleBundlePurchase = async (bundle: Bundle, pricingType: SubscriptionType) => {
-    // For yearly/quarterly, use the exact Cart flow by adding to cart and redirecting
-    if (pricingType === "yearly" || pricingType === "quarterly") {
-      if (!isAuthenticated) {
-        router.push("/login");
-        return;
-      }
-      try {
-        await addBundleToCart(bundle._id, pricingType, bundle.category);
-        router.push("/cart");
-        return;
-      } catch (e) {
-        // Fallback to modal if cart add fails
-      }
+    if (!isAuthenticated) {
+      router.push("/login");
+      return;
     }
 
-    // Monthly or fallback: open single checkout modal
+    // Direct eMandate API usage for all Buy Now buttons
     setCheckoutModal({
       isOpen: true,
       type: "single",
@@ -154,12 +144,12 @@ export default function PricingSection() {
         {bundles
           .filter((bundle) => bundle.category === (selected === "M" ? "basic" : "premium"))
           .map((bundle) =>
-            ["quarterlyPrice", "monthlyPrice"] // Swapped order: yearly first, monthly second
+            ["quarterlyPrice", "monthlyPrice"] // Swapped order: quarterly first, monthly second
               .filter((priceType) => bundle[priceType as keyof Bundle] !== undefined)
               .map((priceType) => {
-                const subscriptionType = priceType === "monthlyPrice" ? "monthly" : "yearly";
+                const subscriptionType = priceType === "monthlyPrice" ? "monthly" : "quarterly";
                 const isInCart = hasBundle(bundle._id);
-                const isYearly = priceType === "quarterlyPrice";
+                const isQuarterly = priceType === "quarterlyPrice";
                 const isPremium = selected === "A";
                 
                 return (
@@ -170,20 +160,20 @@ export default function PricingSection() {
                       exit={{ opacity: 0, y: -30 }}
                       transition={{ duration: 0.4 }}
                       onClick={() => handleBundlePurchase(bundle, subscriptionType)}
-                      className={`w-full p-3 sm:p-6 ${isYearly ? 'border-[3px]' : 'border-0'} rounded-xl transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer ${
+                      className={`w-full p-3 sm:p-6 ${isQuarterly ? 'border-[3px]' : 'border-0'} rounded-xl transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer ${
                         isPremium
-                          ? isYearly
+                          ? isQuarterly
                             ? "bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)] text-[#333333] border-[#333333] shadow-[0px_4px_21.5px_8px_#AD9000]"
                             : "bg-[#333333]"
-                          : isYearly
+                          : isQuarterly
                             ? "bg-[linear-gradient(295.3deg,_#131859_11.58%,_rgba(24,101,123,0.8)_108.02%)] text-[#FFFFF0] border-slate-300 shadow-[0px_4px_21.5px_8px_#00A6E8]"
                             : "bg-[linear-gradient(295.3deg,_#131859_11.58%,_rgba(24,101,123,0.8)_108.02%)] text-[#FFFFF0]"
                       }`}
                     >
                       <p className={`text-xm sm:text-2xl font-bold font-serif ${
-                        isPremium && !isYearly ? "text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" : ""
+                        isPremium && !isQuarterly ? "text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" : ""
                       }`}>
-                        {priceType === "quarterlyPrice" ? "Yearly" : "Monthly"}
+                        {priceType === "quarterlyPrice" ? "Quarterly" : "Monthly"}
                       </p>
                       <div className="overflow-hidden">
                         <motion.p
@@ -193,7 +183,7 @@ export default function PricingSection() {
                           exit={{ y: 50, opacity: 0 }}
                           transition={{ ease: "linear", duration: 0.25 }}
                           className={`text-2xl sm:text-6xl font-semibold ${
-                            isPremium && !isYearly ? "text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" : ""
+                            isPremium && !isQuarterly ? "text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" : ""
                           }`}
                         >
                           <span>&#8377;{bundle[priceType as keyof Bundle] as number}</span>
@@ -202,11 +192,11 @@ export default function PricingSection() {
                       </div>
 
                       <div className={`flex items-center gap-2 mb-2 ${
-                        isPremium && !isYearly ? "text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" : ""
+                        isPremium && !isQuarterly ? "text-transparent bg-clip-text bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)]" : ""
                       }`}>
                         <span className="text-[0.6rem] sm:text-lg">
                           {priceType === "quarterlyPrice"
-                            ? "(Annual, Billed Monthly)"
+                            ? "(3 Months, Billed Monthly)"
                             : "(Flexible, but higher cost)"}
                         </span>
                       </div>
@@ -226,7 +216,7 @@ export default function PricingSection() {
                         }}
                         className={`w-full py-2 sm:py-4 text-sm sm:text-base font-semibold rounded-2xl uppercase ${
                           isPremium
-                            ? isYearly
+                            ? isQuarterly
                               ? "bg-[#333333] text-[#D4AF37] hover:text-[#FFD700]"
                               : "bg-[linear-gradient(270deg,_#D4AF37_0%,_#FFC107_50%,_#FFD700_100%)] text-[#333333]"
                             : "bg-white text-[#131859]"

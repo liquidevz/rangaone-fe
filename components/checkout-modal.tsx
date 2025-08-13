@@ -369,7 +369,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         {subscriptionType === "yearly"
                           ? "Yearly"
                           : subscriptionType === "quarterly"
-                          ? "Quarterly"
+                          ? "Quarterly (3 Months)"
                           : "Monthly"}{" "}
                         Subscription
                       </span>
@@ -414,7 +414,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         {subscriptionType === "yearly"
                           ? "Yearly"
                           : subscriptionType === "quarterly"
-                          ? "Quarterly"
+                          ? "Quarterly (3 Months)"
                           : "Monthly"}{" "}
                         Subscription
                       </span>
@@ -518,7 +518,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       {subscriptionType === "yearly"
                         ? "annually"
                         : subscriptionType === "quarterly"
-                        ? "per quarter"
+                        ? "every 3 months"
                         : "monthly"}
                     </p>
                   </div>

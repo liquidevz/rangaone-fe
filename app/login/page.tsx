@@ -29,7 +29,7 @@ export default function LoginPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
-      const redirectPath = sessionStorage.getItem("redirectPath") || "/";
+      const redirectPath = sessionStorage.getItem("redirectPath") || "/dashboard";
       sessionStorage.removeItem("redirectPath");
       router.replace(redirectPath);
     }
@@ -70,7 +70,7 @@ export default function LoginPage() {
       const redirectPath = 
         sessionStorage.getItem("redirectPath") || 
         searchParams.get("redirect") || 
-        "/";
+        "/dashboard";
       
       sessionStorage.removeItem("redirectPath");
       router.replace(redirectPath);

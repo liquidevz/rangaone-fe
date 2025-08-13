@@ -23,8 +23,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     const isAuthRoute = authRoutes.includes(pathname);
 
     if (isAuthenticated && isAuthRoute) {
-      // If user is authenticated and trying to access auth pages, redirect to home
-      router.replace("/");
+      // If user is authenticated and trying to access auth pages, redirect to dashboard
+      router.replace("/dashboard");
       return;
     }
 
