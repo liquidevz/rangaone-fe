@@ -360,13 +360,6 @@ export default function StockRecommendationPage() {
                       </div>
                     )}
                     
-                    {tipData.exitPrice && (
-                      <div className="text-center">
-                        <p className="text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Exit Range</p>
-                        <p className="md:text-xl text-[0.9rem] font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{tipData.exitPrice}</p>
-                      </div>
-                    )}
-                    
                     {tipData.horizon && (
                       <div className="text-center">
                         <p className="text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Horizon</p>
@@ -392,6 +385,13 @@ export default function StockRecommendationPage() {
                       <div className="text-center">
                         <p className="text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Exit Date</p>
                         <p className="md:text-xl text-[0.9rem] font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{format(new Date(tipData.updatedAt), 'dd MMM yyyy')}</p>
+                      </div>
+                    )}
+                    
+                    {(tipData.exitPrice || getExitRange(tipData.content)) && (
+                      <div className="text-center">
+                        <p className="text-[0.9rem] md:text-2xl lg:text-2xl" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Exit Range</p>
+                        <p className="md:text-xl text-[0.9rem] font-bold text-green-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>{getExitRange(tipData.content) || tipData.exitPrice}</p>
                       </div>
                     )}
                   </>

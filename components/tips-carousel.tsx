@@ -892,7 +892,7 @@ export default function TipsCarousel({
             ? tip.portfolio
             : tip.portfolio?._id,
         portfolioName,
-        date: tip.createdAt,
+        date: tip.status?.toLowerCase() === 'closed' ? tip.updatedAt : tip.createdAt,
         stockName,
         exchange: "NSE",
         weightage,

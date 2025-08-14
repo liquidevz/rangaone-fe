@@ -1652,8 +1652,12 @@ export default function PortfolioDetailsPage() {
                           <td colSpan={4} className="px-2 py-3">
                             <div className="grid grid-cols-2 gap-4 text-sm">
                               <div>
-                                <span className="text-gray-600 font-medium">Sector:</span>
-                                <div className="text-gray-800">{holding.sector}</div>
+                                <span className="text-gray-600 font-medium">Action:</span>
+                                <div className="text-gray-800">
+                                  <span className="px-1 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
+                                    {holding.status?.toUpperCase() || 'FRESH-BUY'}
+                                  </span>
+                                </div>
                               </div>
                               <div>
                                 <span className="text-gray-600 font-medium">Quantity:</span>

@@ -35,6 +35,7 @@ export function InvestmentCalculator() {
   const [calculating, setCalculating] = useState(false);
   const [result, setResult] = useState<CalculationResult | null>(null);
   const [error, setError] = useState<string>('');
+  const [expandedRow, setExpandedRow] = useState<number | null>(null);
 
   useEffect(() => {
     loadPortfolios();
@@ -401,7 +402,70 @@ export function InvestmentCalculator() {
 
             <div className="space-y-4">
               <h4 className="font-semibold text-lg text-blue-600">Stock-wise Allocation</h4>
-              <div className="overflow-x-auto">
+              {/* Mobile Table Layout */}
+              <div className="block lg:hidden overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-gray-600 text-[#FFFFF0] text-xs">
+                      <th className="px-2 py-2 text-left font-medium">Stock Name</th>
+                      <th className="px-2 py-2 text-center font-medium">Action</th>
+                      <th className="px-2 py-2 text-center font-medium">Wt (%)</th>
+                      <th className="px-2 py-2 text-center font-medium">Price (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-xs">
+                    {result.stocks.map((stock, index) => (
+                      <React.Fragment key={index}>
+                        <tr 
+                          className={`cursor-pointer transition-all duration-200 ${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-blue-50`}
+                          onClick={() => setExpandedRow(expandedRow === index ? null : index)}
+                        >
+                          <td className="px-2 py-2">
+                            <div className="font-medium text-blue-600">{stock.symbol}</div>
+                            <div className="text-gray-500 text-xs">NSE : {stock.symbol}</div>
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            <span className={`px-1 py-0.5 rounded text-xs font-medium ${
+                              stock.action === 'Buy More' ? 'bg-green-100 text-green-700' :
+                              stock.action === 'Buy' ? 'bg-blue-100 text-blue-700' :
+                              'bg-orange-100 text-orange-700'
+                            }`}>
+                              {stock.action.toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="px-2 py-2 text-center font-medium">{stock.weight.toFixed(2)}%</td>
+                          <td className="px-2 py-2 text-center">
+                            <div className="inline-block font-medium px-2 py-1 rounded bg-gray-200 text-gray-700 text-xs">
+                              ₹{stock.price.toFixed(2)}
+                            </div>
+                          </td>
+                        </tr>
+                        {expandedRow === index && (
+                          <tr className="bg-blue-50">
+                            <td colSpan={4} className="px-2 py-3">
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <span className="text-gray-600 font-medium">Shares:</span>
+                                  <div className="text-gray-800 font-medium">{stock.sharesBought}</div>
+                                </div>
+                                <div>
+                                  <span className="text-gray-600 font-medium">Investment:</span>
+                                  <div className="text-gray-800 font-medium">
+                                    ₹{stock.actualCost.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Desktop Table Layout */}
+              <div className="hidden lg:block overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="bg-gray-600 text-[#FFFFF0] text-xs">

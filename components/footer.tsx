@@ -19,7 +19,7 @@ export default function Footer() {
               </div>
             </div>
             <p className="text-gray-600 mb-6">
-              "We bring expertise, credibility, and a passion for guiding investors to make informed decisions."
+              "Build wealth with confidence. Spot opportunities, make strategic moves, and watch your portfolio grow."
             </p>
             <div className="space-y-2">
               <div className="flex items-center">

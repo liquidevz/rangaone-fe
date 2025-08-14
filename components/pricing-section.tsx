@@ -246,7 +246,7 @@ export default function PricingSection() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -30 }}
                 transition={{ duration: 0.4 }}
-                onClick={() => handleBundlePurchase(bundle, "monthlyEmandate")}
+                onClick={() => handleBundlePurchase(bundle, "monthly")}
                 className={`w-full p-3 sm:p-6 border-0 rounded-xl transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer ${
                   selected === "A"
                     ? "bg-[#333333]"
@@ -287,7 +287,7 @@ export default function PricingSection() {
                   whileTap={{ scale: 0.985 }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleBundlePurchase(bundle, "monthlyEmandate");
+                    handleBundlePurchase(bundle, "monthly");
                   }}
                   className={`w-full py-2 sm:py-4 text-sm sm:text-base font-semibold rounded-2xl uppercase ${
                     selected === "A"

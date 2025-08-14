@@ -991,7 +991,14 @@ function ModelPortfolioTipCard({ tip, subscriptionAccess }: { tip: Tip; subscrip
                 <div className="relative bg-gradient-to-r from-[#00B7FF] to-[#85D437] p-[2px] rounded overflow-hidden mb-1.5">
                   <div className="bg-black text-xs font-bold rounded px-2 py-0.5 overflow-hidden">
                     <div className="bg-gradient-to-r from-[#00B7FF] to-[#85D437] font-bold bg-clip-text text-transparent">
-                      Model Portfolio
+                      {(() => {
+                        const portfolioName = typeof tip.portfolio === 'object' ? tip.portfolio?.name : undefined;
+                        if (portfolioName) {
+                          const cleaned = portfolioName.replace(/\bportfolio\b/i, "").trim();
+                          return cleaned.length > 0 ? cleaned : portfolioName;
+                        }
+                        return "Model Portfolio";
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -1035,29 +1042,6 @@ function ModelPortfolioTipCard({ tip, subscriptionAccess }: { tip: Tip; subscrip
                 </div>
               </div>
             </div>
-            
-            {tip.analysistConfidence && (
-              <div className="relative">
-                <div className="flex justify-between items-center mb-1">
-                  <p className="text-xs text-gray-600" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>Analyst Confidence</p>
-                  <p className="text-xs mt-0.5" style={{ color: colorScheme.textColor, fontFamily: 'Helvetica, Arial, sans-serif' }}>
-                    {tip.analysistConfidence >= 8 ? 'Very High' : 
-                     tip.analysistConfidence >= 6 ? 'High' : 
-                     tip.analysistConfidence >= 4 ? 'Medium' : 
-                     tip.analysistConfidence >= 2 ? 'Low' : 'Very Low'}
-                  </p>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="h-2 rounded-full" 
-                    style={{ 
-                      width: `${(tip.analysistConfidence || 0) * 10}%`,
-                      backgroundColor: colorScheme.textColor 
-                    }}
-                  ></div>
-                </div>
-              </div>
-            )}
           </div>
           
           {shouldBlurContent && (
@@ -1181,16 +1165,9 @@ function PortfolioCard({
       }
     }
     
-    if (subscriptionAccess?.hasPremium) {
+    if (subscriptionAccess?.hasPremium || subscriptionAccess?.hasBasic) {
       return {
-        text: "Upgrade Required",
-        className: "bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-[#FFFFF0]"
-      }
-    }
-    
-    if (subscriptionAccess?.hasBasic) {
-      return {
-        text: "Upgrade to Premium",
+        text: "Upgrade to Access",
         className: "bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-[#FFFFF0]"
       }
     }
@@ -1212,8 +1189,8 @@ function PortfolioCard({
             <h3 className="text-lg font-bold text-gray-900 uppercase tracking-wide">
               {portfolio.name}
             </h3>
-            <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
-              <span>Minimum Investment : ₹{(() => {
+            <div className="flex items-center gap-4 mt-1 text-xs sm:text-sm text-gray-600">
+              <span>Min Investment: ₹{(() => {
                 if (portfolioDetails?.minInvestment) {
                   return portfolioDetails.minInvestment.toLocaleString()
                 }
@@ -1231,11 +1208,11 @@ function PortfolioCard({
           </Button>
         </div>
 
-        {/* Performance Metrics - Horizontal Layout */}
-        <div className="grid grid-cols-3 gap-6 mb-4">
+        {/* Performance Metrics - Responsive Layout */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4">
           <div className="text-center">
             <div className="text-xs text-gray-500 mb-1">Monthly Gains</div>
-            <div className={`text-lg font-bold ${isLocked ? 'blur-sm select-none' : ''} ${
+            <div className={`text-sm sm:text-lg font-bold ${isLocked ? 'blur-sm select-none' : ''} ${
               isLocked ? 'text-green-600' : 
               (portfolioDetails?.monthlyGains !== undefined ? 
                 (portfolioDetails.monthlyGains >= 0 ? 'text-green-600' : 'text-red-600') :
@@ -1247,7 +1224,7 @@ function PortfolioCard({
           </div>
           <div className="text-center">
             <div className="text-xs text-gray-500 mb-1">1 Year Gains</div>
-            <div className={`text-lg font-bold ${isLocked ? 'blur-sm select-none' : ''} ${
+            <div className={`text-sm sm:text-lg font-bold ${isLocked ? 'blur-sm select-none' : ''} ${
               isLocked ? 'text-green-600' : 
               (portfolioDetails?.oneYearGains !== undefined ? 
                 (portfolioDetails.oneYearGains >= 0 ? 'text-green-600' : 'text-red-600') :
@@ -1259,7 +1236,7 @@ function PortfolioCard({
           </div>
           <div className="text-center">
             <div className="text-xs text-gray-500 mb-1">CAGR Since Inception</div>
-            <div className={`text-lg font-bold ${isLocked ? 'blur-sm select-none' : ''} ${
+            <div className={`text-sm sm:text-lg font-bold ${isLocked ? 'blur-sm select-none' : ''} ${
               isLocked ? 'text-green-600' : 
               (portfolioDetails?.CAGRSinceInception !== undefined ? 
                 (portfolioDetails.CAGRSinceInception >= 0 ? 'text-green-600' : 'text-red-600') :
@@ -1273,23 +1250,21 @@ function PortfolioCard({
 
         {/* Lock Message or Action Button */}
         {isLocked ? (
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 text-sm text-gray-700 bg-gradient-to-r from-yellow-50 to-amber-50 px-4 py-2 rounded-full border border-yellow-200 animate-pulse">
-              <div className="bg-gradient-to-br from-yellow-400 to-amber-500 rounded-full p-2 shadow-lg transition-transform hover:scale-110">
-                <Lock className="h-5 w-5 text-[#FFFFF0] animate-[wiggle_1s_ease-in-out_infinite]" />
+          <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-700 bg-gradient-to-r from-yellow-50 to-amber-50 px-3 sm:px-4 py-2 rounded-full border border-yellow-200 animate-pulse flex-1">
+              <div className="bg-gradient-to-br from-yellow-400 to-amber-500 rounded-full p-1.5 sm:p-2 shadow-lg transition-transform hover:scale-110">
+                <Lock className="h-4 w-4 sm:h-5 sm:w-5 text-[#FFFFF0] animate-[wiggle_1s_ease-in-out_infinite]" />
               </div>
               <span className="font-medium">
                 {!isAuthenticated 
                   ? "Login to view details" 
-                  : subscriptionAccess?.hasBasic 
-                    ? "Premium access required"
-                    : "Subscription required"
+                  : "Upgrade to access"
                 }
               </span>
             </div>
             <Button
               onClick={handleSubscribeClick}
-              className={`px-6 py-2 text-sm font-medium ${buttonConfig.className} flex-shrink-0`}
+              className={`px-4 sm:px-6 py-2 text-xs sm:text-sm font-medium ${buttonConfig.className} w-full sm:w-auto flex-shrink-0`}
             >
               {buttonConfig.text}
             </Button>
@@ -1298,7 +1273,7 @@ function PortfolioCard({
           <div className="flex justify-center">
             <Button
               onClick={handleSubscribeClick}
-              className={`px-6 py-2 text-sm font-medium ${buttonConfig.className}`}
+              className={`px-4 sm:px-6 py-2 text-xs sm:text-sm font-medium ${buttonConfig.className} w-full sm:w-auto`}
             >
               {buttonConfig.text}
             </Button>

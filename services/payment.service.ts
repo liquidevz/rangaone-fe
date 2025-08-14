@@ -350,12 +350,18 @@ export const paymentService = {
       modal: {
         ondismiss: () => {
           console.log("Payment modal dismissed by user");
-          onFailure(new Error("Payment cancelled by user"));
+          // Close the Razorpay modal properly
+          setTimeout(() => {
+            onFailure(new Error("Payment cancelled by user"));
+          }, 100);
         },
       },
       handler: (response: any) => {
         console.log("Payment successful:", response);
-        onSuccess(response);
+        // Close the Razorpay modal properly before calling success
+        setTimeout(() => {
+          onSuccess(response);
+        }, 100);
       },
     };
 
@@ -374,11 +380,14 @@ export const paymentService = {
       const razorpay = new window.Razorpay(options);
       razorpay.on("payment.failed", function (response: any) {
         console.error("Payment failed:", response.error);
-        onFailure(
-          new Error(
-            `Payment failed: ${response.error.description || "Unknown error"}`
-          )
-        );
+        // Close the Razorpay modal properly before calling failure
+        setTimeout(() => {
+          onFailure(
+            new Error(
+              `Payment failed: ${response.error.description || "Unknown error"}`
+            )
+          );
+        }, 100);
       });
 
       razorpay.open();

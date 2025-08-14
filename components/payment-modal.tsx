@@ -322,75 +322,87 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   </div>
 
                   {/* Subscription Type Toggle */}
-                  <div className="space-y-4">
-                    <h4 className="font-medium text-base sm:text-lg">Choose Subscription Period:</h4>
-                    <div className={`grid ${isEmandateFlow ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"} gap-3 sm:gap-4` }>
-                      {/* Annual billed monthly (eMandate monthly) or single monthly card for normal flow */}
-                      <button
-                        onClick={() => setSubscriptionType("monthly")}
-                        className={`p-4 sm:p-5 md:p-6 rounded-xl border-2 transition-all text-left relative overflow-hidden h-full flex flex-col ${
-                          subscriptionType === "monthly"
-                            ? "border-blue-500 bg-blue-50"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
-                      >
-                        {/* colored header */}
-                        <div className={`${isPremium ? "bg-amber-400 text-amber-900" : "bg-blue-600 text-white"} absolute left-0 right-0 top-0 px-3 py-2 text-xs sm:text-sm font-semibold flex items-center justify-between` }>
-                          <span>
-                            {(() => {
-                              const pct = computeMonthlyEmandateDiscount()
-                              return pct > 0 ? `${pct}% off for 12 months` : "Special offer"
-                            })()}
-                          </span>
-                          <span className="underline text-xs">View terms</span>
-                        </div>
-                        <div className="pt-9 sm:pt-10" />
-                        <div className="font-semibold text-base sm:text-lg md:text-xl">{isEmandateFlow ? "Annual, billed monthly" : "Monthly"}</div>
-                        {isEmandateFlow && (
+                  {isEmandateFlow ? (
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-base sm:text-lg">Choose Subscription Period:</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                        {/* Annual billed monthly (eMandate monthly) */}
+                        <button
+                          onClick={() => setSubscriptionType("monthly")}
+                          className={`p-4 sm:p-5 md:p-6 rounded-xl border-2 transition-all text-left relative overflow-hidden h-full flex flex-col ${
+                            subscriptionType === "monthly"
+                              ? "border-blue-500 bg-blue-50"
+                              : "border-gray-200 hover:border-gray-300"
+                          }`}
+                        >
+                          <div className={`${isPremium ? "bg-amber-400 text-amber-900" : "bg-blue-600 text-white"} absolute left-0 right-0 top-0 px-3 py-2 text-xs sm:text-sm font-semibold flex items-center justify-between`}>
+                            <span>
+                              {(() => {
+                                const pct = computeMonthlyEmandateDiscount()
+                                return pct > 0 ? `${pct}% off for 12 months` : "Special offer"
+                              })()}
+                            </span>
+                            <span className="underline text-xs">View terms</span>
+                          </div>
+                          <div className="pt-9 sm:pt-10" />
+                          <div className="font-semibold text-base sm:text-lg md:text-xl">Annual, billed monthly</div>
                           <div className="text-xs sm:text-sm text-gray-600 line-through">
                             ₹{(bundle as any).strikeMonthly || Math.round(((bundle as any).monthlyemandateprice || 0) * 1.5)} /mo
                           </div>
-                        )}
-                        <div className="mt-1 text-2xl sm:text-3xl md:text-4xl font-bold text-blue-700">
-                          ₹{isEmandateFlow ? ((bundle as any).monthlyemandateprice || 0) : (bundle.monthlyPrice || 0)}
-                          <span className="text-base font-medium">/mo</span>
-                        </div>
-                        {isEmandateFlow && (
+                          <div className="mt-1 text-2xl sm:text-3xl md:text-4xl font-bold text-blue-700">
+                            ₹{(bundle as any).monthlyemandateprice || 0}
+                            <span className="text-base font-medium">/mo</span>
+                          </div>
                           <div className="text-[11px] sm:text-xs text-gray-500 mt-1">Fee applies if you cancel mid-commitment</div>
-                        )}
-                      </button>
+                        </button>
 
-                      {/* Annual prepaid (yearly) — show only for eMandate flow */}
-                      {isEmandateFlow && (
-                      <button
-                        onClick={() => setSubscriptionType("yearly")}
-                        className={`p-4 sm:p-5 md:p-6 rounded-xl border-2 transition-all text-left relative overflow-hidden h-full flex flex-col ${
-                          subscriptionType === "yearly"
-                            ? "border-blue-500 bg-blue-50"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
-                      >
-                        {/* colored header */}
-                        <div className={`${isPremium ? "bg-amber-400 text-amber-900" : "bg-blue-600 text-white"} absolute left-0 right-0 top-0 px-3 py-2 text-xs sm:text-sm font-semibold flex items-center justify-between` }>
-                          <span>
-                            {(() => {
-                              const pct = computeYearlyDiscount()
-                              return pct > 0 ? `${pct}% off the first year` : "Best value"
-                            })()}
-                          </span>
-                          <span className="underline text-xs">View terms</span>
-                        </div>
-                        <div className="pt-9 sm:pt-10" />
-                        <div className="font-semibold text-base sm:text-lg md:text-xl">Annual, prepaid</div>
-                        <div className="text-xs sm:text-sm text-gray-600 line-through">
-                          ₹{(bundle as any).strikeYear || Math.round((bundle.yearlyPrice || 0) * 1.3)} /yr
-                        </div>
-                        <div className="mt-1 text-2xl sm:text-3xl md:text-4xl font-bold text-blue-700">₹{bundle.yearlyPrice || 0}<span className="text-base font-medium">/yr</span></div>
-                        <div className="text-[11px] sm:text-xs text-gray-500 mt-1">No refund if you cancel after payment</div>
-                      </button>
-                      )}
+                        {/* Annual prepaid (yearly) */}
+                        <button
+                          onClick={() => setSubscriptionType("yearly")}
+                          className={`p-4 sm:p-5 md:p-6 rounded-xl border-2 transition-all text-left relative overflow-hidden h-full flex flex-col ${
+                            subscriptionType === "yearly"
+                              ? "border-blue-500 bg-blue-50"
+                              : "border-gray-200 hover:border-gray-300"
+                          }`}
+                        >
+                          <div className={`${isPremium ? "bg-amber-400 text-amber-900" : "bg-blue-600 text-white"} absolute left-0 right-0 top-0 px-3 py-2 text-xs sm:text-sm font-semibold flex items-center justify-between`}>
+                            <span>
+                              {(() => {
+                                const pct = computeYearlyDiscount()
+                                return pct > 0 ? `${pct}% off the first year` : "Best value"
+                              })()}
+                            </span>
+                            <span className="underline text-xs">View terms</span>
+                          </div>
+                          <div className="pt-9 sm:pt-10" />
+                          <div className="font-semibold text-base sm:text-lg md:text-xl">Annual, prepaid</div>
+                          <div className="text-xs sm:text-sm text-gray-600 line-through">
+                            ₹{(bundle as any).strikeYear || Math.round((bundle.yearlyPrice || 0) * 1.3)} /yr
+                          </div>
+                          <div className="mt-1 text-2xl sm:text-3xl md:text-4xl font-bold text-blue-700">₹{bundle.yearlyPrice || 0}<span className="text-base font-medium">/yr</span></div>
+                          <div className="text-[11px] sm:text-xs text-gray-500 mt-1">No refund if you cancel after payment</div>
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-base sm:text-lg">Monthly Subscription:</h4>
+                      <div className="grid grid-cols-1 gap-3 sm:gap-4">
+                        <div className={`p-4 sm:p-5 md:p-6 rounded-xl border-2 border-blue-500 bg-blue-50 text-left relative overflow-hidden h-full flex flex-col`}>
+                          <div className={`${isPremium ? "bg-amber-400 text-amber-900" : "bg-blue-600 text-white"} absolute left-0 right-0 top-0 px-3 py-2 text-xs sm:text-sm font-semibold`}>
+                            <span>One-time monthly payment</span>
+                          </div>
+                          <div className="pt-9 sm:pt-10" />
+                          <div className="font-semibold text-base sm:text-lg md:text-xl">Monthly</div>
+                          <div className="mt-1 text-2xl sm:text-3xl md:text-4xl font-bold text-blue-700">
+                            ₹{bundle.monthlyPrice || 0}
+                            <span className="text-base font-medium">/mo</span>
+                          </div>
+                          <div className="text-[11px] sm:text-xs text-gray-500 mt-1">Pay once, use for one month</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Portfolio List */}
                   {bundle.portfolios.length > 0 && (
