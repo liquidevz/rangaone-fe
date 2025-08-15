@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  output: 'standalone',
   images: {
     domains: ['v0.blob.com'],
     remotePatterns: [
@@ -14,7 +15,6 @@ const nextConfig = {
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
-  // Ensure transpilation of node_modules for compatibility
   transpilePackages: [
     'lucide-react',
   ],
@@ -23,6 +23,9 @@ const nextConfig = {
   },
   typescript: {
     ignoreBuildErrors: true,
+  },
+  experimental: {
+    outputFileTracingRoot: undefined,
   },
 }
 

@@ -1,0 +1,79 @@
+name: Deploy to CloudPanel
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      - run: npm ci --legacy-peer-deps
+      - run: npm run build
+      - run: npm run lint
+      
+      - name: Send test failure notification
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: 'Tests Failed - ${{ github.repository }}'
+          body: |
+            Tests failed for commit ${{ github.sha }}
+            
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref }}
+            
+            View logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          to: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: 'GitHub Actions'
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Deploy to CloudPanel
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.CLOUDPANEL_HOST }}
+          username: ${{ secrets.CLOUDPANEL_USER }}
+          key: ${{ secrets.CLOUDPANEL_SSH_KEY }}
+          script: |
+            cd /home/${{ secrets.CLOUDPANEL_USER }}/htdocs/${{ secrets.CLOUDPANEL_USER }}
+            git pull origin main
+            docker-compose down
+            docker-compose up -d --build
+            docker system prune -f
+      
+      - name: Send failure notification
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: 'Deployment Failed - ${{ github.repository }}'
+          body: |
+            Deployment failed for commit ${{ github.sha }}
+            
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref }}
+            Commit: ${{ github.event.head_commit.message }}
+            
+            View logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          to: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: 'GitHub Actions'
