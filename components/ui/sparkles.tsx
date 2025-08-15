@@ -93,7 +93,7 @@ export const SparklesCore: React.FC<SparklesCoreProps> = ({
     }
 
     animationRef.current = requestAnimationFrame(animate);
-  }, [particleColor, particleDensity, maxSize, minSize, createParticle]);
+  }, [particleColor, particleDensity, createParticle]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
