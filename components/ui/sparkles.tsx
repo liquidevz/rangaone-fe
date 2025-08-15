@@ -35,10 +35,10 @@ export const SparklesCore: React.FC<SparklesCoreProps> = ({
 
   const createParticle = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) return null;
 
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    if (!ctx) return null;
 
     const particle = {
       x: Math.random() * canvas.width,
@@ -52,6 +52,7 @@ export const SparklesCore: React.FC<SparklesCoreProps> = ({
     };
 
     particlesRef.current.push(particle);
+    return particle;
   }, [maxSize, minSize]);
 
   const animate = useCallback(() => {
