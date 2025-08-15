@@ -24,9 +24,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  experimental: {
-    outputFileTracingRoot: undefined,
-  },
+
 }
 
 export default nextConfig
