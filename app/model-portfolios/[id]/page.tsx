@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { useParams, useSearchParams } from "next/navigation";
 import React, { useEffect, useState, useRef, useMemo } from "react";
+import { cache } from "@/lib/cache";
 import {
   LineChart,
   Line,
@@ -72,10 +73,16 @@ export default function PortfolioDetailsPage() {
   const [refreshingPrices, setRefreshingPrices] = useState(false);
   const [selectedSegment, setSelectedSegment] = useState<PortfolioAllocationItem | null>(null);
   const [hoveredSegment, setHoveredSegment] = useState<PortfolioAllocationItem | null>(null);
-  const [expandedRow, setExpandedRow] = useState<number | null>(null);
-  const [selectedTimePeriod, setSelectedTimePeriod] = useState<TimePeriod>('1m');
+  const [expandedRow, setExpandedRow] = useState<number | null>(() => 
+    cache.getState<number | null>(`portfolio_${portfolioId}_expandedRow`) || null
+  );
+  const [selectedTimePeriod, setSelectedTimePeriod] = useState<TimePeriod>(() => 
+    cache.getState<TimePeriod>(`portfolio_${portfolioId}_timePeriod`) || '1m'
+  );
   const [chartLoading, setChartLoading] = useState(false);
-  const [detailsExpanded, setDetailsExpanded] = useState(false);
+  const [detailsExpanded, setDetailsExpanded] = useState(() => 
+    cache.getState<boolean>(`portfolio_${portfolioId}_detailsExpanded`) || false
+  );
   const isMobile = useIsMobile();
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [isInteracting, setIsInteracting] = useState(false);
@@ -433,6 +440,7 @@ export default function PortfolioDetailsPage() {
   // Handle time period selection
   const handleTimePeriodChange = async (period: TimePeriod) => {
     setSelectedTimePeriod(period);
+    cache.setState(`portfolio_${portfolioId}_timePeriod`, period);
     // Flatten current chart visually while fetching
     if (chartData && chartData.length > 0) {
       const firstPoint = chartData[0];
@@ -662,13 +670,19 @@ export default function PortfolioDetailsPage() {
   const fetchPriceHistory = async (portfolioId: string, period: TimePeriod = 'Since Inception') => {
     try {
       const apiPeriod = mapPeriodToAPI(period);
+      const cacheKey = `priceHistory_${portfolioId}_${apiPeriod}`;
+      
+      // Check cache first
+      const cachedData = cache.get<PriceHistoryData[]>(cacheKey);
+      if (cachedData) {
+        console.log('📊 Using cached price history');
+        setPriceHistory(cachedData);
+        return;
+      }
+      
       console.log(`🔍 Fetching: ${portfolioId}, period: ${apiPeriod}`);
       
       const response = await axiosApi.get(`/api/portfolios/${portfolioId}/price-history?period=${apiPeriod}`);
-      
-      console.log('🔍 RAW API RESPONSE:', response.data);
-      console.log('🔍 Response type:', typeof response.data);
-      console.log('🔍 Is array:', Array.isArray(response.data));
       
       if (!response.data || !Array.isArray(response.data) || response.data.length === 0) {
         console.warn('⚠️ No valid data');
@@ -676,21 +690,16 @@ export default function PortfolioDetailsPage() {
         return;
       }
       
-      console.log('🔍 First 3 items:', response.data.slice(0, 3));
+      const chartData = response.data.map((item: any) => ({
+        date: new Date(item.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+        portfolioValue: Number(item.value) || 0,
+        benchmarkValue: (Number(item.value) || 0) * 0.95,
+        portfolioChange: 0,
+        benchmarkChange: 0
+      })).filter(item => item.portfolioValue > 0);
       
-      const chartData = response.data.map((item: any) => {
-        console.log('🔍 Item:', item);
-        
-        return {
-          date: new Date(item.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
-          portfolioValue: Number(item.value) || 0,
-          benchmarkValue: (Number(item.value) || 0) * 0.95,
-          portfolioChange: 0,
-          benchmarkChange: 0
-        };
-      }).filter(item => item.portfolioValue > 0);
-      
-      console.log('🔍 Final chart data:', chartData);
+      // Cache for 5 minutes
+      cache.set(cacheKey, chartData, 5);
       setPriceHistory(chartData);
       
     } catch (error) {
@@ -823,9 +832,21 @@ export default function PortfolioDetailsPage() {
         setLoading(true);
         console.log("Loading portfolio data for ID:", portfolioId);
         
-        // Fetch portfolio details
-        const portfolioResponse: any = await portfolioService.getById(portfolioId);
-        console.log("Portfolio response received:", portfolioResponse);
+        // Check cache first
+        const cacheKey = `portfolio_${portfolioId}`;
+        const cachedPortfolio = cache.get<any>(cacheKey);
+        
+        let portfolioResponse: any;
+        if (cachedPortfolio) {
+          console.log("Using cached portfolio data");
+          portfolioResponse = cachedPortfolio;
+        } else {
+          // Fetch portfolio details
+          portfolioResponse = await portfolioService.getById(portfolioId);
+          console.log("Portfolio response received:", portfolioResponse);
+          // Cache for 10 minutes
+          cache.set(cacheKey, portfolioResponse, 10);
+        }
         
         // Handle different response structures
         let portfolioData = portfolioResponse;
@@ -850,8 +871,18 @@ export default function PortfolioDetailsPage() {
           const validatedHoldings = validateHoldingsData(portfolioData.holdings, portfolioId);
           
           if (validatedHoldings.length > 0) {
-            const holdingsWithLivePrices = await fetchStockPrices(validatedHoldings, portfolioData);
-            setHoldingsWithPrices(holdingsWithLivePrices);
+            const pricesCacheKey = `holdings_prices_${portfolioId}`;
+            const cachedPrices = cache.get<HoldingWithPrice[]>(pricesCacheKey);
+            
+            if (cachedPrices) {
+              console.log("Using cached holdings prices");
+              setHoldingsWithPrices(cachedPrices);
+            } else {
+              const holdingsWithLivePrices = await fetchStockPrices(validatedHoldings, portfolioData);
+              setHoldingsWithPrices(holdingsWithLivePrices);
+              // Cache prices for 2 minutes
+              cache.set(pricesCacheKey, holdingsWithLivePrices, 2);
+            }
           } else {
             console.warn("⚠️ No valid holdings found after validation");
             setHoldingsWithPrices([]);
@@ -1223,7 +1254,10 @@ export default function PortfolioDetailsPage() {
                             {!detailsExpanded ? (
                               <button
                                 className="mt-2 text-sm text-blue-600 font-medium underline"
-                                onClick={() => setDetailsExpanded(true)}
+                                onClick={() => {
+                                  setDetailsExpanded(true);
+                                  cache.setState(`portfolio_${portfolioId}_detailsExpanded`, true);
+                                }}
                               >
                                 Read more
                               </button>
@@ -1235,7 +1269,10 @@ export default function PortfolioDetailsPage() {
                                 />
                                 <button
                                   className="mt-2 text-sm text-blue-600 font-medium underline"
-                                  onClick={() => setDetailsExpanded(false)}
+                                  onClick={() => {
+                                    setDetailsExpanded(false);
+                                    cache.setState(`portfolio_${portfolioId}_detailsExpanded`, false);
+                                  }}
                                 >
                                   Show less
                                 </button>
@@ -1616,11 +1653,19 @@ export default function PortfolioDetailsPage() {
                 </tr>
               </thead>
                 <tbody className="text-xs">
-                  {portfolioMetrics.holdingsWithQuantities.length > 0 ? portfolioMetrics.holdingsWithQuantities.map((holding, index) => (
+                  {portfolioMetrics.holdingsWithQuantities.length > 0 ? portfolioMetrics.holdingsWithQuantities.map((holding, index) => {
+                    const profitPercent = holding.currentPrice && holding.buyPrice ? 
+                      ((holding.currentPrice - holding.buyPrice) / holding.buyPrice * 100) : 0;
+                    
+                    return (
                     <React.Fragment key={index}>
                       <tr 
                         className={`cursor-pointer transition-all duration-200 ${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-blue-50`}
-                        onClick={() => setExpandedRow(expandedRow === index ? null : index)}
+                        onClick={() => {
+                          const newExpandedRow = expandedRow === index ? null : index;
+                          setExpandedRow(newExpandedRow);
+                          cache.setState(`portfolio_${portfolioId}_expandedRow`, newExpandedRow);
+                        }}
                       >
                         <td className="px-2 py-2">
                           <div className="font-medium text-blue-600">{holding.symbol}</div>
@@ -1645,12 +1690,24 @@ export default function PortfolioDetailsPage() {
                           ) : (
                             <span className="text-gray-400">Loading...</span>
                           )}
-                    </td>
+                        </td>
                       </tr>
                       {expandedRow === index && (
                         <tr className="bg-blue-50">
                           <td colSpan={4} className="px-2 py-3">
                             <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <span className="text-gray-600 font-medium">Buy Price:</span>
+                                <div className="text-gray-800 font-medium">₹{(holding.buyPrice || 0).toFixed(2)}</div>
+                              </div>
+                              <div>
+                                <span className="text-gray-600 font-medium">Profit %:</span>
+                                <div className={`font-medium ${
+                                  profitPercent >= 0 ? 'text-green-600' : 'text-red-600'
+                                }`}>
+                                  {profitPercent >= 0 ? '+' : ''}{profitPercent.toFixed(2)}%
+                                </div>
+                              </div>
                               <div>
                                 <span className="text-gray-600 font-medium">Action:</span>
                                 <div className="text-gray-800">
@@ -1688,7 +1745,8 @@ export default function PortfolioDetailsPage() {
                   </tr>
                       )}
                     </React.Fragment>
-                  )) : (
+                    );
+                  }) : (
                     <tr>
                       <td colSpan={4} className="px-4 py-8 text-center text-gray-500">
                         No holdings data available
@@ -1705,8 +1763,7 @@ export default function PortfolioDetailsPage() {
                 <thead>
                   <tr className="bg-gray-600 text-[#FFFFF0] text-xs">
                     <th className="px-2 py-2 text-left font-medium">Stock Name</th>
-                    <th className="px-2 py-2 text-center font-medium">Type</th>
-                    <th className="px-2 py-2 text-center font-medium">Sector</th>
+                    <th className="px-2 py-2 text-center font-medium">Buy Price</th>
                     <th className="px-2 py-2 text-center font-medium">Wt (%)</th>
                     <th className="px-2 py-2 text-center font-medium">Action</th>
                     <th className="px-2 py-2 text-center font-medium">
@@ -1726,17 +1783,23 @@ export default function PortfolioDetailsPage() {
                     <th className="px-2 py-2 text-center font-medium">Quantity</th>
                     <th className="px-2 py-2 text-center font-medium">Investment</th>
                     <th className="px-2 py-2 text-center font-medium">Current Value</th>
+                    <th className="px-2 py-2 text-center font-medium">Profit %</th>
                 </tr>
                 </thead>
                 <tbody className="text-xs">
-                  {portfolioMetrics.holdingsWithQuantities.length > 0 ? portfolioMetrics.holdingsWithQuantities.map((holding, index) => (
+                  {portfolioMetrics.holdingsWithQuantities.length > 0 ? portfolioMetrics.holdingsWithQuantities.map((holding, index) => {
+                    const profitPercent = holding.currentPrice && holding.buyPrice ? 
+                      ((holding.currentPrice - holding.buyPrice) / holding.buyPrice * 100) : 0;
+                    
+                    return (
                     <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                       <td className="px-2 py-2">
                         <div className="font-medium text-blue-600">{holding.symbol}</div>
                         <div className="text-gray-500 text-xs">NSE : {holding.symbol}</div>
                   </td>
-                      <td className="px-2 py-2 text-center text-gray-700">{holding.marketCap || 'Mid cap'}</td>
-                      <td className="px-2 py-2 text-center text-gray-700">{holding.sector}</td>
+                      <td className="px-2 py-2 text-center font-medium">
+                        ₹{(holding.buyPrice || 0).toFixed(2)}
+                      </td>
                       <td className="px-2 py-2 text-center font-medium">{holding.weight.toFixed(2)}%</td>
                       <td className="px-2 py-2 text-center">
                         <span className="px-1 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
@@ -1785,11 +1848,19 @@ export default function PortfolioDetailsPage() {
                             : `₹0.00`
                           }
                         </span>
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <span className={`font-medium ${
+                          profitPercent >= 0 ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {profitPercent >= 0 ? '+' : ''}{profitPercent.toFixed(2)}%
+                        </span>
                   </td>
                 </tr>
-                  )) : (
+                    );
+                  }) : (
                     <tr>
-                      <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                      <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
                         No holdings data available
                   </td>
                 </tr>

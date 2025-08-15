@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useCart } from "@/components/cart/cart-context";
 import { PaymentModal } from "@/components/payment-modal";
+import { cache } from "@/lib/cache";
 
 // Extend the Portfolio type to include the message field from the API response
 interface PortfolioWithMessage extends Omit<Portfolio, "subscriptionFee"> {
@@ -129,46 +130,58 @@ export default function ModelPortfoliosPage() {
       try {
         setLoading(true);
 
+        // Check cache for subscription access
+        let accessData = cache.get<SubscriptionAccess>('subscription_access');
+        
         // Fetch subscription access data if authenticated
         if (isAuthenticated) {
-          try {
-            const accessData = await subscriptionService.getSubscriptionAccess();
-            setSubscriptionAccess(accessData);
-            console.log("📊 Model portfolios subscription access from API:", accessData);
-            console.log("🔑 Dynamic portfolioAccess IDs from /api/user/subscriptions:", accessData.portfolioAccess);
-            console.log("🔍 Total accessible portfolios:", accessData.portfolioAccess.length);
-          } catch (error) {
-            console.error("Failed to fetch subscription access:", error);
-            setSubscriptionAccess({
-              hasBasic: false,
-              hasPremium: false,
-              portfolioAccess: [],
-              subscriptionType: 'none'
-            });
+          if (!accessData) {
+            try {
+              accessData = await subscriptionService.getSubscriptionAccess();
+              cache.set('subscription_access', accessData, 5); // Cache for 5 minutes
+              console.log("📊 Model portfolios subscription access from API:", accessData);
+            } catch (error) {
+              console.error("Failed to fetch subscription access:", error);
+              accessData = {
+                hasBasic: false,
+                hasPremium: false,
+                portfolioAccess: [],
+                subscriptionType: 'none'
+              };
+            }
           }
+          setSubscriptionAccess(accessData);
         }
 
-        if (isAuthenticated) {
-          // Fetch portfolios from /api/user/portfolios
-          const userPortfolios = await portfolioService.getAll();
-          setPortfolios(userPortfolios as unknown as PortfolioWithMessage[]);
-        } else {
-          // If not authenticated, still try to fetch to show subscription prompts
-          try {
-            const userPortfolios = await portfolioService.getAll();
-            setPortfolios(userPortfolios as unknown as PortfolioWithMessage[]);
-          } catch (error) {
-            // If that fails, try public endpoint as fallback
-            const publicPortfolios = await portfolioService.getPublic();
-            setPortfolios(
-              publicPortfolios as unknown as PortfolioWithMessage[]
-            );
+        // Check cache for portfolios
+        const cacheKey = isAuthenticated ? 'user_portfolios' : 'public_portfolios';
+        let portfoliosData = cache.get<PortfolioWithMessage[]>(cacheKey);
+        
+        if (!portfoliosData) {
+          if (isAuthenticated) {
+            // Fetch portfolios from /api/user/portfolios
+            portfoliosData = await portfolioService.getAll() as unknown as PortfolioWithMessage[];
+          } else {
+            // If not authenticated, still try to fetch to show subscription prompts
+            try {
+              portfoliosData = await portfolioService.getAll() as unknown as PortfolioWithMessage[];
+            } catch (error) {
+              // If that fails, try public endpoint as fallback
+              portfoliosData = await portfolioService.getPublic() as unknown as PortfolioWithMessage[];
+            }
           }
+          // Cache for 10 minutes
+          cache.set(cacheKey, portfoliosData, 10);
         }
+        
+        setPortfolios(portfoliosData);
       } catch (error: any) {
         console.error("Failed to load portfolios:", error);
 
         if (error?.response?.status === 401) {
+          // Clear cache on auth error
+          cache.remove('subscription_access');
+          cache.remove('user_portfolios');
           toast({
             title: "Authentication Error",
             description: "Your session has expired. Please log in again.",

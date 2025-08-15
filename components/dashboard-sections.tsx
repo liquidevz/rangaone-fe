@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation"
 import { MethodologyModal } from "@/components/methodology-modal"
 import { authService } from "@/services/auth.service"
 import axiosApi from "@/lib/axios"
+import { cache } from "@/lib/cache"
 
 // Mobile Global Search Component
 function MobileGlobalSearch() {
@@ -82,6 +83,15 @@ export function MarketIndicesSection() {
     const fetchIndicesData = async () => {
       try {
         setLoading(true)
+        
+        // Check cache first
+        const cachedIndices = cache.get<typeof indices>('market_indices')
+        if (cachedIndices) {
+          setIndices(cachedIndices)
+          setLoading(false)
+          return
+        }
+        
         const indicesToFetch = ['NIFTY', 'MIDCAP150', 'NIFTYSMLCAP250']
         const promises = indicesToFetch.map(async (symbol) => {
           try {
@@ -115,6 +125,8 @@ export function MarketIndicesSection() {
         
         if (validResults.length > 0) {
           setIndices(validResults)
+          // Cache for 1 minute
+          cache.set('market_indices', validResults, 1)
         }
       } catch (error) {
         console.error('Failed to fetch indices data:', error)
@@ -386,8 +398,13 @@ export function ExpertRecommendationsSection() {
     const fetchSubscriptionAccess = async () => {
       if (isAuthenticated) {
         try {
-          console.log("🔄 Fetching fresh subscription access from API...")
-          const accessData = await subscriptionService.forceRefresh()
+          // Check cache first
+          let accessData = cache.get<SubscriptionAccess>('subscription_access')
+          if (!accessData) {
+            console.log("🔄 Fetching fresh subscription access from API...")
+            accessData = await subscriptionService.forceRefresh()
+            cache.set('subscription_access', accessData, 5) // Cache for 5 minutes
+          }
           setSubscriptionAccess(accessData)
           console.log("✅ Subscription access updated:", accessData)
         } catch (error) {
@@ -426,30 +443,45 @@ export function ExpertRecommendationsSection() {
     const fetchTips = async () => {
       setLoading(true)
       try {
-        if (activeTab === "RangaOneWealth") {
-          // Fetch general investment tips from /api/user/tips
-          const generalTips = await tipsService.getAll()
-          
-          // Sort by creation date (latest first) and separate by category
-          const sortedTips = generalTips.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-          const basicTips = sortedTips.filter(tip => tip.category === 'basic')
-          const premiumTips = sortedTips.filter(tip => tip.category === 'premium')
-          
-          // Alternate between basic and premium tips
-          const alternatingTips = []
-          const maxLength = Math.max(basicTips.length, premiumTips.length)
-          
-          for (let i = 0; i < maxLength; i++) {
-            if (i < basicTips.length) alternatingTips.push(basicTips[i])
-            if (i < premiumTips.length) alternatingTips.push(premiumTips[i])
+        const cacheKey = `tips_${activeTab}`
+        let tips = cache.get<Tip[]>(cacheKey)
+        
+        if (!tips) {
+          if (activeTab === "RangaOneWealth") {
+            // Fetch general investment tips from /api/user/tips
+            const generalTips = await tipsService.getAll()
+            
+            // Sort by creation date (latest first) and separate by category
+            const sortedTips = generalTips.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            const basicTips = sortedTips.filter(tip => tip.category === 'basic')
+            const premiumTips = sortedTips.filter(tip => tip.category === 'premium')
+            
+            // Alternate between basic and premium tips
+            const alternatingTips = []
+            const maxLength = Math.max(basicTips.length, premiumTips.length)
+            
+            for (let i = 0; i < maxLength; i++) {
+              if (i < basicTips.length) alternatingTips.push(basicTips[i])
+              if (i < premiumTips.length) alternatingTips.push(premiumTips[i])
+            }
+            
+            tips = alternatingTips
+            setRangaOneWealthTips(tips)
+          } else if (activeTab === "modelPortfolio") {
+            // Fetch portfolio-specific tips from /api/user/tips-with-portfolio
+            const portfolioTips = await tipsService.getPortfolioTips()
+            tips = portfolioTips.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            setModelPortfolioTips(tips)
           }
           
-          setRangaOneWealthTips(alternatingTips)
-        } else if (activeTab === "modelPortfolio") {
-          // Fetch portfolio-specific tips from /api/user/tips-with-portfolio
-          const portfolioTips = await tipsService.getPortfolioTips()
-          const sortedPortfolioTips = portfolioTips.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-          setModelPortfolioTips(sortedPortfolioTips)
+          // Cache for 10 minutes
+          if (tips) cache.set(cacheKey, tips, 10)
+        } else {
+          if (activeTab === "RangaOneWealth") {
+            setRangaOneWealthTips(tips)
+          } else {
+            setModelPortfolioTips(tips)
+          }
         }
       } catch (error) {
         console.error(`Failed to fetch ${activeTab} tips:`, error)
@@ -533,19 +565,15 @@ export function ModelPortfolioSection() {
     const fetchSubscriptionAccess = async () => {
       if (isAuthenticated) {
         try {
-          // Force refresh to ensure we get the latest subscription status after payment
-          const accessData = await subscriptionService.forceRefresh()
+          // Check cache first
+          let accessData = cache.get<SubscriptionAccess>('subscription_access')
+          if (!accessData) {
+            // Force refresh to ensure we get the latest subscription status after payment
+            accessData = await subscriptionService.forceRefresh()
+            cache.set('subscription_access', accessData, 5) // Cache for 5 minutes
+          }
           setSubscriptionAccess(accessData)
           console.log("📊 Updated subscription access:", accessData)
-          
-          // Debug: Check all user subscriptions
-          const { subscriptions: allSubscriptions, accessData: debugAccessData } = await subscriptionService.getUserSubscriptions(true)
-          console.log("🔍 All user subscriptions:", allSubscriptions)
-          console.log("🔍 Debug access data:", debugAccessData)
-          
-          // Debug: Check if any subscriptions are active
-          const activeSubscriptions = allSubscriptions.filter(sub => sub.isActive)
-          console.log("✅ Active subscriptions:", activeSubscriptions)
           
         } catch (error) {
           console.error("Failed to fetch subscription access:", error)
@@ -610,48 +638,62 @@ export function ModelPortfolioSection() {
       try {
         setLoading(true)
         
-        // Get user portfolios with access control from /api/user/portfolios
-        let portfolioData: Portfolio[] = []
+        const cacheKey = isAuthenticated ? 'dashboard_user_portfolios' : 'dashboard_public_portfolios'
+        let portfolioData = cache.get<Portfolio[]>(cacheKey)
         
-        if (isAuthenticated) {
-          try {
-            portfolioData = await portfolioService.getAll()
-            console.log("📊 User portfolio data with access:", portfolioData)
-          } catch (error) {
-            console.error("Failed to fetch user portfolios:", error)
+        if (!portfolioData) {
+          // Get user portfolios with access control from /api/user/portfolios
+          if (isAuthenticated) {
+            try {
+              portfolioData = await portfolioService.getAll()
+              console.log("📊 User portfolio data with access:", portfolioData)
+            } catch (error) {
+              console.error("Failed to fetch user portfolios:", error)
+              portfolioData = await portfolioService.getPublic()
+            }
+          } else {
             portfolioData = await portfolioService.getPublic()
           }
-        } else {
-          portfolioData = await portfolioService.getPublic()
+          
+          // Cache for 10 minutes
+          cache.set(cacheKey, portfolioData, 10)
         }
         
         setPortfolios(portfolioData.slice(0, 4))
         
         // Fetch detailed data for each portfolio
         if (isAuthenticated && portfolioData.length > 0) {
-          console.log("🔍 Fetching detailed data for portfolios:", portfolioData.slice(0, 6).map(p => p._id))
+          const detailsCacheKey = 'dashboard_portfolio_details'
+          let detailsMap = cache.get<{ [key: string]: any }>(detailsCacheKey)
           
-          const detailsPromises = portfolioData.slice(0, 6).map(async (portfolio) => {
-            try {
-              console.log(`📡 Fetching details for portfolio ${portfolio._id}`)
-              const details = await portfolioService.getById(portfolio._id)
-              console.log(`📊 Portfolio ${portfolio._id} details:`, details)
-              return { id: portfolio._id, data: details }
-            } catch (error) {
-              console.error(`Failed to fetch details for portfolio ${portfolio._id}:`, error)
-              return { id: portfolio._id, data: null }
-            }
-          })
-          
-          const detailsResults = await Promise.all(detailsPromises)
-          console.log("🎯 All portfolio details results:", detailsResults)
-          
-          const detailsMap = detailsResults.reduce((acc, { id, data }) => {
-            if (data) {
-              acc[id] = data
-            }
-            return acc
-          }, {} as { [key: string]: any })
+          if (!detailsMap) {
+            console.log("🔍 Fetching detailed data for portfolios:", portfolioData.slice(0, 6).map(p => p._id))
+            
+            const detailsPromises = portfolioData.slice(0, 6).map(async (portfolio) => {
+              try {
+                console.log(`📡 Fetching details for portfolio ${portfolio._id}`)
+                const details = await portfolioService.getById(portfolio._id)
+                console.log(`📊 Portfolio ${portfolio._id} details:`, details)
+                return { id: portfolio._id, data: details }
+              } catch (error) {
+                console.error(`Failed to fetch details for portfolio ${portfolio._id}:`, error)
+                return { id: portfolio._id, data: null }
+              }
+            })
+            
+            const detailsResults = await Promise.all(detailsPromises)
+            console.log("🎯 All portfolio details results:", detailsResults)
+            
+            detailsMap = detailsResults.reduce((acc, { id, data }) => {
+              if (data) {
+                acc[id] = data
+              }
+              return acc
+            }, {} as { [key: string]: any })
+            
+            // Cache for 5 minutes
+            cache.set(detailsCacheKey, detailsMap, 5)
+          }
           
           console.log("🗂️ Final portfolio details map:", detailsMap)
           setPortfolioDetails(detailsMap)
