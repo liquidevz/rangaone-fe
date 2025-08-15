@@ -1,0 +1,15 @@
+name: Simple Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger CloudPanel Webhook
+        run: |
+          curl -X POST "${{ secrets.CLOUDPANEL_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{"ref": "${{ github.ref }}", "repository": "${{ github.repository }}"}'

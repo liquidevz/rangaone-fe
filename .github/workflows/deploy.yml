@@ -49,8 +49,12 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.CLOUDPANEL_HOST }}
+          port: 22
           username: ${{ secrets.CLOUDPANEL_USER }}
           key: ${{ secrets.CLOUDPANEL_SSH_KEY }}
+          timeout: 60s
+          command_timeout: 60s
+          debug: true
           script: |
             cd /home/${{ secrets.CLOUDPANEL_USER }}/htdocs/${{ secrets.CLOUDPANEL_USER }}
             git pull origin main
