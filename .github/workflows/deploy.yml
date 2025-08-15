@@ -69,8 +69,8 @@ jobs:
             fi
             
             # Create and setup project directory
-            mkdir -p /home/${{ secrets.CLOUDPANEL_USER }}/htdocs/${{ secrets.CLOUDPANEL_USER }}
-            cd /home/${{ secrets.CLOUDPANEL_USER }}/htdocs/${{ secrets.CLOUDPANEL_USER }}
+            mkdir -p /home/${{ secrets.CLOUDPANEL_USER }}/htdocs/${{ secrets.CLOUDPANEL_DOMAIN }}
+            cd /home/${{ secrets.CLOUDPANEL_USER }}/htdocs/${{ secrets.CLOUDPANEL_DOMAIN }}
             
             # Clone or pull repository
             if [ ! -d ".git" ]; then
