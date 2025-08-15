@@ -92,7 +92,8 @@ export const SparklesCore: React.FC<SparklesCoreProps> = ({
       createParticle();
     }
 
-    animationRef.current = requestAnimationFrame(animate);
+    const animateFrame = () => animate();
+    animationRef.current = requestAnimationFrame(animateFrame);
   }, [particleColor, particleDensity, createParticle]);
 
   useEffect(() => {
